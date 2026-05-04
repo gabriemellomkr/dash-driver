@@ -716,6 +716,20 @@
         </div>
         <div id="achievements" class="space-y-2"></div>
       </div>
+
+      <!-- Push Notifications -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">notifications_active</span>
+          <h3 class="text-white text-sm font-semibold">Notificações Push</h3>
+        </div>
+        <p style="color:#8b90a0;font-size:12px;margin-bottom:12px;line-height:1.5">Receba avisos com o app fechado: resumo diário às 21h, meta atingida, vencimentos de documentos.</p>
+        <button id="push-toggle-btn" onclick="togglePush()"
+          style="width:100%;padding:10px 16px;border-radius:12px;border:1px solid rgba(59,130,246,.3);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:rgba(59,130,246,.15);color:#60a5fa">
+          Ativar notificações push
+        </button>
+        <p style="color:#414755;font-size:10px;text-align:center;margin-top:8px">No iPhone, instale o app na tela inicial pelo Safari</p>
+      </div>
     </div>
   </div>
 
@@ -1456,6 +1470,7 @@
 // ═══════════════════════════════════════════════
 const SB_URL = 'https://db.nucleocriativo.com.br';
 const SB_KEY = 'uSLPst+6To2N5BXF3VipCYxUYkzL133Oy0bscyopivY=';
+const VAPID_PUBLIC_KEY = 'BBmT98NgaJch0YI5XCIA4Lc_7Wdf842XrH9Y7qj_R0BrRYds8v-0h1D2X3mycYWntd1O0wT1vpogn1rX1Yrcvk4';
 const SB_HEADERS = {
   'apikey': SB_KEY,
   'Content-Type': 'application/json',
@@ -2639,6 +2654,38 @@ function generateNotifications() {
     }
   }
 
+  // ── Falta para meta do dia ──
+  if (metaDia > 0) {
+    const todayTotal = corridas
+      .filter(c => (c.data || '').slice(0, 10) === today)
+      .reduce((s, c) => s + c.liquido, 0);
+    const falta = metaDia - todayTotal;
+    const pct   = todayTotal / metaDia;
+    if (pct >= 0.5 && pct < 1) {
+      notifs.push({
+        icon: 'trending_up', color: '#60a5fa',
+        msg: `Falta ${brl(falta)} para bater a meta do dia (${Math.round(pct * 100)}% concluído)`,
+        urgency: pct >= 0.8 ? 'med' : 'low'
+      });
+    }
+  }
+
+  // ── Resumo diário (após 18h) ──
+  if (localHour() >= 18) {
+    const hojeC   = corridas.filter(c => (c.data || '').slice(0, 10) === today);
+    const totalDia = hojeC.reduce((s, c) => s + c.liquido, 0);
+    if (hojeC.length > 0) {
+      const jHoje   = loadJornadas().filter(j => j.data === today);
+      const hTrab   = jHoje.reduce((s, j) => s + calcSessaoHoras(j), 0);
+      const hStr    = hTrab > 0 ? ` · ${formatHoras(hTrab)} trabalhadas` : '';
+      notifs.push({
+        icon: 'summarize', color: '#34d399',
+        msg: `Resumo do dia: ${hojeC.length} corrida${hojeC.length !== 1 ? 's' : ''} · ${brl(totalDia)}${hStr}`,
+        urgency: 'low'
+      });
+    }
+  }
+
   // ── Promoções próximas (≤ 30 min) ──
   getUpcomingPromos(30).forEach(p => {
     const ini = timeToMin(p.inicio);
@@ -2675,7 +2722,8 @@ function generateNotifications() {
     }
   }
 
-  return notifs;
+  const ORDER = { high: 0, med: 1, low: 2 };
+  return notifs.sort((a, b) => (ORDER[a.urgency] ?? 2) - (ORDER[b.urgency] ?? 2));
 }
 
 function openNotifications() {
@@ -2921,6 +2969,7 @@ async function salvarCorrida() {
   updateDash();
   renderHistorico();
   updateNotifBadge();
+  checkGoalPush();
   showTab('dash');
   showToast(msg);
 }
@@ -3800,6 +3849,109 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
+// ── PUSH NOTIFICATIONS ────────────────────────────────
+function urlBase64ToUint8Array(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function subscribePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('Push não suportado.\nNo iPhone, instale o app na tela inicial pelo Safari primeiro.');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') { alert('Permissão de notificação negada.'); return; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub }),
+    });
+    localStorage.setItem('dd_push_enabled', '1');
+    updatePushBtn();
+    showToast('✅ Notificações push ativadas!');
+  } catch (err) {
+    console.error('Push subscribe error:', err);
+    alert('Erro ao ativar push:\n' + err.message);
+  }
+}
+
+async function unsubscribePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await sub.unsubscribe();
+      await fetch(`${SB_URL}/rest/v1/moto_push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`, {
+        method: 'DELETE', headers: SB_HEADERS,
+      });
+    }
+  } catch (err) { console.error(err); }
+  localStorage.removeItem('dd_push_enabled');
+  updatePushBtn();
+  showToast('Notificações push desativadas');
+}
+
+function togglePush() {
+  localStorage.getItem('dd_push_enabled') === '1' ? unsubscribePush() : subscribePush();
+}
+
+function updatePushBtn() {
+  const btn = document.getElementById('push-toggle-btn');
+  if (!btn) return;
+  const on = localStorage.getItem('dd_push_enabled') === '1';
+  btn.textContent = on ? 'Desativar notificações push' : 'Ativar notificações push';
+  btn.style.background    = on ? 'rgba(239,68,68,.15)'       : 'rgba(59,130,246,.15)';
+  btn.style.color         = on ? '#f87171'                   : '#60a5fa';
+  btn.style.borderColor   = on ? 'rgba(239,68,68,.3)'        : 'rgba(59,130,246,.3)';
+}
+
+function triggerPush(title, body, tag) {
+  if (localStorage.getItem('dd_push_enabled') !== '1') return;
+  fetch('/api/notify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, body, tag }),
+  }).catch(() => {});
+}
+
+function maybePushVencimentos() {
+  if (localStorage.getItem('dd_push_enabled') !== '1') return;
+  const today2 = todayStr();
+  if (localStorage.getItem('dd_push_venc_date') === today2) return;
+  const urgentes = generateNotifications().filter(n =>
+    n.urgency === 'high' && ['badge','receipt_long','security','description'].includes(n.icon)
+  );
+  if (!urgentes.length) return;
+  triggerPush('⚠️ Documentos do veículo', urgentes.map(n => n.msg).join('\n'), 'vencimentos');
+  localStorage.setItem('dd_push_venc_date', today2);
+}
+
+function checkGoalPush() {
+  if (localStorage.getItem('dd_push_enabled') !== '1') return;
+  const today2 = todayStr();
+  const metaDia2 = CONFIG.metaDia || 0;
+  if (!metaDia2) return;
+  const todayTotal2 = corridas
+    .filter(c => (c.data || '').slice(0, 10) === today2)
+    .reduce((s, c) => s + c.liquido, 0);
+  const pct = todayTotal2 / metaDia2;
+  if (pct >= 1 && localStorage.getItem('dd_push_meta_date') !== today2) {
+    triggerPush('🏆 Meta do dia batida!', `Você ganhou ${brl(todayTotal2)} hoje. Parabéns!`, 'meta-dia');
+    localStorage.setItem('dd_push_meta_date', today2);
+  } else if (pct >= 0.8 && pct < 1 && localStorage.getItem('dd_push_falta_date') !== today2) {
+    triggerPush('📈 Quase lá!', `Falta ${brl(metaDia2 - todayTotal2)} para bater a meta do dia.`, 'falta-meta');
+    localStorage.setItem('dd_push_falta_date', today2);
+  }
+}
+
 // ── SUPABASE SYNC: jornadas, outras entradas, metas ──
 async function syncFromSB() {
   try {
@@ -3852,6 +4004,8 @@ checkAuth();
   updateDash();
   renderHistorico();
   updateNotifBadge();
+  updatePushBtn();
+  maybePushVencimentos();
 })();
 </script>
 </body>
