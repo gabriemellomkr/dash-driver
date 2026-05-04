@@ -1,0 +1,3802 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>DashDriver</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "background":              "#131315",
+            "surface":                 "#131315",
+            "surface-container-lowest":"#0e0e10",
+            "surface-container-low":   "#1b1b1d",
+            "surface-container":       "#1f1f21",
+            "surface-container-high":  "#2a2a2c",
+            "surface-container-highest":"#353437",
+            "on-surface":              "#e4e2e4",
+            "on-surface-variant":      "#c1c6d7",
+            "outline":                 "#8b90a0",
+            "outline-variant":         "#414755",
+            "primary":                 "#adc6ff",
+            "primary-container":       "#4b8eff",
+            "on-primary":              "#002e69",
+            "secondary-container":     "#35477a",
+            "error":                   "#ffb4ab",
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background-color: #131315; color: #e4e2e4; }
+
+    .glass {
+      background: rgba(31, 31, 33, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .glass-strong {
+      background: rgba(20, 20, 22, 0.85);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Bottom sheet */
+    #insert-modal { display: none; }
+    #insert-modal.open { display: flex; }
+    #modal-content { transform: translateY(100%); transition: transform 320ms cubic-bezier(0.32,0.72,0,1); }
+    #insert-modal.open #modal-content { transform: translateY(0); }
+
+    /* Filter chips scrollable */
+    .chips-row { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .chips-row::-webkit-scrollbar { display: none; }
+
+    /* Status badges */
+    .s-otima   { background: rgba(52,199,89,.15);  color: #5ddb7e; }
+    .s-boa     { background: rgba(59,130,246,.15); color: #60a5fa; }
+    .s-ok      { background: rgba(251,146,60,.15); color: #fb923c; }
+    .s-prej    { background: rgba(239,68,68,.15);  color: #f87171; }
+
+    /* Meta bar */
+    .meta-track { background: #2a2a2c; border-radius: 4px; height: 6px; overflow: hidden; }
+    .meta-fill  { height: 100%; border-radius: 4px; transition: width .6s ease; }
+
+    /* Nav active glow */
+    .nav-active span { color: #60a5fa !important; }
+    .nav-active .nav-dot { display: block; }
+    .nav-dot { display: none; width: 4px; height: 4px; border-radius: 50%; background: #60a5fa; margin: 0 auto; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 88px; left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #353437; color: #e4e2e4;
+      padding: 10px 20px; border-radius: 20px;
+      font-size: 13px; z-index: 9999;
+      opacity: 0; transition: all .28s ease;
+      pointer-events: none; white-space: nowrap;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Modal open state for bottom-sheet modals */
+    .modal-open { display: flex !important; }
+    .modal-open > div:last-child { transform: translateY(0) !important; }
+
+    /* Fade in page */
+    .page.active { animation: fadeUp .2s ease; }
+    @keyframes fadeUp {
+      from { opacity: .4; transform: translateY(6px); }
+      to   { opacity: 1;  transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface overflow-x-hidden">
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<div id="login-screen" class="fixed inset-0 z-[9999] flex items-center justify-center px-6" style="background:#0e0e10; display:none">
+  <div class="glass rounded-3xl p-8 w-full max-w-sm" style="box-shadow:0 0 40px rgba(0,122,255,.1)">
+    <div class="flex items-center gap-3 mb-7">
+      <div class="w-11 h-11 rounded-2xl flex items-center justify-center" style="background:rgba(0,122,255,.15)">
+        <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1">speed</span>
+      </div>
+      <div>
+        <h1 class="text-white font-black text-base tracking-tight">DashDriver</h1>
+        <p class="text-outline text-xs mt-0.5">Acesso restrito</p>
+      </div>
+    </div>
+    <div class="flex flex-col gap-3">
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">E-mail</label>
+        <input type="email" id="l-email" placeholder="seu@email.com"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">Senha</label>
+        <input type="password" id="l-pass" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter')doLogin()"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+      <button onclick="doLogin()"
+        class="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl mt-1 active:scale-95 transition-all hover:bg-blue-400"
+        style="box-shadow:0 0 20px rgba(59,130,246,.3)">
+        Entrar
+      </button>
+      <div id="l-err" class="text-red-400 text-xs text-center hidden">E-mail ou senha incorretos</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header class="sticky top-0 z-50 border-b border-white/5 px-4 py-3 flex justify-between items-center"
+  style="background:rgba(14,14,16,0.85); backdrop-filter:blur(30px)">
+  <div class="flex items-center gap-3">
+    <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:22px">speed</span>
+    <div>
+      <div class="text-white font-black text-xs tracking-widest uppercase">DashDriver</div>
+      <div class="text-outline text-[9px] mt-0.5" id="nav-date">—</div>
+    </div>
+  </div>
+  <div class="flex gap-1">
+    <button onclick="openNotifications()" class="p-2 text-outline hover:text-blue-400 transition-colors active:scale-90 relative">
+      <span class="material-symbols-outlined" style="font-size:20px">notifications</span>
+      <span id="notif-badge" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+    </button>
+    <button onclick="openSettings()" class="p-2 text-outline hover:text-blue-400 transition-colors active:scale-90">
+      <span class="material-symbols-outlined" style="font-size:20px">account_circle</span>
+    </button>
+  </div>
+</header>
+
+<!-- ═══════════════════ CONTENT ═══════════════════ -->
+<main class="pb-24">
+
+  <!-- ── DASHBOARD ── -->
+  <div class="page active" id="page-dash">
+    <div class="p-4 space-y-3">
+
+      <!-- Period chips -->
+      <div class="chips-row">
+        <div class="flex gap-2 pb-1">
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" data-period="today" onclick="selectPeriod('today',this)">Hoje</button>
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" data-period="yesterday" onclick="selectPeriod('yesterday',this)">Ontem</button>
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" data-period="week" onclick="selectPeriod('week',this)">Semana</button>
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" data-period="month" onclick="selectPeriod('month',this)">Mês</button>
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" data-period="all" onclick="selectPeriod('all',this)">Tudo</button>
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" data-period="custom" onclick="selectPeriod('custom',this)">Personalizado</button>
+        </div>
+        <!-- painel de datas customizadas -->
+        <div id="custom-range" class="hidden flex gap-2 mt-2 items-center">
+          <input type="date" id="custom-start" onchange="updateDash()"
+            class="flex-1 bg-surface-container-high border border-outline-variant rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors">
+          <span class="text-outline text-xs">até</span>
+          <input type="date" id="custom-end" onchange="updateDash()"
+            class="flex-1 bg-surface-container-high border border-outline-variant rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+
+      <!-- KPI 2x2 -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass rounded-2xl p-4">
+          <div class="flex items-center gap-1.5 mb-3">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">motorcycle</span>
+            <span class="text-outline text-[9px] font-semibold uppercase tracking-wider">Corridas</span>
+          </div>
+          <div class="text-white text-2xl font-black tracking-tight" id="d-corridas">—</div>
+          <div class="text-outline text-[10px] mt-0.5">no período</div>
+        </div>
+        <div class="glass rounded-2xl p-4">
+          <div class="flex items-center gap-1.5 mb-3">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">route</span>
+            <span class="text-outline text-[9px] font-semibold uppercase tracking-wider">Km rodados</span>
+          </div>
+          <div class="text-white text-2xl font-black tracking-tight" id="d-km">—</div>
+          <div class="text-outline text-[10px] mt-0.5">km</div>
+        </div>
+        <div class="glass rounded-2xl p-4">
+          <div class="flex items-center gap-1.5 mb-3">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">payments</span>
+            <span class="text-outline text-[9px] font-semibold uppercase tracking-wider">Receita líq.</span>
+          </div>
+          <div class="text-white text-2xl font-black tracking-tight" id="d-receita">—</div>
+          <div class="text-outline text-[10px] mt-0.5" id="d-receita-sub">—</div>
+        </div>
+        <div class="glass rounded-2xl p-4">
+          <div class="flex items-center gap-1.5 mb-3">
+            <span class="material-symbols-outlined text-green-400" style="font-variation-settings:'FILL' 1; font-size:16px">account_balance_wallet</span>
+            <span class="text-outline text-[9px] font-semibold uppercase tracking-wider">Lucro real</span>
+          </div>
+          <div class="text-2xl font-black tracking-tight" id="d-lucro">—</div>
+          <div class="text-outline text-[10px] mt-0.5" id="d-lucro-sub">receita − gastos</div>
+        </div>
+      </div>
+
+      <!-- KPI row 3 — 4 cards -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass rounded-2xl p-3">
+          <div class="text-outline text-[8px] font-semibold uppercase tracking-wider mb-1.5">R$/km</div>
+          <div class="text-white text-base font-bold" id="d-rpkm">—</div>
+        </div>
+        <div class="glass rounded-2xl p-3" style="cursor:pointer" onclick="openFuelModal()">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-outline text-[8px] font-semibold uppercase tracking-wider">⛽ Gasolina</span>
+            <span class="material-symbols-outlined text-orange-400" style="font-size:13px">add_circle</span>
+          </div>
+          <div class="text-white text-sm font-bold" id="d-gas">R$ 0,00</div>
+          <div class="text-outline text-[9px]" id="d-gas-litros">toque p/ registrar</div>
+        </div>
+        <div class="glass rounded-2xl p-3">
+          <div class="text-outline text-[8px] font-semibold uppercase tracking-wider mb-1.5">💸 Outros gastos</div>
+          <div class="text-white text-sm font-bold" id="d-outros-gastos">R$ 0,00</div>
+          <div class="text-outline text-[9px]" id="d-outros-gastos-sub">no período</div>
+        </div>
+        <div class="glass rounded-2xl p-3">
+          <div class="text-outline text-[8px] font-semibold uppercase tracking-wider mb-1.5">Taxa total</div>
+          <div class="text-white text-sm font-bold" id="d-taxa">—</div>
+          <div class="text-outline text-[9px]" id="d-taxa-pct">—</div>
+        </div>
+      </div>
+
+      <!-- R$/hora + Jornada card -->
+      <div id="jornada-dash-card" class="glass rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">schedule</span>
+            <h3 class="text-white text-sm font-semibold">Jornada de trabalho</h3>
+          </div>
+          <button onclick="openJornadaModal()" class="flex items-center gap-1 text-blue-400 text-xs font-semibold active:scale-90 transition-transform">
+            <span class="material-symbols-outlined" style="font-size:14px">add</span>
+            Registrar
+          </button>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="text-center">
+            <div class="text-outline text-[9px] font-semibold uppercase tracking-wider mb-1">Hoje</div>
+            <div class="text-white text-sm font-bold" id="d-jornada-hoje">0h</div>
+          </div>
+          <div class="text-center">
+            <div class="text-outline text-[9px] font-semibold uppercase tracking-wider mb-1">Período</div>
+            <div class="text-white text-sm font-bold" id="d-jornada-periodo">0h</div>
+          </div>
+          <div class="text-center">
+            <div class="text-outline text-[9px] font-semibold uppercase tracking-wider mb-1">R$/hora</div>
+            <div class="text-blue-400 text-sm font-bold" id="d-rph">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Promoções ativas banner -->
+      <div id="promos-ativas-card" class="hidden glass rounded-2xl p-4" style="border-color:rgba(251,146,60,.3)">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-orange-400" style="font-variation-settings:'FILL' 1; font-size:16px">local_offer</span>
+            <h3 class="text-white text-sm font-semibold">Promoções ativas agora</h3>
+          </div>
+          <button onclick="openPromoModal()" class="text-outline text-[10px] flex items-center gap-0.5 active:opacity-60">
+            gerenciar <span class="material-symbols-outlined" style="font-size:12px">chevron_right</span>
+          </button>
+        </div>
+        <div id="promos-ativas-list" class="flex flex-col gap-1.5"></div>
+      </div>
+
+      <!-- Promos btn (quando sem ativas) -->
+      <button id="promos-btn" onclick="openPromoModal()"
+        class="w-full glass rounded-2xl px-4 py-3 flex items-center gap-3 active:opacity-70 transition-opacity">
+        <span class="material-symbols-outlined text-orange-400" style="font-variation-settings:'FILL' 1; font-size:20px">local_offer</span>
+        <div class="flex-1 text-left">
+          <div class="text-white text-sm font-semibold">Promoções</div>
+          <div class="text-outline text-[10px]" id="promos-btn-sub">Cadastre promoções e taxas zero</div>
+        </div>
+        <span class="material-symbols-outlined text-outline" style="font-size:18px">chevron_right</span>
+      </button>
+
+      <!-- Taxa por plataforma -->
+      <div class="glass rounded-2xl px-4 py-3" id="taxa-plat-card">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="material-symbols-outlined text-purple-400" style="font-size:13px">percent</span>
+          <span class="text-outline text-[9px] font-semibold uppercase tracking-wider">Taxa por plataforma</span>
+          <span class="text-outline/50 text-[8px] ml-auto">menor = melhor</span>
+        </div>
+        <div id="d-taxa-breakdown"></div>
+      </div>
+
+      <!-- Meta do dia -->
+      <div class="glass rounded-2xl p-4 hidden" id="meta-card">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">flag</span>
+            <span class="text-white text-sm font-semibold" id="meta-titulo">Meta do dia</span>
+          </div>
+          <span class="text-blue-400 text-sm font-bold" id="meta-pct">0%</span>
+        </div>
+        <div class="meta-track">
+          <div class="meta-fill" id="meta-bar" style="width:0%;background:#3b82f6"></div>
+        </div>
+        <div class="flex justify-between text-[10px] text-outline mt-2">
+          <span id="meta-atual">R$ 0</span>
+          <span id="meta-falta"></span>
+          <span id="meta-valor">Meta: R$ 150</span>
+        </div>
+      </div>
+
+      <!-- Charts — donuts lado a lado -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass rounded-2xl p-3">
+          <div class="flex items-center gap-1.5 mb-2">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:14px">donut_large</span>
+            <h3 class="text-white text-xs font-semibold">Plataforma</h3>
+          </div>
+          <div style="height:130px; position:relative"><canvas id="chart-plat"></canvas></div>
+        </div>
+        <div class="glass rounded-2xl p-3">
+          <div class="flex items-center gap-1.5 mb-2">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:14px">wallet</span>
+            <h3 class="text-white text-xs font-semibold">Pagamento</h3>
+          </div>
+          <div style="height:130px; position:relative"><canvas id="chart-pag"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Bar chart com margem lateral -->
+      <div class="glass rounded-2xl p-4 mx-1">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">bar_chart</span>
+          <h3 class="text-white text-sm font-semibold">Receita por corrida</h3>
+        </div>
+        <div style="height:140px; position:relative"><canvas id="chart-evo"></canvas></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── CORRIDAS ── -->
+  <div class="page" id="page-corridas">
+    <div class="p-4 space-y-3">
+      <!-- Filtro de período -->
+      <div class="chips-row">
+        <div class="flex gap-2 pb-1">
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" onclick="setHistPeriod('today',this)">Hoje</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('yesterday',this)">Ontem</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('week',this)">Semana</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('month',this)">Mês</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('all',this)">Tudo</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('custom',this)">Personalizado</button>
+        </div>
+      </div>
+      <!-- Custom range for corridas -->
+      <div id="hist-custom-range" class="hidden flex gap-2 items-center">
+        <input type="date" id="hist-custom-start" onchange="renderHistorico()"
+          class="flex-1 bg-surface-container-high border border-outline-variant rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors">
+        <span class="text-outline text-xs">até</span>
+        <input type="date" id="hist-custom-end" onchange="renderHistorico()"
+          class="flex-1 bg-surface-container-high border border-outline-variant rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+      <!-- Filtro por plataforma -->
+      <div class="chips-row">
+        <div class="flex gap-2 pb-1" id="filter-bar">
+          <button class="plat-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" onclick="setFiltro('all',this)">Todas</button>
+          <button class="plat-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setFiltro('Uber',this)">Uber</button>
+          <button class="plat-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setFiltro('99',this)">99</button>
+          <button class="plat-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setFiltro('InDriver',this)">InDriver</button>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-4" id="hist-card">
+        <div id="hist-list"><div class="text-outline text-center py-10 text-sm">Carregando...</div></div>
+      </div>
+
+      <button onclick="exportarCSV()"
+        class="w-full py-3.5 rounded-2xl border border-outline-variant text-outline text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform">
+        <span class="material-symbols-outlined" style="font-size:18px">download</span>
+        Exportar CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- ── ANÁLISE ── -->
+  <div class="page" id="page-analise">
+    <div class="p-4 space-y-3">
+
+      <!-- KPIs de eficiência -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass rounded-2xl p-3 text-center">
+          <div class="text-outline text-[8px] font-semibold uppercase tracking-wider mb-1">Ticket médio</div>
+          <div class="text-white text-base font-black" id="an-ticket">—</div>
+        </div>
+        <div class="glass rounded-2xl p-3 text-center">
+          <div class="text-outline text-[8px] font-semibold uppercase tracking-wider mb-1">Corridas/dia ativo</div>
+          <div class="text-white text-base font-black" id="an-cpd">—</div>
+        </div>
+        <div class="glass rounded-2xl p-3 text-center">
+          <div class="text-outline text-[8px] font-semibold uppercase tracking-wider mb-1">Melhor corrida</div>
+          <div class="text-green-400 text-base font-black" id="an-best">—</div>
+        </div>
+        <div class="glass rounded-2xl p-3 text-center">
+          <div class="text-outline text-[8px] font-semibold uppercase tracking-wider mb-1">R$/km médio</div>
+          <div class="text-blue-400 text-base font-black" id="an-rpkm">—</div>
+        </div>
+      </div>
+
+      <!-- Heatmap: dia da semana × turno -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-purple-400" style="font-variation-settings:'FILL' 1; font-size:16px">grid_view</span>
+          <h3 class="text-white text-sm font-semibold">Mapa de calor — dia × turno</h3>
+        </div>
+        <div class="text-outline text-[9px] mb-2">Receita total por combinação (todos os registros)</div>
+        <div id="an-heatmap" class="overflow-x-auto"></div>
+        <div class="flex gap-3 mt-2 items-center justify-end">
+          <div class="flex items-center gap-1"><div style="width:10px;height:10px;border-radius:3px;background:rgba(96,165,250,.12)"></div><span class="text-outline text-[9px]">pouco</span></div>
+          <div class="flex items-center gap-1"><div style="width:10px;height:10px;border-radius:3px;background:rgba(96,165,250,.5)"></div><span class="text-outline text-[9px]">médio</span></div>
+          <div class="flex items-center gap-1"><div style="width:10px;height:10px;border-radius:3px;background:#60a5fa"></div><span class="text-outline text-[9px]">muito</span></div>
+        </div>
+      </div>
+
+      <!-- Melhor hora do dia -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">schedule</span>
+          <h3 class="text-white text-sm font-semibold">Receita por horário</h3>
+        </div>
+        <div id="an-horas" class="flex flex-col gap-1.5"></div>
+      </div>
+
+      <!-- Melhor dia da semana -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-green-400" style="font-variation-settings:'FILL' 1; font-size:16px">calendar_today</span>
+          <h3 class="text-white text-sm font-semibold">Melhor dia da semana</h3>
+        </div>
+        <div id="an-diasemana" class="flex flex-col gap-1.5"></div>
+      </div>
+
+      <!-- Melhor dia do mês -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-amber-400" style="font-variation-settings:'FILL' 1; font-size:16px">event</span>
+          <h3 class="text-white text-sm font-semibold">Melhor dia do mês</h3>
+        </div>
+        <div id="an-diames" class="flex flex-col gap-1.5"></div>
+      </div>
+
+      <!-- Comparativo por plataforma -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-orange-400" style="font-variation-settings:'FILL' 1; font-size:16px">leaderboard</span>
+          <h3 class="text-white text-sm font-semibold">Plataformas — comparativo</h3>
+        </div>
+        <div id="an-plat" class="flex flex-col gap-2"></div>
+      </div>
+
+      <!-- Tendência — últimas 8 semanas -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-teal-400" style="font-variation-settings:'FILL' 1; font-size:16px">trending_up</span>
+          <h3 class="text-white text-sm font-semibold">Tendência — últimas 8 semanas</h3>
+        </div>
+        <div id="an-tendencia" class="flex flex-col gap-1.5"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── FINANCEIRO ── -->
+  <div class="page" id="page-financeiro">
+    <div class="p-4 space-y-3">
+      <!-- Summary card -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-green-400" style="font-variation-settings:'FILL' 1; font-size:16px">account_balance</span>
+          <h3 class="text-white text-sm font-semibold">Resumo financeiro</h3>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="rounded-xl p-3 text-center" style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2)">
+            <div class="text-green-400 text-sm font-black" id="fin-receita">R$ 0</div>
+            <div class="text-outline text-[9px] mt-0.5">Receita</div>
+          </div>
+          <div class="rounded-xl p-3 text-center" style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2)">
+            <div class="text-red-400 text-sm font-black" id="fin-despesas">R$ 0</div>
+            <div class="text-outline text-[9px] mt-0.5">Despesas</div>
+          </div>
+          <div class="rounded-xl p-3 text-center" style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2)">
+            <div class="text-blue-400 text-sm font-black" id="fin-resultado">R$ 0</div>
+            <div class="text-outline text-[9px] mt-0.5">Resultado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Período do financeiro -->
+      <div class="chips-row">
+        <div class="flex gap-2 pb-1">
+          <button class="fin-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setFinPeriod('today',this)">Hoje</button>
+          <button class="fin-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setFinPeriod('yesterday',this)">Ontem</button>
+          <button class="fin-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setFinPeriod('week',this)">Semana</button>
+          <button class="fin-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" onclick="setFinPeriod('month',this)">Mês</button>
+          <button class="fin-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setFinPeriod('all',this)">Tudo</button>
+          <button class="fin-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setFinPeriod('custom',this)">Personalizado</button>
+        </div>
+      </div>
+      <div id="fin-custom-range" class="hidden flex gap-2 items-center">
+        <input type="date" id="fin-custom-start" onchange="renderFinanceiro()"
+          class="flex-1 bg-surface-container-high border border-outline-variant rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors">
+        <span class="text-outline text-xs">até</span>
+        <input type="date" id="fin-custom-end" onchange="renderFinanceiro()"
+          class="flex-1 bg-surface-container-high border border-outline-variant rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+
+      <!-- Corridas (entradas) -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-green-400" style="font-variation-settings:'FILL' 1; font-size:16px">motorcycle</span>
+            <h3 class="text-white text-sm font-semibold">Corridas</h3>
+          </div>
+          <span class="text-green-400 text-sm font-bold" id="fin-entradas-total">R$ 0</span>
+        </div>
+        <div id="fin-entradas-list" class="space-y-1.5"></div>
+      </div>
+
+      <!-- Outras entradas -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-teal-400" style="font-variation-settings:'FILL' 1; font-size:16px">savings</span>
+            <h3 class="text-white text-sm font-semibold">Outras entradas</h3>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-teal-400 text-sm font-bold" id="fin-outras-entradas-total">R$ 0</span>
+            <button onclick="openOutraEntradaModal()" class="flex items-center gap-1 text-blue-400 text-xs font-semibold active:scale-90 transition-transform">
+              <span class="material-symbols-outlined" style="font-size:14px">add</span>
+              Adicionar
+            </button>
+          </div>
+        </div>
+        <div id="fin-outras-entradas-list" class="space-y-1.5"></div>
+      </div>
+
+      <!-- Saídas -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-red-400" style="font-variation-settings:'FILL' 1; font-size:16px">arrow_upward</span>
+            <h3 class="text-white text-sm font-semibold">Saídas</h3>
+          </div>
+          <button onclick="openDespesaModal()" class="flex items-center gap-1 text-blue-400 text-xs font-semibold active:scale-90 transition-transform">
+            <span class="material-symbols-outlined" style="font-size:14px">add</span>
+            Adicionar
+          </button>
+        </div>
+        <div id="fin-saidas-list" class="space-y-1.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VEÍCULO ── -->
+  <div class="page" id="page-veiculo">
+    <div class="p-4 space-y-3">
+      <!-- Alertas de vencimento -->
+      <div id="veiculo-alertas"></div>
+
+      <!-- CNH -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">badge</span>
+          <h3 class="text-white text-sm font-semibold">CNH</h3>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="text-outline text-xs block mb-1.5 font-medium">Número da CNH</label>
+            <input type="text" id="v-cnh-num" placeholder="00000000000" maxlength="11" inputmode="numeric"
+              class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+          <div>
+            <label class="text-outline text-xs block mb-1.5 font-medium">Data de vencimento</label>
+            <input type="date" id="v-cnh-venc"
+              class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+        </div>
+        <!-- Status vencimento CNH -->
+        <div id="cnh-status" class="mt-3"></div>
+      </div>
+
+      <!-- Veículo -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-purple-400" style="font-variation-settings:'FILL' 1; font-size:16px">directions_car</span>
+          <h3 class="text-white text-sm font-semibold">Veículo</h3>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="text-outline text-xs block mb-1.5 font-medium">Nome do veículo</label>
+            <input type="text" id="v-modelo" placeholder="Honda CG 160, Voyage, etc."
+              class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-outline text-xs block mb-1.5 font-medium">Placa</label>
+              <input type="text" id="v-placa" placeholder="ABC-1234" maxlength="8"
+                class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors" style="text-transform:uppercase">
+            </div>
+            <div>
+              <label class="text-outline text-xs block mb-1.5 font-medium">RENAVAN</label>
+              <input type="text" id="v-renavan" placeholder="00000000000" maxlength="11" inputmode="numeric"
+                class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documentos -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-amber-400" style="font-variation-settings:'FILL' 1; font-size:16px">description</span>
+          <h3 class="text-white text-sm font-semibold">Documentos — Vencimentos</h3>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="text-outline text-xs block mb-1.5 font-medium">Venc. IPVA</label>
+            <input type="date" id="v-ipva"
+              class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+          <div>
+            <label class="text-outline text-xs block mb-1.5 font-medium">Venc. Seguro</label>
+            <input type="date" id="v-seguro"
+              class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+          <div>
+            <label class="text-outline text-xs block mb-1.5 font-medium">Venc. Licenciamento</label>
+            <input type="date" id="v-licenc"
+              class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+        </div>
+        <!-- Resumo datas -->
+        <div id="docs-status" class="mt-3 space-y-1.5"></div>
+      </div>
+
+      <button onclick="salvarVeiculo()"
+        class="w-full bg-blue-500 text-white font-bold py-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-all"
+        style="box-shadow:0 0 20px rgba(59,130,246,.3)">
+        <span class="material-symbols-outlined" style="font-size:18px">save</span>
+        Salvar dados
+      </button>
+    </div>
+  </div>
+
+  <!-- ── CARREIRA ── -->
+  <div class="page" id="page-carreira">
+    <div class="p-4 space-y-3">
+      <!-- Level card -->
+      <div class="glass rounded-2xl p-6 text-center" id="carreira-level-card" style="box-shadow:0 0 30px rgba(59,130,246,.1)">
+        <div class="text-5xl mb-2" id="carreira-level-icon">🆕</div>
+        <h2 class="text-white text-xl font-black mb-1" id="carreira-level-name">Parceiro Novo</h2>
+        <p class="text-outline text-xs mb-4" id="carreira-level-desc">Continue rodando para subir de nível</p>
+        <!-- progress bar to next level -->
+        <div class="w-full h-2 rounded-full" style="background:rgba(255,255,255,.08)">
+          <div id="carreira-progress-bar" class="h-2 rounded-full transition-all" style="width:0%;background:#3b82f6"></div>
+        </div>
+        <div class="flex justify-between mt-1.5">
+          <span class="text-outline text-[9px]" id="carreira-progress-cur">R$ 0</span>
+          <span class="text-outline text-[9px]" id="carreira-progress-next">próximo nível</span>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="glass rounded-2xl p-4" id="carreira-stats"></div>
+
+      <!-- Conquistas -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-amber-400" style="font-variation-settings:'FILL' 1; font-size:16px">workspace_premium</span>
+          <h3 class="text-white text-sm font-semibold">Conquistas</h3>
+        </div>
+        <div id="achievements" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══════════════════ BOTTOM NAV ═══════════════════ -->
+<nav class="fixed bottom-0 left-0 w-full border-t border-white/5 z-40"
+  style="background:rgba(14,14,16,.92); backdrop-filter:blur(30px); padding-bottom: max(8px, env(safe-area-inset-bottom))">
+  <div class="flex justify-around items-center px-1 pt-1.5 pb-1">
+    <button onclick="showTab('dash')" class="nav-btn nav-active flex flex-col items-center gap-0.5 flex-1 py-1 transition-all active:scale-90" data-tab="dash">
+      <span class="material-symbols-outlined nav-icon text-blue-400" style="font-size:20px">dashboard</span>
+      <span class="text-[8px] font-semibold text-blue-400">Dashboard</span>
+    </button>
+    <button onclick="showTab('corridas')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-1 transition-all active:scale-90" data-tab="corridas">
+      <span class="material-symbols-outlined nav-icon text-outline" style="font-size:20px">motorcycle</span>
+      <span class="text-[8px] font-semibold text-outline">Corridas</span>
+    </button>
+    <button onclick="showTab('financeiro')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-1 transition-all active:scale-90" data-tab="financeiro">
+      <span class="material-symbols-outlined nav-icon text-outline" style="font-size:20px">account_balance_wallet</span>
+      <span class="text-[8px] font-semibold text-outline">Financeiro</span>
+    </button>
+    <button onclick="showTab('analise')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-1 transition-all active:scale-90" data-tab="analise">
+      <span class="material-symbols-outlined nav-icon text-outline" style="font-size:20px">insights</span>
+      <span class="text-[8px] font-semibold text-outline">Análise</span>
+    </button>
+    <button onclick="showTab('veiculo')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-1 transition-all active:scale-90" data-tab="veiculo">
+      <span class="material-symbols-outlined nav-icon text-outline" style="font-size:20px">directions_car</span>
+      <span class="text-[8px] font-semibold text-outline">Veículo</span>
+    </button>
+    <button onclick="showTab('carreira')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-1 transition-all active:scale-90" data-tab="carreira">
+      <span class="material-symbols-outlined nav-icon text-outline" style="font-size:20px">military_tech</span>
+      <span class="text-[8px] font-semibold text-outline">Carreira</span>
+    </button>
+  </div>
+</nav>
+
+<!-- FAB flutuante -->
+<button id="fab-add" onclick="openModal()"
+  class="fixed z-50 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-white active:scale-90 transition-transform border-4 border-background"
+  style="bottom: calc(72px + max(8px, env(safe-area-inset-bottom))); right: 20px; box-shadow:0 0 24px rgba(59,130,246,.45)">
+  <span class="material-symbols-outlined" style="font-size:26px">add</span>
+</button>
+
+<!-- ═══════════════════ MODAL (bottom sheet) ═══════════════════ -->
+<div id="insert-modal" class="fixed inset-0 z-[100] flex-col justify-end">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="modal-backdrop" onclick="closeModal()"></div>
+  <div id="modal-content" class="glass-strong w-full rounded-t-[28px] p-5 pb-8 relative z-10 flex flex-col gap-3 overflow-y-auto"
+    style="max-height:92dvh">
+    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-1 flex-shrink-0"></div>
+    <div class="flex justify-between items-center flex-shrink-0">
+      <h2 class="text-white text-lg font-bold" id="modal-title">Lançar Corrida</h2>
+      <button onclick="closeModal()" class="text-outline p-1 hover:text-white transition-colors active:scale-90">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form id="add-ride-form" class="flex flex-col gap-3" onsubmit="return false">
+
+      <!-- Data — primeiro campo, mais visível -->
+      <div class="glass rounded-xl p-3" style="border-color:rgba(96,165,250,.25)">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:15px">calendar_today</span>
+          <label class="text-white text-xs font-semibold">Data da corrida</label>
+        </div>
+        <!-- Atalhos rápidos -->
+        <div class="flex gap-2 mb-2">
+          <button type="button" id="btn-hoje" onclick="setDataRapida(0)"
+            class="flex-1 py-2 rounded-lg text-xs font-bold border transition-all active:scale-95"
+            style="background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.5);color:#93c5fd">
+            Hoje
+          </button>
+          <button type="button" id="btn-ontem" onclick="setDataRapida(-1)"
+            class="flex-1 py-2 rounded-lg text-xs font-bold border border-outline-variant text-outline transition-all active:scale-95">
+            Ontem
+          </button>
+          <button type="button" id="btn-anteontem" onclick="setDataRapida(-2)"
+            class="flex-1 py-2 rounded-lg text-xs font-bold border border-outline-variant text-outline transition-all active:scale-95">
+            Anteontem
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-outline text-[10px] block mb-1 font-medium">Data</label>
+            <input type="date" id="f-data" oninput="highlightDateBtn()"
+              class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+          <div>
+            <label class="text-outline text-[10px] block mb-1 font-medium">Horário</label>
+            <input type="time" id="f-hora"
+              class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Plataforma</label>
+          <select id="f-plat"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 appearance-none transition-colors">
+            <option value="Uber">🚗 Uber</option>
+            <option value="99">🟠 99</option>
+            <option value="InDriver">🟢 InDriver</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Pagamento</label>
+          <select id="f-pag"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 appearance-none transition-colors">
+            <option value="PIX">PIX</option>
+            <option value="App">No app</option>
+            <option value="Dinheiro">Dinheiro</option>
+            <option value="Maquininha">Maquininha</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">Distância (km)</label>
+        <input type="number" id="f-km" placeholder="Ex: 8.5" step="0.1" min="0" inputmode="decimal"
+          oninput="calcPreview()"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+
+      <!-- Valor da corrida -->
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">Valor da corrida (R$)</label>
+        <input type="number" id="f-bruto" placeholder="11,10" step="0.01" min="0" inputmode="decimal"
+          oninput="calcTaxa()"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        <p class="text-outline/60 text-[9px] mt-1 px-1">O que apareceu para o passageiro pagar pela corrida</p>
+      </div>
+
+      <!-- Outras cobranças (opcional, fora da taxa) -->
+      <div>
+        <label class="text-outline text-xs mb-1.5 font-medium flex items-center gap-2">
+          Outras cobranças (R$)
+          <span class="text-[9px] font-normal text-outline/50">opcional</span>
+        </label>
+        <input type="number" id="f-outras" placeholder="0,00" step="0.01" min="0" inputmode="decimal"
+          oninput="calcPreview()"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        <p class="text-outline/60 text-[9px] mt-1 px-1">Ex: cancelamento anterior — não entra na base da taxa</p>
+      </div>
+
+      <!-- Meu ganho -->
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">Meu ganho (R$)</label>
+        <input type="number" id="f-liquido" placeholder="9,00" step="0.01" min="0" inputmode="decimal"
+          oninput="calcTaxa()"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        <p class="text-outline/60 text-[9px] mt-1 px-1">O que você recebeu pela corrida (sem as outras cobranças)</p>
+      </div>
+
+      <!-- Taxa calculada automaticamente -->
+      <div id="taxa-preview" class="hidden items-center justify-between px-3 py-2.5 rounded-xl"
+        style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2)">
+        <div class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-blue-400" style="font-size:14px">percent</span>
+          <span class="text-outline text-xs">Taxa da plataforma</span>
+        </div>
+        <span class="text-blue-400 text-sm font-bold" id="taxa-pct-display">—</span>
+      </div>
+
+      <!-- Preview -->
+      <div id="preview-card" class="glass rounded-xl p-3 hidden">
+        <div class="text-outline text-[9px] font-semibold uppercase tracking-wider mb-2">Preview da corrida</div>
+        <div id="preview-body" class="grid grid-cols-3 gap-2 text-center"></div>
+      </div>
+
+      <div id="form-error" class="text-red-400 text-xs text-center hidden">Preencha todos os campos corretamente.</div>
+
+      <button onclick="salvarCorrida()" id="btn-salvar"
+        class="w-full bg-blue-500 text-white font-bold py-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-all mt-1"
+        style="box-shadow:0 0 20px rgba(59,130,246,.3)">
+        <span class="material-symbols-outlined" style="font-size:18px">save</span>
+        Registrar Corrida
+      </button>
+
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════ SETTINGS MODAL ═══════════════════ -->
+<div id="settings-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeSettings()"></div>
+  <div class="glass-strong w-full rounded-t-[28px] p-5 pb-8 relative z-10 flex flex-col gap-4"
+    style="max-height:90dvh; overflow-y:auto">
+    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-1 flex-shrink-0"></div>
+    <div class="flex justify-between items-center flex-shrink-0">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:20px">settings</span>
+        <h2 class="text-white text-lg font-bold">Configurações</h2>
+      </div>
+      <button onclick="closeSettings()" class="text-outline p-1 hover:text-white transition-colors active:scale-90">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Perfil -->
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">person</span>
+        <span class="text-white text-sm font-semibold">Perfil</span>
+      </div>
+      <div class="flex items-center gap-3 mb-3">
+        <button onclick="toggleAvatarPicker()" id="avatar-btn"
+          class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 active:scale-90 transition-transform"
+          style="background:rgba(59,130,246,.15);border:2px solid rgba(59,130,246,.3)">🏍️</button>
+        <div class="flex-1">
+          <label class="text-outline text-xs block mb-1.5 font-medium">Seu nome</label>
+          <input type="text" id="cfg-nome" placeholder="Motorista"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+      <!-- Avatar picker -->
+      <div id="avatar-picker" class="hidden grid grid-cols-8 gap-2 mt-2">
+        <!-- emojis injected by JS -->
+      </div>
+    </div>
+
+    <!-- Gasolina Section -->
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-orange-400" style="font-variation-settings:'FILL' 1; font-size:16px">local_gas_station</span>
+        <span class="text-white text-sm font-semibold">Combustível</span>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Preço do litro (R$)</label>
+          <input type="number" id="cfg-preco-litro" step="0.01" min="0" inputmode="decimal"
+            placeholder="6,70"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+            oninput="updateCustoKmPreview()">
+        </div>
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Consumo da moto (km/L)</label>
+          <input type="number" id="cfg-consumo" step="0.1" min="1" inputmode="decimal"
+            placeholder="24"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+            oninput="updateCustoKmPreview()">
+        </div>
+      </div>
+      <!-- Preview custo gas/km -->
+      <div class="mt-3 flex items-center justify-between px-1">
+        <span class="text-outline text-xs">Custo gasolina por km</span>
+        <span class="text-orange-400 text-sm font-bold" id="cfg-custo-preview">R$ 0,000/km</span>
+      </div>
+    </div>
+
+    <!-- Revisão / Manutenção -->
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-amber-400" style="font-variation-settings:'FILL' 1; font-size:16px">build</span>
+        <span class="text-white text-sm font-semibold">Revisão / Manutenção</span>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Custo médio da revisão (R$)</label>
+          <input type="number" id="cfg-custo-revisao" step="10" min="0" inputmode="decimal"
+            placeholder="350"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+            oninput="updateCustoPreview()">
+        </div>
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">A cada quantos km</label>
+          <input type="number" id="cfg-km-revisao" step="100" min="100" inputmode="decimal"
+            placeholder="3000"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+            oninput="updateCustoPreview()">
+        </div>
+      </div>
+      <div class="mt-3 flex items-center justify-between px-1">
+        <span class="text-outline text-xs">Custo revisão por km</span>
+        <span class="text-amber-400 text-sm font-bold" id="cfg-rev-preview">R$ 0,000/km</span>
+      </div>
+    </div>
+
+    <!-- Custo operacional total -->
+    <div class="glass rounded-2xl p-3 flex items-center justify-between">
+      <div>
+        <div class="text-white text-xs font-semibold">Custo operacional total</div>
+        <div class="text-outline text-[9px] mt-0.5" id="cfg-total-breakdown">gasolina + revisão</div>
+      </div>
+      <span class="text-white text-base font-bold" id="cfg-total-preview">R$ 0,000/km</span>
+    </div>
+
+    <!-- Meta Section -->
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-green-400" style="font-variation-settings:'FILL' 1; font-size:16px">flag</span>
+        <span class="text-white text-sm font-semibold">Metas de resultado</span>
+      </div>
+      <div class="flex flex-col gap-3">
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Meta diária (R$)</label>
+          <input type="number" id="cfg-meta" step="1" min="0" inputmode="decimal"
+            placeholder="150"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Meta semanal (R$)</label>
+          <input type="number" id="cfg-meta-semana" step="1" min="0" inputmode="decimal"
+            placeholder="900"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Meta mensal (R$)</label>
+          <input type="number" id="cfg-meta-mes" step="1" min="0" inputmode="decimal"
+            placeholder="3500"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+    </div>
+
+    <!-- Fuso horário -->
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-cyan-400" style="font-variation-settings:'FILL' 1; font-size:16px">schedule</span>
+        <span class="text-white text-sm font-semibold">Fuso horário</span>
+      </div>
+      <select id="cfg-timezone"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 appearance-none transition-colors">
+        <option value="America/Sao_Paulo">Brasília / SP / RJ / MG / Sul (UTC-3)</option>
+        <option value="America/Fortaleza">Fortaleza / Recife / Salvador / Manaus (UTC-3)</option>
+        <option value="America/Cuiaba">Cuiabá / Campo Grande (UTC-4)</option>
+        <option value="America/Porto_Velho">Porto Velho / Boa Vista (UTC-4)</option>
+        <option value="America/Rio_Branco">Rio Branco / Acre (UTC-5)</option>
+        <option value="America/Noronha">Fernando de Noronha (UTC-2)</option>
+        <option value="Europe/Lisbon">Lisboa / Portugal (UTC+1)</option>
+        <option value="UTC">UTC</option>
+      </select>
+      <p class="text-outline/60 text-[9px] mt-2 px-1">Usado para calcular "hoje" e o gráfico de atividade por hora corretamente</p>
+    </div>
+
+    <!-- Save button -->
+    <button onclick="saveSettings()"
+      class="w-full bg-blue-500 text-white font-bold py-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-all"
+      style="box-shadow:0 0 20px rgba(59,130,246,.3)">
+      <span class="material-symbols-outlined" style="font-size:18px">save</span>
+      Salvar configurações
+    </button>
+
+    <!-- Reset -->
+    <button onclick="resetSettings()"
+      class="w-full py-2.5 rounded-2xl border border-outline-variant text-outline text-xs font-medium flex items-center justify-center gap-2 active:scale-95 transition-all">
+      <span class="material-symbols-outlined" style="font-size:14px">restart_alt</span>
+      Restaurar padrões
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════ FUEL MODAL ═══════════════════ -->
+<div id="fuel-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeFuelModal()"></div>
+  <div class="glass-strong w-full rounded-t-[28px] p-5 pb-8 relative z-10 flex flex-col gap-3">
+    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-1"></div>
+    <div class="flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-orange-400" style="font-variation-settings:'FILL' 1; font-size:20px">local_gas_station</span>
+        <h2 class="text-white text-lg font-bold">Registrar Abastecimento</h2>
+      </div>
+      <button onclick="closeFuelModal()" class="text-outline p-1 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Data -->
+    <div class="glass rounded-xl p-3" style="border-color:rgba(251,146,60,.25)">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-orange-400" style="font-variation-settings:'FILL' 1; font-size:15px">calendar_today</span>
+        <label class="text-white text-xs font-semibold">Data do abastecimento</label>
+      </div>
+      <div class="flex gap-2 mb-2">
+        <button type="button" id="fbtn-hoje" onclick="setFuelData(0)"
+          class="flex-1 py-2 rounded-lg text-xs font-bold border transition-all active:scale-95"
+          style="background:rgba(251,146,60,.2);border-color:rgba(251,146,60,.5);color:#fdba74">Hoje</button>
+        <button type="button" id="fbtn-ontem" onclick="setFuelData(-1)"
+          class="flex-1 py-2 rounded-lg text-xs font-bold border border-outline-variant text-outline transition-all active:scale-95">Ontem</button>
+      </div>
+      <input type="date" id="f-fuel-data" oninput="highlightFuelBtn()"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-orange-500 transition-colors">
+    </div>
+
+    <!-- Valor -->
+    <div>
+      <label class="text-outline text-xs block mb-1.5 font-medium">Quanto gastei (R$)</label>
+      <input type="number" id="f-fuel-valor" placeholder="80,00" step="0.01" min="0" inputmode="decimal"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-orange-500 transition-colors">
+    </div>
+
+    <!-- Litros (opcional) -->
+    <div>
+      <label class="text-outline text-xs mb-1.5 font-medium flex items-center gap-2">
+        Litros abastecidos <span class="text-[9px] font-normal text-outline/50">opcional</span>
+      </label>
+      <input type="number" id="f-fuel-litros" placeholder="12,5" step="0.1" min="0" inputmode="decimal"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-orange-500 transition-colors">
+    </div>
+
+    <div id="fuel-error" class="text-red-400 text-xs text-center hidden">Preencha a data e o valor.</div>
+
+    <button onclick="salvarAbastecimento()" id="btn-fuel"
+      class="w-full text-white font-bold py-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-all"
+      style="background:#f97316;box-shadow:0 0 20px rgba(249,115,22,.3)">
+      <span class="material-symbols-outlined" style="font-size:18px">local_gas_station</span>
+      Registrar abastecimento
+    </button>
+
+    <!-- Histórico de abastecimentos -->
+    <div id="fuel-history" class="flex flex-col gap-2 mt-1"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ DESPESA MODAL ═══════════════════ -->
+<div id="despesa-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeDespesaModal()"></div>
+  <div class="glass-strong w-full rounded-t-[28px] p-5 pb-8 relative z-10 flex flex-col gap-3">
+    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-1"></div>
+    <div class="flex justify-between items-center">
+      <h2 class="text-white text-lg font-bold" id="desp-modal-title">Nova Despesa</h2>
+      <div class="flex items-center gap-2">
+        <button id="desp-cancel-btn" onclick="cancelEditDespesa()" class="hidden text-outline text-xs active:opacity-60">Cancelar</button>
+        <button onclick="closeDespesaModal()" class="text-outline p-1 active:scale-90 transition-transform">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </div>
+    <div>
+      <label class="text-outline text-xs block mb-1.5 font-medium">Data</label>
+      <input type="date" id="f-desp-data" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+    </div>
+    <div>
+      <label class="text-outline text-xs block mb-1.5 font-medium">Categoria</label>
+      <select id="f-desp-cat" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 appearance-none transition-colors">
+        <option value="alimentacao">🍔 Alimentação</option>
+        <option value="telefone">📱 Telefone</option>
+        <option value="seguro">🛡️ Seguro</option>
+        <option value="manutencao">🔧 Manutenção</option>
+        <option value="outros">📦 Outros</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-outline text-xs block mb-1.5 font-medium">Descrição <span class="text-[9px] font-normal opacity-50">opcional</span></label>
+      <input type="text" id="f-desp-desc" placeholder="Ex: almoço, troca de óleo..." class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+    </div>
+    <div>
+      <label class="text-outline text-xs block mb-1.5 font-medium">Valor (R$)</label>
+      <input type="number" id="f-desp-valor" placeholder="0,00" step="0.01" min="0" inputmode="decimal" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+    </div>
+    <div id="desp-error" class="text-red-400 text-xs text-center hidden">Preencha todos os campos obrigatórios.</div>
+    <button onclick="salvarDespesa()" id="desp-save-btn" class="w-full text-white font-bold py-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-all" style="background:#ef4444;box-shadow:0 0 20px rgba(239,68,68,.3)">
+      <span class="material-symbols-outlined" style="font-size:18px">save</span>
+      Registrar despesa
+    </button>
+  </div>
+</div>
+
+<!-- old veiculo-modal removed – form now inline in page-veiculo -->
+
+<!-- TOAST -->
+<!-- ═══════════════════ NOTIFICAÇÕES MODAL ═══════════════════ -->
+<div id="notif-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeNotifications()"></div>
+  <div class="glass-strong w-full rounded-t-[28px] p-5 pb-8 relative z-10 flex flex-col gap-3" style="max-height:80dvh;overflow-y:auto">
+    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-1"></div>
+    <div class="flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:18px">notifications</span>
+        <h2 class="text-white text-lg font-bold">Notificações</h2>
+      </div>
+      <button onclick="closeNotifications()" class="text-outline p-1 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="notif-list" class="flex flex-col gap-2"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ JORNADA MODAL ═══════════════════ -->
+<div id="jornada-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeJornadaModal()"></div>
+  <div class="glass-strong w-full rounded-t-[28px] p-5 pb-8 relative z-10 flex flex-col gap-4" style="max-height:85dvh;overflow-y:auto">
+    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-1"></div>
+    <div class="flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:18px">schedule</span>
+        <h2 class="text-white text-lg font-bold">Jornada de trabalho</h2>
+      </div>
+      <button onclick="closeJornadaModal()" class="text-outline p-1 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <!-- Adicionar / editar sessão -->
+    <div class="glass rounded-2xl p-4 flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <div class="text-outline text-[10px] font-semibold uppercase tracking-wider" id="j-form-title">Nova sessão</div>
+        <button id="j-cancel-btn" onclick="cancelEditSessao()" class="hidden text-outline text-[10px] active:opacity-60">Cancelar</button>
+      </div>
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">Data</label>
+        <input type="date" id="j-data" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Início</label>
+          <input type="time" id="j-inicio" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Fim</label>
+          <input type="time" id="j-fim" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+      <div id="j-error" class="text-red-400 text-xs text-center hidden">Preencha data, início e fim.</div>
+      <button onclick="salvarSessao()" id="j-save-btn"
+        class="w-full bg-blue-500 text-white font-bold py-3.5 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-all"
+        style="box-shadow:0 0 16px rgba(59,130,246,.3)">
+        <span class="material-symbols-outlined" style="font-size:18px">add</span>
+        Adicionar sessão
+      </button>
+    </div>
+    <!-- Histórico de sessões -->
+    <div id="jornada-list" class="flex flex-col gap-2"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ OUTRA ENTRADA MODAL ═══════════════════ -->
+<div id="outra-entrada-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeOutraEntradaModal()"></div>
+  <div class="glass-strong w-full rounded-t-[28px] p-5 pb-8 relative z-10 flex flex-col gap-3" style="max-height:80dvh;overflow-y:auto">
+    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-1"></div>
+    <div class="flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-teal-400" style="font-variation-settings:'FILL' 1; font-size:18px">savings</span>
+        <h2 class="text-white text-lg font-bold" id="oe-modal-title">Outra entrada</h2>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="oe-cancel-btn" onclick="cancelEditEntrada()" class="hidden text-outline text-xs active:opacity-60">Cancelar</button>
+        <button onclick="closeOutraEntradaModal()" class="text-outline p-1 active:scale-90 transition-transform">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </div>
+    <div>
+      <label class="text-outline text-xs block mb-1.5 font-medium">Data</label>
+      <input type="date" id="oe-data" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+    </div>
+    <div>
+      <label class="text-outline text-xs block mb-1.5 font-medium">Categoria</label>
+      <select id="oe-cat" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 appearance-none">
+        <option value="deslocamento">🚗 Taxa de deslocamento</option>
+        <option value="bonus">🎁 Bônus plataforma</option>
+        <option value="reembolso">↩️ Reembolso</option>
+        <option value="gorjeta">🤝 Gorjeta extra</option>
+        <option value="outros">📦 Outros</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-outline text-xs block mb-1.5 font-medium">Descrição</label>
+      <input type="text" id="oe-desc" placeholder="Ex: Bônus 50 corridas 99" maxlength="60"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+    </div>
+    <div>
+      <label class="text-outline text-xs block mb-1.5 font-medium">Valor (R$)</label>
+      <input type="number" id="oe-valor" placeholder="0,00" step="0.01" min="0" inputmode="decimal"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+    </div>
+    <div id="oe-error" class="text-red-400 text-xs text-center hidden">Preencha descrição e valor.</div>
+    <button onclick="salvarOutraEntrada()" id="oe-save-btn"
+      class="w-full text-white font-bold py-4 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-all mt-1"
+      style="background:#0d9488;box-shadow:0 0 20px rgba(13,148,136,.3)">
+      <span class="material-symbols-outlined" style="font-size:18px">save</span>
+      Registrar entrada
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════ PROMOÇÕES MODAL ═══════════════════ -->
+<div id="promo-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closePromoModal()"></div>
+  <div class="glass-strong w-full rounded-t-[28px] p-5 pb-8 relative z-10 flex flex-col gap-4" style="max-height:90dvh;overflow-y:auto">
+    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-1"></div>
+    <div class="flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-orange-400" style="font-variation-settings:'FILL' 1; font-size:18px">local_offer</span>
+        <h2 class="text-white text-lg font-bold">Promoções</h2>
+      </div>
+      <button onclick="closePromoModal()" class="text-outline p-1 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Form nova promo -->
+    <div class="glass rounded-2xl p-4 flex flex-col gap-3">
+      <div class="text-outline text-[10px] font-semibold uppercase tracking-wider">Nova promoção</div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Plataforma</label>
+          <select id="p-plat" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 appearance-none">
+            <option value="Uber">🚗 Uber</option>
+            <option value="99">🟠 99</option>
+            <option value="InDriver">🟢 InDriver</option>
+            <option value="Todas">✨ Todas</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Tipo</label>
+          <select id="p-tipo" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 appearance-none">
+            <option value="Taxa zero">🎯 Taxa zero</option>
+            <option value="Bônus">💰 Bônus</option>
+            <option value="Surge">⚡ Surge</option>
+            <option value="Promo">🔥 Promo</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">Descrição</label>
+        <input type="text" id="p-desc" placeholder="Ex: Taxa zero das 6h às 9h" maxlength="60"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+      <!-- Dias da semana -->
+      <div>
+        <label class="text-outline text-xs block mb-2 font-medium">Dias da semana</label>
+        <div class="flex gap-1.5" id="p-dias-row">
+          <button type="button" data-dia="0" onclick="toggleDiaPromo(this)"
+            class="flex-1 py-2 rounded-xl text-[10px] font-bold border border-outline-variant text-outline transition-all">Dom</button>
+          <button type="button" data-dia="1" onclick="toggleDiaPromo(this)"
+            class="flex-1 py-2 rounded-xl text-[10px] font-bold border border-outline-variant text-outline transition-all">Seg</button>
+          <button type="button" data-dia="2" onclick="toggleDiaPromo(this)"
+            class="flex-1 py-2 rounded-xl text-[10px] font-bold border border-outline-variant text-outline transition-all">Ter</button>
+          <button type="button" data-dia="3" onclick="toggleDiaPromo(this)"
+            class="flex-1 py-2 rounded-xl text-[10px] font-bold border border-outline-variant text-outline transition-all">Qua</button>
+          <button type="button" data-dia="4" onclick="toggleDiaPromo(this)"
+            class="flex-1 py-2 rounded-xl text-[10px] font-bold border border-outline-variant text-outline transition-all">Qui</button>
+          <button type="button" data-dia="5" onclick="toggleDiaPromo(this)"
+            class="flex-1 py-2 rounded-xl text-[10px] font-bold border border-outline-variant text-outline transition-all">Sex</button>
+          <button type="button" data-dia="6" onclick="toggleDiaPromo(this)"
+            class="flex-1 py-2 rounded-xl text-[10px] font-bold border border-outline-variant text-outline transition-all">Sáb</button>
+        </div>
+      </div>
+      <!-- Horário -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Início</label>
+          <input type="time" id="p-inicio" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Fim</label>
+          <input type="time" id="p-fim" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+      <div id="p-error" class="text-red-400 text-xs text-center hidden">Preencha descrição, dias e horários.</div>
+      <button onclick="salvarPromo()"
+        class="w-full text-white font-bold py-3.5 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-all"
+        style="background:#f97316;box-shadow:0 0 16px rgba(249,115,22,.3)">
+        <span class="material-symbols-outlined" style="font-size:18px">add</span>
+        Adicionar promoção
+      </button>
+    </div>
+
+    <!-- Separador: Meta de corridas -->
+    <div class="flex items-center gap-3 my-1">
+      <div class="flex-1 h-px" style="background:rgba(255,255,255,.07)"></div>
+      <span class="text-outline text-[10px] font-semibold uppercase tracking-wider">Meta de corridas</span>
+      <div class="flex-1 h-px" style="background:rgba(255,255,255,.07)"></div>
+    </div>
+
+    <!-- Form meta de corridas -->
+    <div class="glass rounded-2xl p-4 flex flex-col gap-3">
+      <div class="text-outline text-[10px] font-semibold uppercase tracking-wider">Nova meta</div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Plataforma</label>
+          <select id="m-plat" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 appearance-none">
+            <option value="Uber">🚗 Uber</option>
+            <option value="99">🟠 99</option>
+            <option value="InDriver">🟢 InDriver</option>
+            <option value="Todas">✨ Todas</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Corridas alvo</label>
+          <input type="number" id="m-corridas" placeholder="Ex: 50" min="1" inputmode="numeric"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">Descrição / nome da meta</label>
+        <input type="text" id="m-desc" placeholder="Ex: 50 corridas = R$50 bônus" maxlength="60"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Bônus (R$)</label>
+          <input type="number" id="m-bonus" placeholder="50,00" step="0.01" min="0" inputmode="decimal"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Início</label>
+          <input type="date" id="m-inicio"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div>
+          <label class="text-outline text-xs block mb-1.5 font-medium">Fim</label>
+          <input type="date" id="m-fim"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+      <div id="m-error" class="text-red-400 text-xs text-center hidden">Preencha todos os campos.</div>
+      <button onclick="salvarMeta()"
+        class="w-full text-white font-bold py-3.5 rounded-2xl flex justify-center items-center gap-2 active:scale-95 transition-all"
+        style="background:#8b5cf6;box-shadow:0 0 16px rgba(139,92,246,.3)">
+        <span class="material-symbols-outlined" style="font-size:18px">add</span>
+        Adicionar meta
+      </button>
+    </div>
+
+    <!-- Lista de metas de corridas -->
+    <div id="meta-promo-list" class="flex flex-col gap-2"></div>
+
+    <!-- Lista de promoções por horário -->
+    <div class="flex items-center gap-3 mt-1">
+      <div class="flex-1 h-px" style="background:rgba(255,255,255,.07)"></div>
+      <span class="text-outline text-[10px] font-semibold uppercase tracking-wider">Por horário</span>
+      <div class="flex-1 h-px" style="background:rgba(255,255,255,.07)"></div>
+    </div>
+    <div id="promo-list" class="flex flex-col gap-2"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// SUPABASE — fetch puro (sem SDK, sem Bearer token)
+// ═══════════════════════════════════════════════
+const SB_URL = 'https://db.nucleocriativo.com.br';
+const SB_KEY = 'uSLPst+6To2N5BXF3VipCYxUYkzL133Oy0bscyopivY=';
+const SB_HEADERS = {
+  'apikey': SB_KEY,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+
+const sb = {
+  from: (table) => ({
+    _table: table,
+    _cols: '*',
+    _orders: [],
+    select(cols = '*') { this._cols = cols; return this; },
+    order(col, { ascending = true } = {}) { this._orders.push(`${col}.${ascending ? 'asc' : 'desc'}`); return this; },
+    async insert(rows) {
+      const body = Array.isArray(rows) ? rows[0] : rows;
+      const r = await fetch(`${SB_URL}/rest/v1/${this._table}`, {
+        method: 'POST', headers: SB_HEADERS, body: JSON.stringify(body)
+      });
+      const data = r.ok ? await r.json() : null;
+      return { data, error: r.ok ? null : await r.json().catch(() => ({ message: r.statusText })) };
+    },
+    update(body) { this._update = body; return this; },
+    delete() { this._delete = true; return this; },
+    async eq(col, val) {
+      if (this._update) {
+        const r = await fetch(`${SB_URL}/rest/v1/${this._table}?${col}=eq.${val}`, {
+          method: 'PATCH', headers: SB_HEADERS, body: JSON.stringify(this._update)
+        });
+        return { error: r.ok ? null : await r.json().catch(() => ({ message: r.statusText })) };
+      }
+      if (this._delete) {
+        const r = await fetch(`${SB_URL}/rest/v1/${this._table}?${col}=eq.${val}`, {
+          method: 'DELETE', headers: SB_HEADERS
+        });
+        return { error: r.ok ? null : await r.json().catch(() => ({ message: r.statusText })) };
+      }
+    },
+    async _exec() {
+      let url = `${SB_URL}/rest/v1/${this._table}?select=${this._cols}`;
+      if (this._orders.length) url += '&order=' + this._orders.join(',');
+      const r = await fetch(url, { headers: SB_HEADERS });
+      const data = r.ok ? await r.json() : null;
+      return { data, error: r.ok ? null : await r.json().catch(() => ({ message: r.statusText })) };
+    }
+  })
+};
+
+// ═══════════════════════════════════════════════
+// CONFIG & STATE — com persistência em localStorage
+// ═══════════════════════════════════════════════
+const CONFIG_DEFAULTS = {
+  precoLitro:   6.70,
+  consumo:      24,
+  metaDia:      150,
+  metaSemana:   900,
+  metaMes:      3500,
+  custoRevisao: 350,
+  kmRevisao:    3000,
+  timezone:     'America/Sao_Paulo',
+};
+// custoKm = gasolina/km + revisão/km
+function loadConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('corridas_config') || '{}');
+    return { ...CONFIG_DEFAULTS, ...saved };
+  } catch { return { ...CONFIG_DEFAULTS }; }
+}
+let CONFIG_DATA = loadConfig();
+const CONFIG = new Proxy(CONFIG_DATA, {
+  get(target, key) {
+    if (key === 'custoGasKm') return target.precoLitro / target.consumo;
+    if (key === 'custoRevKm') return target.custoRevisao / (target.kmRevisao || 1);
+    if (key === 'custoKm')    return target.precoLitro / target.consumo + target.custoRevisao / (target.kmRevisao || 1);
+    return target[key];
+  }
+});
+let corridas = [];
+let abastecimentos = [];
+let outrasDespesas = [];
+let finPeriod = 'month';
+let histPeriod = 'today';
+let filtroPlat = 'all';
+let currentPeriod = 'today';
+let charts = {};
+let editingId = null;
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+const todayStr  = () => new Date().toLocaleDateString('sv-SE', { timeZone: CONFIG_DATA.timezone || 'America/Sao_Paulo' });
+const localHour = () => new Date().toLocaleString('en-US', { timeZone: CONFIG_DATA.timezone || 'America/Sao_Paulo', hour: 'numeric', hour12: false }) | 0;
+const brl = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+const fmtDate = d => {
+  const s = (d || '').split('T')[0];
+  const p = s.split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]}` : s;
+};
+const fmtTime = d => {
+  // suporta "2026-04-30T14:35:00" e "2026-04-30 14:35:00"
+  const sep = (d || '').includes('T') ? 'T' : ' ';
+  const parts = (d || '').split(sep);
+  if (parts.length < 2) return '';
+  const hm = parts[1].slice(0, 5);
+  return hm === '00:00' ? '' : hm; // esconde hora 00:00 (corridas sem hora registrada)
+};
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function getStartDate() {
+  const tz = CONFIG_DATA.timezone || 'America/Sao_Paulo';
+  const today = todayStr();
+  if (currentPeriod === 'today')     return today;
+  if (currentPeriod === 'yesterday') {
+    const y = new Date(today + 'T12:00:00'); y.setDate(y.getDate() - 1);
+    return y.toLocaleDateString('sv-SE', { timeZone: tz });
+  }
+  if (currentPeriod === 'month')  return today.slice(0, 8) + '01';
+  if (currentPeriod === 'custom') return document.getElementById('custom-start').value || '2000-01-01';
+  if (currentPeriod === 'week') {
+    const d = new Date(today + 'T12:00:00');
+    d.setDate(d.getDate() - d.getDay()); // domingo = 0, então recua até o domingo
+    return d.toLocaleDateString('sv-SE', { timeZone: tz });
+  }
+  return '2000-01-01';
+}
+
+function getEndDate() {
+  if (currentPeriod === 'custom') return document.getElementById('custom-end').value || todayStr();
+  if (currentPeriod === 'yesterday') {
+    const tz = CONFIG_DATA.timezone || 'America/Sao_Paulo';
+    const today = todayStr();
+    const y = new Date(today + 'T12:00:00'); y.setDate(y.getDate() - 1);
+    return y.toLocaleDateString('sv-SE', { timeZone: tz });
+  }
+  return '9999-12-31';
+}
+
+function periodoFiltrado() {
+  const start = getStartDate();
+  const end   = getEndDate();
+  return corridas.filter(c => {
+    const d = (c.data || '').split('T')[0];
+    return d >= start && d <= end;
+  });
+}
+
+function getStatus(rpkm) {
+  if (rpkm >= 1.5) return { label: 'Ótima',     cls: 's-otima' };
+  if (rpkm >= 1.0) return { label: 'Boa',        cls: 's-boa'   };
+  if (rpkm >= 0.6) return { label: 'Aceitável',  cls: 's-ok'    };
+  return                    { label: 'Prejuízo',  cls: 's-prej'  };
+}
+
+function iconPlat(p)  { return { Uber: '🚗', '99': '🟠', InDriver: '🟢' }[p] || '🏍️'; }
+function colorPlat(p) { return { Uber: 'rgba(42,42,44,0.8)', '99': 'rgba(255,106,0,.2)', InDriver: 'rgba(29,185,84,.2)' }[p] || '#2a2a2c'; }
+
+function badgePag(p) {
+  const colors = {
+    PIX:        'background:rgba(59,130,246,.2);color:#93c5fd',
+    Dinheiro:   'background:rgba(34,197,94,.2);color:#86efac',
+    Maquininha: 'background:rgba(251,146,60,.2);color:#fcd34d',
+    App:        'background:rgba(168,85,247,.2);color:#d8b4fe'
+  }[p] || 'background:#2a2a2c;color:#8b90a0';
+  return `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;${colors}">${p}</span>`;
+}
+
+// ═══════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════
+async function loadCorridas() {
+  const q = sb.from('moto_corridas').select('*');
+  q._orders = ['data.desc', 'id.desc'];
+  const { data, error } = await q._exec();
+  if (error) { console.error(error); showToast('Erro ao carregar dados'); return; }
+  corridas = (data || []).map(r => ({
+    id:     r.id,
+    data:   r.data,
+    plat:   r.plataforma,
+    pag:    r.pagamento,
+    km:     parseFloat(r.km)     || 0,
+    bruto:  parseFloat(r.bruto)  || 0,
+    liquido:parseFloat(r.liquido)|| 0,
+    outras: parseFloat(r.outras) || 0,
+    tempo:  parseFloat(r.tempo)  || 0,
+  }));
+}
+
+async function loadAbastecimentos() {
+  const q = sb.from('moto_abastecimentos').select('*');
+  q._orders = ['data.desc', 'id.desc'];
+  const { data, error } = await q._exec();
+  if (error) { console.error(error); return; }
+  abastecimentos = (data || []).map(r => ({
+    id:     r.id,
+    data:   r.data,
+    valor:  parseFloat(r.valor)  || 0,
+    litros: parseFloat(r.litros) || 0,
+  }));
+}
+
+async function loadOutrasDespesas() {
+  const q = sb.from('outras_despesas').select('*');
+  q._orders = ['data.desc', 'id.desc'];
+  const { data, error } = await q._exec();
+  if (error) { console.error(error); return; }
+  outrasDespesas = (data || []).map(r => ({
+    id: r.id, data: r.data,
+    categoria: r.categoria,
+    descricao: r.descricao || '',
+    valor: parseFloat(r.valor) || 0,
+  }));
+}
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+function showTab(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + id);
+  if (el) el.classList.add('active');
+
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    const active = btn.dataset.tab === id;
+    btn.classList.toggle('nav-active', active);
+    const icon = btn.querySelector('.nav-icon');
+    const label = btn.querySelectorAll('span')[1];
+    if (icon)  icon.style.color  = active ? '#60a5fa' : '#8b90a0';
+    if (label) label.style.color = active ? '#60a5fa' : '#8b90a0';
+  });
+
+  if (id === 'dash')       updateDash();
+  if (id === 'corridas')   renderHistorico();
+  if (id === 'analise')    renderAnalise();
+  if (id === 'financeiro') renderFinanceiro();
+  if (id === 'veiculo')    renderVeiculo();
+  if (id === 'carreira')   renderCarreira();
+}
+
+// ═══════════════════════════════════════════════
+// PERIOD FILTER
+// ═══════════════════════════════════════════════
+function selectPeriod(period, el) {
+  currentPeriod = period;
+  document.querySelectorAll('.period-chip').forEach(c => {
+    c.classList.remove('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+    c.classList.add('border-outline-variant', 'text-outline');
+    c.style.background = '';
+  });
+  el.classList.add('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+  el.classList.remove('border-outline-variant', 'text-outline');
+  // mostra/esconde painel de datas
+  const rangeEl = document.getElementById('custom-range');
+  if (period === 'custom') {
+    rangeEl.classList.remove('hidden');
+    // pré-preenche com início do mês até hoje se estiver vazio
+    if (!document.getElementById('custom-start').value) {
+      const today = todayStr();
+      document.getElementById('custom-start').value = today.slice(0, 8) + '01';
+      document.getElementById('custom-end').value   = today;
+    }
+  } else {
+    rangeEl.classList.add('hidden');
+  }
+  updateDash();
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════
+function updateDash() {
+  const list = periodoFiltrado();
+  const n         = list.length;
+  const km        = list.reduce((s, c) => s + c.km,      0);
+  const receita   = list.reduce((s, c) => s + c.liquido, 0); // só meu ganho — outras cobranças ficam com a plataforma
+  const brutoBase = list.reduce((s, c) => s + c.bruto,   0); // base das taxas (sem outras)
+  const taxas     = brutoBase - receita;                      // o que a plataforma ficou
+  // gasolina REAL registrada no período
+  const start = getStartDate();
+  const end   = getEndDate();
+  const gasReal = abastecimentos
+    .filter(a => { const d = (a.data || '').split('T')[0]; return d >= start && d <= end; })
+    .reduce((s, a) => s + a.valor, 0);
+  const gasNAbast = abastecimentos
+    .filter(a => { const d = (a.data || '').split('T')[0]; return d >= start && d <= end; }).length;
+  // outras entradas (bônus, deslocamento, etc.) no período
+  const outrasEntDash = loadOutrasEntradas()
+    .filter(e => { const d = (e.data || '').slice(0, 10); return d >= start && d <= end; })
+    .reduce((s, e) => s + e.valor, 0);
+  const receitaLiq = receita + outrasEntDash;   // receita líquida real = corridas + outras entradas
+  const resultado  = receitaLiq - gasReal;
+  const rpkm       = km > 0 ? receitaLiq / km : 0;
+  const taxaPct    = brutoBase > 0 ? (taxas / brutoBase * 100) : 0;
+
+  document.getElementById('d-corridas').textContent  = n;
+  document.getElementById('d-km').textContent         = km.toFixed(1);
+  document.getElementById('d-receita').textContent    = brl(receitaLiq);
+  document.getElementById('d-receita-sub').textContent= outrasEntDash > 0
+    ? `corridas ${brl(receita)} + extras ${brl(outrasEntDash)}`
+    : `bruto: ${brl(brutoBase)}`;
+  document.getElementById('d-rpkm').textContent       = rpkm.toFixed(2).replace('.', ',');
+  document.getElementById('d-gas').textContent        = brl(gasReal);
+  document.getElementById('d-gas-litros').textContent = gasNAbast > 0 ? `${gasNAbast} abastecimento${gasNAbast > 1 ? 's' : ''}` : 'toque para registrar';
+  document.getElementById('d-taxa').textContent       = brl(taxas);
+  document.getElementById('d-taxa-pct').textContent   = taxaPct.toFixed(1) + '%';
+
+  // Taxa por plataforma
+  const platColors = { Uber: '#3b82f6', '99': '#fb923c', InDriver: '#4ade80' };
+  const platTaxa = {};
+  list.forEach(c => {
+    if (!platTaxa[c.plat]) platTaxa[c.plat] = { bruto: 0, ganho: 0, n: 0 };
+    platTaxa[c.plat].bruto += c.bruto;
+    platTaxa[c.plat].ganho += c.liquido;
+    platTaxa[c.plat].n++;
+  });
+  const platEntries = Object.entries(platTaxa);
+  const taxaBreakdownEl = document.getElementById('d-taxa-breakdown');
+  if (platEntries.length === 0) {
+    taxaBreakdownEl.innerHTML = '<div style="color:#8b90a0;font-size:12px;text-align:center">Sem dados no período</div>';
+  } else {
+    // ordena do menor para o maior percentual (menor = melhor)
+    const sorted = platEntries
+      .map(([plat, d]) => ({ plat, pct: d.bruto > 0 ? (d.bruto - d.ganho) / d.bruto * 100 : 0, n: d.n }))
+      .sort((a, b) => a.pct - b.pct);
+    const pctColor = pct =>
+      pct <= 15 ? '#4ade80' : pct <= 20 ? '#60a5fa' : pct <= 25 ? '#fb923c' : '#f87171';
+    taxaBreakdownEl.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap">` +
+      sorted.map(({ plat, pct, n }) => {
+        const col = pctColor(pct);
+        return `<div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:${col}12;border:1px solid ${col}30">
+          <span style="font-size:13px">${iconPlat(plat)}</span>
+          <span style="color:#c1c6d7;font-size:11px;font-weight:500">${plat}</span>
+          <span style="color:${col};font-size:11px;font-weight:800">${pct.toFixed(1)}%</span>
+        </div>`;
+      }).join('') + `</div>`;
+  }
+
+  // d-lucro is now updated in the gastos block above
+
+  // ── Gastos totais + lucro real ──
+  const outrasDespPeriodo = outrasDespesas
+    .filter(d => { const dd = (d.data || '').slice(0, 10); return dd >= start && dd <= end; })
+    .reduce((s, d) => s + d.valor, 0);
+  const gastosTotal = gasReal + outrasDespPeriodo;
+  const receitaTotal = receitaLiq; // já inclui outras entradas (calculado acima)
+  const lucroReal    = receitaTotal - gastosTotal;
+
+  // Atualiza card "Lucro real" (era d-lucro)
+  const lucroEl = document.getElementById('d-lucro');
+  lucroEl.textContent = brl(lucroReal);
+  lucroEl.style.color = lucroReal >= 0 ? '#4ade80' : '#f87171';
+  document.getElementById('d-lucro-sub').textContent = `rec ${brl(receitaTotal)} − gas ${brl(gastosTotal)}`;
+
+  // Outros gastos card
+  document.getElementById('d-outros-gastos').textContent = brl(outrasDespPeriodo);
+  const nOutras = outrasDespesas.filter(d => { const dd = (d.data||'').slice(0,10); return dd>=start&&dd<=end; }).length;
+  document.getElementById('d-outros-gastos-sub').textContent = nOutras > 0 ? `${nOutras} despesa${nOutras>1?'s':''}` : 'no período';
+
+  // ── Jornadas ──
+  const today2     = todayStr();
+  const jornadas   = loadJornadas();
+  const jorHoje    = jornadas.filter(j => j.data === today2).reduce((s, j) => s + calcSessaoHoras(j), 0);
+  const jorPeriodo = jornadas.filter(j => j.data >= start && j.data <= end).reduce((s, j) => s + calcSessaoHoras(j), 0);
+  document.getElementById('d-jornada-hoje').textContent   = formatHoras(jorHoje);
+  document.getElementById('d-jornada-periodo').textContent = formatHoras(jorPeriodo);
+  const rphEl = document.getElementById('d-rph');
+  if (jorPeriodo > 0) {
+    rphEl.textContent = brl(receitaTotal / jorPeriodo) + '/h';
+  } else {
+    rphEl.textContent = '—';
+  }
+
+  // ── Promoções ativas ──
+  updatePromosAtivas();
+
+  const metaCard = document.getElementById('meta-card');
+  const metaMap  = { today: CONFIG.metaDia, yesterday: CONFIG.metaDia, week: CONFIG.metaSemana, month: CONFIG.metaMes };
+  const metaLabel= { today: 'Meta do dia', yesterday: 'Meta do dia (ontem)', week: 'Meta da semana', month: 'Meta do mês' };
+  const metaAlvo = metaMap[currentPeriod];
+  if (metaAlvo > 0 && metaMap.hasOwnProperty(currentPeriod)) {
+    metaCard.classList.remove('hidden');
+    document.getElementById('meta-titulo').textContent  = metaLabel[currentPeriod];
+    const pct = Math.min(100, Math.max(0, resultado / metaAlvo * 100));
+    document.getElementById('meta-bar').style.width      = pct + '%';
+    document.getElementById('meta-bar').style.background = pct >= 100 ? '#4ade80' : pct >= 60 ? '#fb923c' : '#3b82f6';
+    document.getElementById('meta-pct').textContent      = pct.toFixed(0) + '%';
+    document.getElementById('meta-atual').textContent    = brl(resultado);
+    const falta    = metaAlvo - resultado;
+    const faltaEl  = document.getElementById('meta-falta');
+    if (falta > 0) {
+      faltaEl.textContent = `falta ${brl(falta)}`;
+      faltaEl.style.color = '#fb923c';
+    } else {
+      faltaEl.textContent = '✓ meta batida!';
+      faltaEl.style.color = '#4ade80';
+    }
+    document.getElementById('meta-valor').textContent = 'Meta: ' + brl(metaAlvo);
+  } else {
+    metaCard.classList.add('hidden');
+  }
+
+  updateCharts(list);
+}
+
+function updateCharts(list) {
+  const tickColor   = 'rgba(255,255,255,.3)';
+  const gridColor   = 'rgba(255,255,255,.04)';
+  const legendColor = 'rgba(255,255,255,.55)';
+
+  // Plataforma
+  const platData = {};
+  list.forEach(c => { platData[c.plat] = (platData[c.plat] || 0) + c.liquido; });
+  const platLabels = Object.keys(platData);
+  const platColors = { Uber: '#3b3b3d', '99': '#FF6A00', InDriver: '#1DB954' };
+  if (charts.plat) charts.plat.destroy();
+  if (platLabels.length) {
+    charts.plat = new Chart(document.getElementById('chart-plat'), {
+      type: 'doughnut',
+      data: {
+        labels: platLabels,
+        datasets: [{ data: platLabels.map(l => platData[l]), backgroundColor: platLabels.map(l => platColors[l] || '#60a5fa'), borderWidth: 0 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 11 }, color: legendColor, padding: 10, boxWidth: 10, boxHeight: 10 } } } }
+    });
+  }
+
+  // Pagamento
+  const pagData = {};
+  list.forEach(c => { pagData[c.pag] = (pagData[c.pag] || 0) + c.liquido; });
+  const pagLabels = Object.keys(pagData);
+  const pagColors = { PIX: '#3b82f6', Dinheiro: '#22c55e', Maquininha: '#f97316', App: '#a855f7' };
+  if (charts.pag) charts.pag.destroy();
+  if (pagLabels.length) {
+    charts.pag = new Chart(document.getElementById('chart-pag'), {
+      type: 'doughnut',
+      data: {
+        labels: pagLabels,
+        datasets: [{ data: pagLabels.map(l => pagData[l]), backgroundColor: pagLabels.map(l => pagColors[l] || '#60a5fa'), borderWidth: 0 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 11 }, color: legendColor, padding: 10, boxWidth: 10, boxHeight: 10 } } } }
+    });
+  }
+
+  // Evolução
+  const sorted = [...list].sort((a, b) => (a.data || '').localeCompare(b.data || '') || a.id - b.id);
+  if (charts.evo) charts.evo.destroy();
+  if (sorted.length) {
+    charts.evo = new Chart(document.getElementById('chart-evo'), {
+      type: 'bar',
+      data: {
+        labels: sorted.map((_, i) => '#' + (i + 1)),
+        datasets: [
+          { label: 'Ganho', data: sorted.map(c => +c.liquido.toFixed(2)), backgroundColor: 'rgba(96,165,250,.7)', borderRadius: 4 },
+          { label: 'Lucro', data: sorted.map(c => +(c.liquido - c.km * CONFIG.custoKm).toFixed(2)), backgroundColor: 'rgba(74,222,128,.7)', borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: true, position: 'top', labels: { font: { size: 10 }, color: legendColor, padding: 8, boxWidth: 8 } } },
+        scales: {
+          x: { ticks: { color: tickColor, font: { size: 9 } }, grid: { display: false } },
+          y: { ticks: { color: tickColor, font: { size: 9 }, callback: v => 'R$' + v }, grid: { color: gridColor } }
+        }
+      }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════
+// ANÁLISE
+// ═══════════════════════════════════════════════
+function renderAnalise() {
+  if (!corridas.length) {
+    ['an-ticket','an-cpd','an-best','an-rpkm'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.textContent = '—';
+    });
+    ['an-heatmap','an-horas','an-diasemana','an-diames','an-plat','an-tendencia'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div style="color:#8b90a0;font-size:12px;text-align:center;padding:16px 0">Sem dados ainda</div>';
+    });
+    return;
+  }
+
+  // ── helpers ──
+  const ridesWithTime = corridas.filter(c => (c.data || '').includes('T'));
+  const getHour = c => parseInt((c.data || '').split('T')[1]?.slice(0, 2) || '0', 10);
+  const getDow  = c => new Date((c.data || '').slice(0,10) + 'T12:00:00').getDay(); // 0=Dom
+  const getDom  = c => parseInt((c.data || '').slice(8, 10), 10);
+  const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const TURNOS = [
+    { label: 'Madrugada', range: [0,5],  icon: '🌙', color: '#818cf8' },
+    { label: 'Manhã',     range: [6,11], icon: '🌅', color: '#fb923c' },
+    { label: 'Tarde',     range: [12,17],icon: '☀️', color: '#facc15' },
+    { label: 'Noite',     range: [18,23],icon: '🌆', color: '#60a5fa' },
+  ];
+  const getTurno = h => TURNOS.findIndex(t => h >= t.range[0] && h <= t.range[1]);
+
+  // ── KPIs de eficiência ──
+  const total      = corridas.reduce((s,c) => s + c.liquido, 0);
+  const ticket     = total / corridas.length;
+  const diasAtivos = new Set(corridas.map(c => (c.data||'').slice(0,10))).size;
+  const cpd        = diasAtivos > 0 ? corridas.length / diasAtivos : 0;
+  const bestC      = [...corridas].sort((a,b) => b.liquido - a.liquido)[0];
+  const totalKm    = corridas.reduce((s,c) => s+c.km, 0);
+  const rpkmMed    = totalKm > 0 ? total / totalKm : 0;
+  document.getElementById('an-ticket').textContent = brl(ticket);
+  document.getElementById('an-cpd').textContent    = cpd.toFixed(1);
+  document.getElementById('an-best').textContent   = brl(bestC.liquido);
+  document.getElementById('an-rpkm').textContent   = rpkmMed.toFixed(2).replace('.',',');
+
+  // ── Função barra horizontal ──
+  function barRows(items, colorFn, valueFn = v => brl(v), maxOverride) {
+    const max = maxOverride || Math.max(...items.map(i => i.val), 1);
+    return items.map((item, idx) => {
+      const pct = Math.round(item.val / max * 100);
+      const cor = colorFn ? colorFn(idx, item) : '#60a5fa';
+      return `
+      <div style="display:flex;align-items:center;gap-8px;gap:8px">
+        <div style="width:52px;color:#c1c6d7;font-size:11px;text-align:right;flex-shrink:0">${item.label}</div>
+        <div style="flex:1;height:22px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.05)">
+          <div style="height:100%;width:${pct}%;background:${cor};border-radius:6px;transition:width .5s;display:flex;align-items:center;padding-left:6px">
+            ${pct > 20 ? `<span style="color:rgba(255,255,255,.9);font-size:10px;font-weight:700">${valueFn(item.val)}</span>` : ''}
+          </div>
+        </div>
+        ${pct <= 20 ? `<span style="color:#8b90a0;font-size:10px;min-width:40px">${valueFn(item.val)}</span>` : '<div style="min-width:40px"></div>'}
+        ${item.sub ? `<span style="color:#8b90a0;font-size:9px;min-width:28px">${item.sub}</span>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── Heatmap dia × turno ──
+  const hmData = {};
+  DIAS_SEMANA.forEach(d => { hmData[d] = [0,0,0,0]; });
+  ridesWithTime.forEach(c => {
+    const dow = getDow(c); const h = getHour(c); const t = getTurno(h);
+    if (t < 0) return;
+    hmData[DIAS_SEMANA[dow]][t] += c.liquido;
+  });
+  const hmMax = Math.max(...Object.values(hmData).flat(), 1);
+  const turnoLabels = ['🌙','🌅','☀️','🌆'];
+  const turnoNames  = ['Madrugada','Manhã','Tarde','Noite'];
+  document.getElementById('an-heatmap').innerHTML = `
+    <table style="width:100%;border-collapse:separate;border-spacing:3px">
+      <thead>
+        <tr>
+          <th style="color:#8b90a0;font-size:9px;font-weight:500;text-align:left;padding-bottom:4px">Dia</th>
+          ${turnoLabels.map((icon,i) => `<th title="${turnoNames[i]}" style="color:#8b90a0;font-size:10px;font-weight:500;text-align:center;padding-bottom:4px">${icon}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${DIAS_SEMANA.map(d => `
+          <tr>
+            <td style="color:#c1c6d7;font-size:10px;font-weight:600;padding-right:4px">${d}</td>
+            ${hmData[d].map(v => {
+              const opacity = v > 0 ? Math.max(0.12, v / hmMax) : 0.04;
+              const bright  = v / hmMax >= 0.7;
+              return `<td title="${brl(v)}" style="height:28px;border-radius:6px;background:rgba(96,165,250,${opacity.toFixed(2)});text-align:center;font-size:9px;color:${bright?'white':'transparent'};font-weight:700;cursor:default">${v > 0 ? brl(v).replace('R$','') : ''}</td>`;
+            }).join('')}
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  // ── Receita por horário (blocos de 2h agrupados) ──
+  const byHour = {};
+  ridesWithTime.forEach(c => {
+    const h = getHour(c);
+    const blk = Math.floor(h / 2) * 2;
+    if (!byHour[blk]) byHour[blk] = { val: 0, n: 0 };
+    byHour[blk].val += c.liquido;
+    byHour[blk].n++;
+  });
+  const horasItems = Object.entries(byHour)
+    .sort(([a],[b]) => Number(b) - Number(a))
+    .map(([h, d]) => ({
+      label: `${String(h).padStart(2,'0')}–${String(Number(h)+2).padStart(2,'0')}h`,
+      val: d.val,
+      sub: `${d.n}×`
+    }))
+    .sort((a,b) => b.val - a.val)
+    .slice(0, 8);
+  document.getElementById('an-horas').innerHTML = horasItems.length
+    ? barRows(horasItems, (i) => {
+        const colors = ['#60a5fa','#818cf8','#34d399','#fb923c','#facc15','#f87171','#a78bfa','#2dd4bf'];
+        return colors[i % colors.length];
+      })
+    : '<div style="color:#8b90a0;font-size:12px;text-align:center;padding:12px 0">Cadastre corridas com horário para ver este gráfico</div>';
+
+  // ── Melhor dia da semana ──
+  const byDow = {};
+  corridas.forEach(c => {
+    const d = getDow(c);
+    if (!byDow[d]) byDow[d] = { val: 0, n: 0 };
+    byDow[d].val += c.liquido;
+    byDow[d].n++;
+  });
+  const dowItems = Object.entries(byDow)
+    .map(([d, v]) => ({ label: DIAS_SEMANA[d], val: v.val, sub: `${v.n}×`, dow: Number(d) }))
+    .sort((a,b) => b.val - a.val);
+  document.getElementById('an-diasemana').innerHTML = barRows(dowItems,
+    (i) => i === 0 ? '#4ade80' : i === 1 ? '#60a5fa' : '#414755');
+
+  // ── Melhor dia do mês ──
+  const byDom = {};
+  corridas.forEach(c => {
+    const d = getDom(c);
+    if (!byDom[d]) byDom[d] = { val: 0, n: 0 };
+    byDom[d].val += c.liquido;
+    byDom[d].n++;
+  });
+  const domItems = Object.entries(byDom)
+    .map(([d, v]) => ({ label: `Dia ${d.toString().padStart(2,'0')}`, val: v.val, sub: `${v.n}×` }))
+    .sort((a,b) => b.val - a.val)
+    .slice(0, 8);
+  document.getElementById('an-diames').innerHTML = barRows(domItems,
+    (i) => i === 0 ? '#f59e0b' : i === 1 ? '#fb923c' : '#414755');
+
+  // ── Plataformas comparativo ──
+  const byPlat = {};
+  corridas.forEach(c => {
+    if (!byPlat[c.plat]) byPlat[c.plat] = { rec: 0, km: 0, n: 0, taxa: 0 };
+    byPlat[c.plat].rec  += c.liquido;
+    byPlat[c.plat].km   += c.km;
+    byPlat[c.plat].n++;
+    byPlat[c.plat].taxa += (c.bruto - c.liquido);
+  });
+  const platEl = document.getElementById('an-plat');
+  platEl.innerHTML = Object.entries(byPlat).sort(([,a],[,b]) => b.rec - a.rec).map(([plat, v]) => {
+    const ticket2 = v.rec / v.n;
+    const rpkm2   = v.km > 0 ? v.rec / v.km : 0;
+    const taxaPct2 = (v.rec + v.taxa) > 0 ? (v.taxa / (v.rec + v.taxa) * 100) : 0;
+    return `
+    <div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">${iconPlat(plat)}</span>
+          <span style="color:white;font-size:13px;font-weight:700">${plat}</span>
+        </div>
+        <span style="color:#4ade80;font-size:14px;font-weight:800">${brl(v.rec)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center">
+        <div>
+          <div style="color:white;font-size:12px;font-weight:700">${v.n}</div>
+          <div style="color:#8b90a0;font-size:9px">corridas</div>
+        </div>
+        <div>
+          <div style="color:white;font-size:12px;font-weight:700">${brl(ticket2)}</div>
+          <div style="color:#8b90a0;font-size:9px">ticket</div>
+        </div>
+        <div>
+          <div style="color:white;font-size:12px;font-weight:700">${rpkm2.toFixed(2).replace('.',',')}</div>
+          <div style="color:#8b90a0;font-size:9px">R$/km</div>
+        </div>
+        <div>
+          <div style="color:#f87171;font-size:12px;font-weight:700">${taxaPct2.toFixed(1)}%</div>
+          <div style="color:#8b90a0;font-size:9px">taxa</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── Tendência: últimas 8 semanas ──
+  const tendEl = document.getElementById('an-tendencia');
+  const semanas = [];
+  for (let i = 7; i >= 0; i--) {
+    const ref = new Date(todayStr() + 'T12:00:00');
+    ref.setDate(ref.getDate() - ref.getDay() - i * 7); // domingo da semana i semanas atrás
+    const ini = ref.toLocaleDateString('sv-SE');
+    const fim = new Date(ref); fim.setDate(fim.getDate() + 6);
+    const fimStr = fim.toLocaleDateString('sv-SE');
+    const rides  = corridas.filter(c => { const d = (c.data||'').slice(0,10); return d >= ini && d <= fimStr; });
+    const rec    = rides.reduce((s,c) => s+c.liquido, 0);
+    const label  = `${ini.slice(8)}/` + ini.slice(5,7);
+    semanas.push({ label, val: rec, sub: `${rides.length}×` });
+  }
+  const maxSem = Math.max(...semanas.map(s => s.val), 1);
+  tendEl.innerHTML = barRows(semanas, (i, item) => {
+    const pct2 = item.val / maxSem;
+    if (pct2 >= 0.85) return '#4ade80';
+    if (pct2 >= 0.5)  return '#60a5fa';
+    return '#414755';
+  });
+}
+
+// ═══════════════════════════════════════════════
+// CARREIRA
+// ═══════════════════════════════════════════════
+const CAREER_LEVELS = [
+  { min: 0,       name: 'Parceiro Novo', icon: '🆕', color: '#8b90a0', bg: 'rgba(139,144,160,.15)' },
+  { min: 500,     name: 'Habilitado',    icon: '📋', color: '#60a5fa', bg: 'rgba(96,165,250,.15)' },
+  { min: 1500,    name: 'De Plantão',    icon: '🟢', color: '#34d399', bg: 'rgba(52,211,153,.15)' },
+  { min: 4000,    name: 'Prata',         icon: '🥈', color: '#94a3b8', bg: 'rgba(148,163,184,.15)' },
+  { min: 10000,   name: 'Ouro',          icon: '🥇', color: '#f59e0b', bg: 'rgba(245,158,11,.15)' },
+  { min: 25000,   name: 'Diamante',      icon: '💎', color: '#818cf8', bg: 'rgba(129,140,248,.15)' },
+  { min: 50000,   name: 'Black',         icon: '⚫', color: '#e2e8f0', bg: 'rgba(226,232,240,.08)' },
+  { min: 100000,  name: 'Top Parceiro',  icon: '🏆', color: '#f97316', bg: 'rgba(249,115,22,.15)' },
+  { min: 250000,  name: 'Lendário',      icon: '👑', color: '#eab308', bg: 'rgba(234,179,8,.15)' },
+];
+
+function renderCarreira() {
+  const total    = corridas.length;
+  const totalKm  = corridas.reduce((s, c) => s + c.km, 0);
+  const totalRec = corridas.reduce((s, c) => s + c.liquido, 0);
+  const avgPerRide = total > 0 ? totalRec / total : 0;
+
+  // Find current level
+  let lvlIdx = 0;
+  for (let i = CAREER_LEVELS.length - 1; i >= 0; i--) {
+    if (totalRec >= CAREER_LEVELS[i].min) { lvlIdx = i; break; }
+  }
+  const lvl     = CAREER_LEVELS[lvlIdx];
+  const nextLvl = CAREER_LEVELS[lvlIdx + 1];
+
+  // Level card
+  document.getElementById('carreira-level-icon').textContent = lvl.icon;
+  document.getElementById('carreira-level-name').textContent = lvl.name;
+  document.getElementById('carreira-level-card').style.boxShadow = `0 0 30px ${lvl.color}33`;
+  document.getElementById('carreira-progress-bar').style.background = lvl.color;
+
+  if (nextLvl) {
+    const pct = Math.min(100, ((totalRec - lvl.min) / (nextLvl.min - lvl.min)) * 100);
+    document.getElementById('carreira-progress-bar').style.width = pct + '%';
+    document.getElementById('carreira-progress-cur').textContent = brl(totalRec);
+    document.getElementById('carreira-progress-next').textContent = `próx: ${nextLvl.icon} ${nextLvl.name} (${brl(nextLvl.min)})`;
+    document.getElementById('carreira-level-desc').textContent = `Falta ${brl(nextLvl.min - totalRec)} para ${nextLvl.name}`;
+  } else {
+    document.getElementById('carreira-progress-bar').style.width = '100%';
+    document.getElementById('carreira-progress-cur').textContent = brl(totalRec);
+    document.getElementById('carreira-progress-next').textContent = '🏆 Nível máximo!';
+    document.getElementById('carreira-level-desc').textContent = 'Você atingiu o nível máximo!';
+  }
+
+  // Stats grid
+  document.getElementById('carreira-stats').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="text-align:center;padding:12px;background:rgba(255,255,255,.03);border-radius:12px">
+        <div style="color:white;font-size:24px;font-weight:900">${total}</div>
+        <div style="color:#8b90a0;font-size:10px;margin-top:4px">Total corridas</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:rgba(255,255,255,.03);border-radius:12px">
+        <div style="color:white;font-size:24px;font-weight:900">${totalKm.toFixed(0)}</div>
+        <div style="color:#8b90a0;font-size:10px;margin-top:4px">km totais</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:rgba(255,255,255,.03);border-radius:12px">
+        <div style="color:#4ade80;font-size:20px;font-weight:900">${brl(totalRec)}</div>
+        <div style="color:#8b90a0;font-size:10px;margin-top:4px">Receita total</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:rgba(255,255,255,.03);border-radius:12px">
+        <div style="color:#60a5fa;font-size:20px;font-weight:900">${brl(avgPerRide)}</div>
+        <div style="color:#8b90a0;font-size:10px;margin-top:4px">Média/corrida</div>
+      </div>
+    </div>`;
+
+  // Achievements
+  const achievements = [
+    { icon: '🏁', name: 'Primeira Corrida',  done: total >= 1,     desc: '1 corrida completa' },
+    { icon: '🔟', name: 'Dupla Dígito',      done: total >= 10,    desc: '10 corridas' },
+    { icon: '🏆', name: 'Cinquentão',        done: total >= 50,    desc: '50 corridas' },
+    { icon: '💯', name: 'Centenário',        done: total >= 100,   desc: '100 corridas' },
+    { icon: '🚀', name: 'Quinhentas',        done: total >= 500,   desc: '500 corridas' },
+    { icon: '📍', name: 'Rodando Bem',       done: totalKm >= 500,  desc: '500 km rodados' },
+    { icon: '🗺️', name: 'Mil Km',           done: totalKm >= 1000, desc: '1.000 km rodados' },
+    { icon: '⚡', name: 'Cinco Mil Km',      done: totalKm >= 5000, desc: '5.000 km rodados' },
+    { icon: '💰', name: 'Primeira Centena',  done: totalRec >= 100,  desc: 'R$ 100 em receita' },
+    { icon: '💵', name: 'Mil Reais',         done: totalRec >= 1000, desc: 'R$ 1.000 em receita' },
+    { icon: '💎', name: 'Cinco Mil',         done: totalRec >= 5000, desc: 'R$ 5.000 em receita' },
+    { icon: '👑', name: 'Dez Mil',           done: totalRec >= 10000, desc: 'R$ 10.000 em receita' },
+  ];
+  // sort: done first
+  const sortedA = [...achievements].sort((a, b) => b.done - a.done);
+  document.getElementById('achievements').innerHTML = sortedA.map(a => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);opacity:${a.done ? 1 : .35}">
+      <span style="font-size:22px">${a.icon}</span>
+      <div style="flex:1">
+        <div style="color:${a.done ? 'white' : '#8b90a0'};font-size:13px;font-weight:600">${a.name}</div>
+        <div style="color:#8b90a0;font-size:10px">${a.desc}</div>
+      </div>
+      ${a.done ? '<span class="material-symbols-outlined" style="color:#4ade80;font-size:18px">check_circle</span>' : '<span class="material-symbols-outlined" style="color:#414755;font-size:18px">lock</span>'}
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// FINANCEIRO
+// ═══════════════════════════════════════════════
+function setPeriodChips(selector, el) {
+  document.querySelectorAll(selector).forEach(c => {
+    c.classList.remove('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+    c.classList.add('border-outline-variant', 'text-outline');
+  });
+  el.classList.add('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+  el.classList.remove('border-outline-variant', 'text-outline');
+}
+
+function calcPeriodDates(period, startId, endId) {
+  const tz = CONFIG_DATA.timezone || 'America/Sao_Paulo';
+  const today = todayStr();
+  if (period === 'today')     return { start: today, end: today };
+  if (period === 'yesterday') {
+    const y = new Date(today + 'T12:00:00'); y.setDate(y.getDate() - 1);
+    const s = y.toLocaleDateString('sv-SE', { timeZone: tz });
+    return { start: s, end: s };
+  }
+  if (period === 'week') {
+    const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - d.getDay());
+    return { start: d.toLocaleDateString('sv-SE', { timeZone: tz }), end: '9999-12-31' };
+  }
+  if (period === 'month')  return { start: today.slice(0, 8) + '01', end: '9999-12-31' };
+  if (period === 'custom') {
+    const s = document.getElementById(startId)?.value || '2000-01-01';
+    const e = document.getElementById(endId)?.value   || '9999-12-31';
+    return { start: s, end: e };
+  }
+  return { start: '2000-01-01', end: '9999-12-31' };
+}
+
+function setFinPeriod(p, el) {
+  finPeriod = p;
+  setPeriodChips('.fin-chip', el);
+  const rangeEl = document.getElementById('fin-custom-range');
+  if (p === 'custom') {
+    rangeEl.classList.remove('hidden');
+    if (!document.getElementById('fin-custom-start').value) {
+      const today = todayStr();
+      document.getElementById('fin-custom-start').value = today.slice(0, 8) + '01';
+      document.getElementById('fin-custom-end').value   = today;
+    }
+  } else {
+    rangeEl.classList.add('hidden');
+  }
+  renderFinanceiro();
+}
+
+function getFinDates() {
+  return calcPeriodDates(finPeriod, 'fin-custom-start', 'fin-custom-end');
+}
+
+function setHistPeriod(p, el) {
+  histPeriod = p;
+  setPeriodChips('.hist-period-chip', el);
+  const rangeEl = document.getElementById('hist-custom-range');
+  if (p === 'custom') {
+    rangeEl.classList.remove('hidden');
+    if (!document.getElementById('hist-custom-start').value) {
+      const today = todayStr();
+      document.getElementById('hist-custom-start').value = today.slice(0, 8) + '01';
+      document.getElementById('hist-custom-end').value   = today;
+    }
+  } else {
+    rangeEl.classList.add('hidden');
+  }
+  renderHistorico();
+}
+
+function renderFinanceiro() {
+  const { start, end } = getFinDates();
+  const inRange = d => { const s = (d || '').split('T')[0]; return s >= start && s <= end; };
+
+  const entradas = corridas.filter(c => inRange(c.data));
+  const receitaCorridas = entradas.reduce((s, c) => s + c.liquido, 0);
+
+  // Outras entradas
+  const outrasEnt = loadOutrasEntradas().filter(e => inRange(e.data));
+  const outrasEntTotal = outrasEnt.reduce((s, e) => s + e.valor, 0);
+  const receitaTotal = receitaCorridas + outrasEntTotal;
+
+  // Saídas: gasolina + outras despesas
+  const gasNoP    = abastecimentos.filter(a => inRange(a.data));
+  const gasTotal  = gasNoP.reduce((s, a) => s + a.valor, 0);
+  const outrasNoP = outrasDespesas.filter(d => inRange(d.data));
+  const outrasTotal = outrasNoP.reduce((s, d) => s + d.valor, 0);
+  const despesasTotal = gasTotal + outrasTotal;
+  const resultado  = receitaTotal - despesasTotal;
+
+  // Summary
+  document.getElementById('fin-receita').textContent  = brl(receitaTotal);
+  document.getElementById('fin-despesas').textContent = brl(despesasTotal);
+  const resEl = document.getElementById('fin-resultado');
+  resEl.textContent  = brl(resultado);
+  resEl.style.color  = resultado >= 0 ? '#60a5fa' : '#f87171';
+
+  document.getElementById('fin-entradas-total').textContent = brl(receitaCorridas);
+
+  // Corridas: group by platform
+  const byPlat = {};
+  entradas.forEach(c => {
+    if (!byPlat[c.plat]) byPlat[c.plat] = 0;
+    byPlat[c.plat] += c.liquido;
+  });
+  document.getElementById('fin-entradas-list').innerHTML = Object.entries(byPlat).length
+    ? Object.entries(byPlat).map(([plat, val]) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">${iconPlat(plat)}</span>
+          <span style="color:#c1c6d7;font-size:13px">${plat}</span>
+        </div>
+        <span style="color:#4ade80;font-size:13px;font-weight:700">+ ${brl(val)}</span>
+      </div>`).join('')
+    : '<div style="color:#8b90a0;font-size:12px;text-align:center;padding:16px 0">Nenhuma corrida no período</div>';
+
+  // Outras entradas list
+  document.getElementById('fin-outras-entradas-total').textContent = brl(outrasEntTotal);
+  document.getElementById('fin-outras-entradas-list').innerHTML = outrasEnt.length
+    ? outrasEnt.map(e => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">${(OE_CAT[e.cat]||'📦').split(' ')[0]}</span>
+          <div>
+            <div style="color:#c1c6d7;font-size:12px">${e.desc}</div>
+            <div style="color:#8b90a0;font-size:10px">${e.data.split('-').reverse().join('/')}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#2dd4bf;font-size:13px;font-weight:700">+ ${brl(e.valor)}</span>
+          <button onclick="deleteOutraEntrada(${e.id})" style="background:none;border:none;color:#414755;cursor:pointer;padding:4px;transition:color .2s" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#414755'">
+            <span class="material-symbols-outlined" style="font-size:15px">delete</span>
+          </button>
+        </div>
+      </div>`).join('')
+    : '<div style="color:#8b90a0;font-size:12px;text-align:center;padding:12px 0">Nenhuma entrada extra no período</div>';
+
+  // Saídas
+  const catIcon = { alimentacao:'🍔', telefone:'📱', seguro:'🛡️', manutencao:'🔧', outros:'📦', gasolina:'⛽' };
+  const catName = { alimentacao:'Alimentação', telefone:'Telefone', seguro:'Seguro', manutencao:'Manutenção', outros:'Outros', gasolina:'Gasolina' };
+
+  const saidasItems = [];
+  if (gasTotal > 0) saidasItems.push({ icon:'⛽', name:'Gasolina', val: gasTotal, id: null });
+
+  // group outras by category
+  const bycat = {};
+  outrasNoP.forEach(d => {
+    if (!bycat[d.categoria]) bycat[d.categoria] = { total: 0, items: [] };
+    bycat[d.categoria].total += d.valor;
+    bycat[d.categoria].items.push(d);
+  });
+  Object.entries(bycat).forEach(([cat, data]) => {
+    saidasItems.push({ icon: catIcon[cat]||'📦', name: catName[cat]||cat, val: data.total, items: data.items });
+  });
+
+  // Saídas individuais com editar/deletar
+  const saidasRowsHtml = [];
+  if (gasTotal > 0) {
+    saidasRowsHtml.push(`
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="font-size:16px">⛽</span>
+        <span style="color:#c1c6d7;font-size:13px;flex:1">Gasolina (${gasNoP.length} abast.)</span>
+        <span style="color:#f87171;font-size:13px;font-weight:700">− ${brl(gasTotal)}</span>
+      </div>`);
+  }
+  outrasNoP.forEach(d => {
+    const icon = catIcon[d.categoria] || '📦';
+    const name = catName[d.categoria] || d.categoria;
+    const fmtD = d.data ? d.data.slice(0,10).split('-').reverse().join('/') : '';
+    saidasRowsHtml.push(`
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="font-size:16px">${icon}</span>
+        <div style="flex:1;min-width:0">
+          <div style="color:#c1c6d7;font-size:12px">${name}${d.descricao ? ' · ' + d.descricao : ''}</div>
+          <div style="color:#8b90a0;font-size:10px">${fmtD}</div>
+        </div>
+        <span style="color:#f87171;font-size:13px;font-weight:700">− ${brl(d.valor)}</span>
+        <button onclick="editDespesa(${d.id})" style="background:none;border:none;color:#414755;cursor:pointer;padding:4px;transition:color .2s" onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color='#414755'">
+          <span class="material-symbols-outlined" style="font-size:16px">edit</span>
+        </button>
+        <button onclick="deletarDespesa(${d.id})" style="background:none;border:none;color:#414755;cursor:pointer;padding:4px;transition:color .2s" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#414755'">
+          <span class="material-symbols-outlined" style="font-size:16px">delete</span>
+        </button>
+      </div>`);
+  });
+  document.getElementById('fin-saidas-list').innerHTML = saidasRowsHtml.length
+    ? saidasRowsHtml.join('')
+    : '<div style="color:#8b90a0;font-size:12px;text-align:center;padding:16px 0">Nenhuma despesa no período</div>';
+}
+
+function openDespesaModal() {
+  const modal = document.getElementById('despesa-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('modal-open'));
+  document.getElementById('f-desp-data').value = todayStr();
+  document.getElementById('f-desp-valor').value = '';
+  document.getElementById('f-desp-desc').value = '';
+  document.getElementById('desp-error').classList.add('hidden');
+}
+
+function closeDespesaModal() {
+  const modal = document.getElementById('despesa-modal');
+  modal.classList.remove('modal-open');
+  setTimeout(() => { modal.style.display = 'none'; }, 300);
+}
+
+async function salvarDespesa() {
+  const data  = document.getElementById('f-desp-data').value;
+  const cat   = document.getElementById('f-desp-cat').value;
+  const desc  = document.getElementById('f-desp-desc').value;
+  const valor = parseFloat(document.getElementById('f-desp-valor').value);
+  const errEl = document.getElementById('desp-error');
+  if (!data || isNaN(valor) || valor <= 0) { errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+  let error;
+  if (editingDespesaId) {
+    ({ error } = await sb.from('outras_despesas').update({ data, categoria: cat, descricao: desc, valor }).eq('id', editingDespesaId));
+    editingDespesaId = null;
+    cancelEditDespesa();
+  } else {
+    ({ error } = await sb.from('outras_despesas').insert([{ data, categoria: cat, descricao: desc, valor }]));
+  }
+  if (error) { showToast('Erro ao salvar'); return; }
+  await loadOutrasDespesas();
+  closeDespesaModal();
+  renderFinanceiro();
+  updateDash();
+  showToast('✓ Despesa salva!');
+}
+
+// ═══════════════════════════════════════════════
+// VEÍCULO
+// ═══════════════════════════════════════════════
+function loadVeiculoData() {
+  try { return JSON.parse(localStorage.getItem('dd_veiculo') || '{}'); } catch { return {}; }
+}
+
+function renderVeiculo() {
+  const v = loadVeiculoData();
+  const today = todayStr();
+  const fmtD  = d => d ? d.split('-').reverse().join('/') : '—';
+
+  // Populate inline form fields
+  const setV = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  setV('v-cnh-num',  v.cnh_num);
+  setV('v-cnh-venc', v.cnh_venc);
+  setV('v-modelo',   v.modelo);
+  setV('v-placa',    v.placa);
+  setV('v-renavan',  v.renavan);
+  setV('v-ipva',     v.ipva);
+  setV('v-seguro',   v.seguro);
+  setV('v-licenc',   v.licenc);
+
+  // Helper: diff status pill
+  function statusPill(venc, label) {
+    if (!venc) return '';
+    const diff = Math.round((new Date(venc + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000);
+    const color = diff <= 0 ? '#f87171' : diff <= 15 ? '#fb923c' : diff <= 60 ? '#facc15' : '#4ade80';
+    const msg   = diff <= 0 ? `${label} VENCIDO há ${Math.abs(diff)} dia${Math.abs(diff)!==1?'s':''}` : `${label} vence em ${diff} dia${diff!==1?'s':''}`;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:${color}18;border:1px solid ${color}44">
+      <span style="color:${color};font-size:12px;font-weight:600">${msg}</span>
+      <span style="color:${color};font-size:11px;margin-left:auto">${fmtD(venc)}</span>
+    </div>`;
+  }
+
+  // CNH status
+  const cnhStatusEl = document.getElementById('cnh-status');
+  if (cnhStatusEl) cnhStatusEl.innerHTML = statusPill(v.cnh_venc, 'CNH');
+
+  // Docs status
+  const docsStatusEl = document.getElementById('docs-status');
+  if (docsStatusEl) {
+    docsStatusEl.innerHTML = [
+      statusPill(v.ipva,   'IPVA'),
+      statusPill(v.seguro, 'Seguro'),
+      statusPill(v.licenc, 'Licenciamento'),
+    ].filter(Boolean).join('') || '<p style="color:#8b90a0;font-size:12px;text-align:center;padding:8px 0">Nenhuma data cadastrada</p>';
+  }
+
+  // Top alertas banner
+  const docs = [
+    { key: 'cnh_venc', label: 'CNH',          icon: 'badge' },
+    { key: 'ipva',     label: 'IPVA',          icon: 'receipt_long' },
+    { key: 'seguro',   label: 'Seguro',        icon: 'security' },
+    { key: 'licenc',   label: 'Licenciamento', icon: 'description' },
+  ];
+  const alertas = [];
+  docs.forEach(d => {
+    const venc = v[d.key];
+    if (!venc) return;
+    const diff = Math.round((new Date(venc + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000);
+    if (diff <= 30) {
+      const color = diff <= 0 ? '#f87171' : diff <= 15 ? '#fb923c' : '#facc15';
+      const msg   = diff <= 0 ? `${d.label} VENCIDO há ${Math.abs(diff)} dias` : `${d.label} vence em ${diff} dia${diff > 1 ? 's' : ''}`;
+      alertas.push({ msg, color, icon: d.icon });
+    }
+  });
+  const alertasEl = document.getElementById('veiculo-alertas');
+  if (alertasEl) alertasEl.innerHTML = alertas.map(a => `
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:${a.color}18;border:1px solid ${a.color}44;margin-bottom:8px">
+      <span class="material-symbols-outlined" style="color:${a.color};font-size:20px;font-variation-settings:'FILL' 1">${a.icon}</span>
+      <span style="color:${a.color};font-size:13px;font-weight:600">${a.msg}</span>
+    </div>`).join('');
+}
+
+function salvarVeiculo() {
+  const v = {
+    cnh_num:  document.getElementById('v-cnh-num')?.value  || '',
+    cnh_venc: document.getElementById('v-cnh-venc')?.value || '',
+    modelo:   document.getElementById('v-modelo')?.value   || '',
+    placa:   (document.getElementById('v-placa')?.value    || '').toUpperCase(),
+    renavan:  document.getElementById('v-renavan')?.value  || '',
+    ipva:     document.getElementById('v-ipva')?.value     || '',
+    seguro:   document.getElementById('v-seguro')?.value   || '',
+    licenc:   document.getElementById('v-licenc')?.value   || '',
+  };
+  localStorage.setItem('dd_veiculo', JSON.stringify(v));
+  renderVeiculo();
+  showToast('✓ Veículo salvo!');
+}
+
+// ═══════════════════════════════════════════════
+// NOTIFICAÇÕES
+// ═══════════════════════════════════════════════
+function generateNotifications() {
+  const notifs = [];
+  const today  = todayStr();
+  const v      = loadVeiculoData();
+
+  // ── Vencimentos de documentos ──
+  const docChecks = [
+    { key: 'cnh_venc', label: 'CNH',          icon: 'badge',        color: '#60a5fa' },
+    { key: 'ipva',     label: 'IPVA',          icon: 'receipt_long', color: '#f59e0b' },
+    { key: 'seguro',   label: 'Seguro',        icon: 'security',     color: '#a78bfa' },
+    { key: 'licenc',   label: 'Licenciamento', icon: 'description',  color: '#34d399' },
+  ];
+  docChecks.forEach(d => {
+    const venc = v[d.key];
+    if (!venc) return;
+    const diff = Math.round((new Date(venc + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000);
+    if (diff <= 60) {
+      const urgency = diff <= 0 ? 'high' : diff <= 15 ? 'med' : 'low';
+      const msg     = diff <= 0
+        ? `${d.label} venceu há ${Math.abs(diff)} dia${Math.abs(diff)!==1?'s':''}!`
+        : diff === 0 ? `${d.label} vence hoje!`
+        : `${d.label} vence em ${diff} dia${diff!==1?'s':''}`;
+      notifs.push({ icon: d.icon, color: d.color, msg, urgency });
+    }
+  });
+
+  // ── Meta do dia ──
+  const metaDia = CONFIG.metaDia || 0;
+  if (metaDia > 0 && corridas.length) {
+    const todayTotal = corridas
+      .filter(c => (c.data || '').slice(0, 10) === today)
+      .reduce((s, c) => s + c.liquido, 0);
+    if (todayTotal >= metaDia) {
+      notifs.push({
+        icon: 'emoji_events', color: '#f59e0b',
+        msg: `🎉 Meta do dia batida! R$${todayTotal.toFixed(2).replace('.', ',')} de R$${metaDia.toFixed(2).replace('.', ',')}`,
+        urgency: 'low'
+      });
+    }
+  }
+
+  // ── Meta semanal ──
+  const metaSemana = CONFIG.metaSemana || 0;
+  if (metaSemana > 0 && corridas.length) {
+    const { start: ws } = calcPeriodDates('week', '', '');
+    const weekTotal = corridas
+      .filter(c => (c.data || '').slice(0, 10) >= ws)
+      .reduce((s, c) => s + c.liquido, 0);
+    if (weekTotal >= metaSemana) {
+      notifs.push({
+        icon: 'emoji_events', color: '#818cf8',
+        msg: `🏆 Meta semanal batida! R$${weekTotal.toFixed(2).replace('.', ',')}`,
+        urgency: 'low'
+      });
+    }
+  }
+
+  // ── Meta mensal ──
+  const metaMes = CONFIG.metaMes || 0;
+  if (metaMes > 0 && corridas.length) {
+    const { start: ms } = calcPeriodDates('month', '', '');
+    const mesTotal = corridas
+      .filter(c => (c.data || '').slice(0, 10) >= ms)
+      .reduce((s, c) => s + c.liquido, 0);
+    if (mesTotal >= metaMes) {
+      notifs.push({
+        icon: 'emoji_events', color: '#4ade80',
+        msg: `💎 Meta mensal batida! R$${mesTotal.toFixed(2).replace('.', ',')}`,
+        urgency: 'low'
+      });
+    }
+  }
+
+  // ── Promoções próximas (≤ 30 min) ──
+  getUpcomingPromos(30).forEach(p => {
+    const ini = timeToMin(p.inicio);
+    const now2 = new Date();
+    const hhmm2 = now2.getHours() * 60 + now2.getMinutes();
+    const mins = ini - hhmm2;
+    notifs.push({
+      icon: 'local_offer', color: '#fb923c',
+      msg: `${promoIcon(p.tipo)} ${p.plat} — ${p.tipo} começa em ${mins} min (${p.inicio}): ${p.desc}`,
+      urgency: 'med'
+    });
+  });
+
+  // ── Promoções ativas agora ──
+  getActivePromos().forEach(p => {
+    notifs.push({
+      icon: 'local_offer', color: '#f97316',
+      msg: `🔥 ATIVA agora: ${p.plat} — ${p.tipo} até ${p.fim}. ${p.desc}`,
+      urgency: 'high'
+    });
+  });
+
+  // ── Nova categoria de despesa detectada ──
+  const cats = [...new Set(outrasDespesas.map(d => d.categoria).filter(Boolean))];
+  if (cats.length > 0) {
+    const knownCats = JSON.parse(localStorage.getItem('dd_known_cats') || '[]');
+    const newCats   = cats.filter(c => !knownCats.includes(c));
+    if (newCats.length) {
+      notifs.push({
+        icon: 'label', color: '#fb923c',
+        msg: `Nova categoria registrada: ${newCats.join(', ')}`,
+        urgency: 'low'
+      });
+    }
+  }
+
+  return notifs;
+}
+
+function openNotifications() {
+  // Mark categories as known when opening
+  const cats = [...new Set(outrasDespesas.map(d => d.categoria).filter(Boolean))];
+  localStorage.setItem('dd_known_cats', JSON.stringify(cats));
+
+  const notifs  = generateNotifications();
+  const listEl  = document.getElementById('notif-list');
+  const modal   = document.getElementById('notif-modal');
+
+  if (!notifs.length) {
+    listEl.innerHTML = `
+      <div style="text-align:center;padding:32px 0">
+        <span class="material-symbols-outlined" style="font-size:40px;color:#414755;display:block;margin-bottom:12px">notifications_off</span>
+        <p style="color:#8b90a0;font-size:13px">Nenhuma notificação no momento</p>
+      </div>`;
+  } else {
+    listEl.innerHTML = notifs.map(n => `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:16px;background:${n.color}10;border:1px solid ${n.color}30">
+        <span class="material-symbols-outlined" style="color:${n.color};font-size:22px;font-variation-settings:'FILL' 1;flex-shrink:0;margin-top:1px">${n.icon}</span>
+        <span style="color:#e2e8f0;font-size:13px;line-height:1.5">${n.msg}</span>
+      </div>`).join('');
+  }
+
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('modal-open'));
+
+  // Hide badge
+  document.getElementById('notif-badge')?.classList.add('hidden');
+}
+
+function closeNotifications() {
+  const modal = document.getElementById('notif-modal');
+  modal.classList.remove('modal-open');
+  setTimeout(() => { modal.style.display = 'none'; }, 300);
+}
+
+function updateNotifBadge() {
+  const notifs = generateNotifications();
+  const badge  = document.getElementById('notif-badge');
+  if (!badge) return;
+  if (notifs.length > 0) badge.classList.remove('hidden');
+  else badge.classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════
+// PERFIL / AVATAR
+// ═══════════════════════════════════════════════
+const AVATARS = ['🏍️','🚗','🛵','🚐','🚕','🤑','😎','🚀','⚡','🔥','💰','🏆','💎','👑','🎯','💪'];
+
+function loadPerfil() {
+  try { return JSON.parse(localStorage.getItem('dd_perfil') || '{"nome":"Motorista","avatar":"🏍️"}'); }
+  catch { return { nome: 'Motorista', avatar: '🏍️' }; }
+}
+
+function toggleAvatarPicker() {
+  const picker = document.getElementById('avatar-picker');
+  if (picker.classList.contains('hidden')) {
+    picker.innerHTML = AVATARS.map(a => `<button onclick="selectAvatar('${a}')" style="font-size:22px;padding:6px;border-radius:8px;background:rgba(255,255,255,.05);border:none;cursor:pointer;transition:transform .15s" class="active:scale-90">${a}</button>`).join('');
+    picker.classList.remove('hidden');
+  } else {
+    picker.classList.add('hidden');
+  }
+}
+
+function selectAvatar(emoji) {
+  document.getElementById('avatar-btn').textContent = emoji;
+  document.getElementById('avatar-picker').classList.add('hidden');
+}
+
+function updateHeader() {
+  // Update header name if there's a span for it (optional)
+}
+
+// ═══════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════
+function setDataRapida(offsetDias) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDias);
+  document.getElementById('f-data').value = d.toISOString().slice(0, 10);
+  highlightDateBtn();
+}
+
+function highlightDateBtn() {
+  const val   = document.getElementById('f-data').value;
+  const today = todayStr();
+  const ontem = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })();
+  const ante  = (() => { const d = new Date(); d.setDate(d.getDate() - 2); return d.toISOString().slice(0, 10); })();
+
+  const active   = 'background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.5);color:#93c5fd';
+  const inactive = 'background:transparent;border-color:rgba(65,71,85,1);color:#8b90a0';
+
+  document.getElementById('btn-hoje').style.cssText       = val === today ? active : inactive;
+  document.getElementById('btn-ontem').style.cssText      = val === ontem ? active : inactive;
+  document.getElementById('btn-anteontem').style.cssText  = val === ante  ? active : inactive;
+}
+
+function nowTimeStr() {
+  const n = new Date();
+  return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+}
+
+function openModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Lançar Corrida';
+  document.getElementById('btn-salvar').innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">save</span> Registrar Corrida';
+  const modal = document.getElementById('insert-modal');
+  modal.classList.add('open');
+  document.getElementById('add-ride-form').reset();
+  document.getElementById('f-data').value = todayStr();
+  document.getElementById('f-hora').value = nowTimeStr();
+  highlightDateBtn();
+  document.getElementById('preview-card').classList.add('hidden');
+  document.getElementById('form-error').classList.add('hidden');
+}
+
+function editarCorrida(id) {
+  const c = corridas.find(x => x.id === id);
+  if (!c) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Editar Corrida';
+  document.getElementById('btn-salvar').innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">edit</span> Salvar alterações';
+  const modal = document.getElementById('insert-modal');
+  modal.classList.add('open');
+  document.getElementById('add-ride-form').reset();
+  // preenche campos
+  document.getElementById('f-plat').value    = c.plat;
+  document.getElementById('f-pag').value     = c.pag;
+  document.getElementById('f-km').value      = c.km;
+  document.getElementById('f-bruto').value   = c.bruto;
+  document.getElementById('f-outras').value  = c.outras || '';
+  document.getElementById('f-liquido').value = c.liquido;
+  // tempo agora via jornadas separadas
+  const rawData = c.data || '';
+  document.getElementById('f-data').value = rawData.split('T')[0];
+  // extrai horário se tiver, senão deixa em branco
+  const timePart = rawData.includes('T') ? rawData.split('T')[1].slice(0,5) : '';
+  document.getElementById('f-hora').value = timePart;
+  highlightDateBtn();
+  calcTaxa();
+  document.getElementById('form-error').classList.add('hidden');
+}
+
+function closeModal() {
+  document.getElementById('insert-modal').classList.remove('open');
+  editingId = null;
+}
+
+// ═══════════════════════════════════════════════
+// FORM
+// ═══════════════════════════════════════════════
+function calcTaxa() {
+  const bruto = parseFloat(document.getElementById('f-bruto').value) || 0;
+  const liq   = parseFloat(document.getElementById('f-liquido').value) || 0;
+  const el    = document.getElementById('taxa-preview');
+  if (bruto > 0 && liq > 0 && bruto > liq) {
+    const diff = bruto - liq;
+    const pct  = (diff / bruto * 100).toFixed(1);
+    el.style.display = 'flex';
+    document.getElementById('taxa-pct-display').textContent = `${pct}%  (−${brl(diff)})`;
+  } else {
+    el.style.display = 'none';
+  }
+  calcPreview();
+}
+
+function calcPreview() {
+  const km     = parseFloat(document.getElementById('f-km').value)     || 0;
+  const liq    = parseFloat(document.getElementById('f-liquido').value) || 0;
+  const outras = parseFloat(document.getElementById('f-outras').value)  || 0;
+  const prev   = document.getElementById('preview-card');
+  if (!km || !liq) { prev.classList.add('hidden'); return; }
+  const custoOp = km * CONFIG.custoKm;
+  const lucro   = liq - custoOp;         // outras ficam com a plataforma
+  const rpkm    = liq / km;
+  const st         = getStatus(rpkm);
+  prev.classList.remove('hidden');
+  document.getElementById('preview-body').innerHTML = `
+    <div style="text-align:center">
+      <div style="color:#8b90a0;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Custo op.</div>
+      <div style="color:#f87171;font-size:14px;font-weight:800">${brl(custoOp)}</div>
+    </div>
+    <div style="text-align:center">
+      <div style="color:#8b90a0;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Lucro</div>
+      <div style="color:${lucro >= 0 ? '#4ade80' : '#f87171'};font-size:14px;font-weight:800">${brl(lucro)}</div>
+    </div>
+    <div style="text-align:center">
+      <div style="color:#8b90a0;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">R$/km</div>
+      <div style="color:white;font-size:14px;font-weight:800">${rpkm.toFixed(2).replace('.', ',')}</div>
+    </div>
+    <div style="grid-column:span 3;text-align:center;margin-top:6px">
+      <span class="${st.cls}" style="padding:3px 12px;border-radius:20px;font-size:10px;font-weight:700">${st.label}</span>
+    </div>`;
+}
+
+async function salvarCorrida() {
+  const errEl = document.getElementById('form-error');
+  errEl.classList.add('hidden');
+
+  const plataforma = document.getElementById('f-plat').value;
+  const pagamento  = document.getElementById('f-pag').value;
+  const km      = parseFloat(document.getElementById('f-km').value);
+  const bruto   = parseFloat(document.getElementById('f-bruto').value);
+  const liquido = parseFloat(document.getElementById('f-liquido').value);
+  const outras  = parseFloat(document.getElementById('f-outras').value) || 0;
+  const dataVal = document.getElementById('f-data').value;
+  const horaVal = document.getElementById('f-hora').value;
+  const data    = dataVal ? (horaVal ? `${dataVal}T${horaVal}:00` : dataVal) : '';
+
+  if (!km || !bruto || !liquido || !dataVal || isNaN(km) || isNaN(bruto) || isNaN(liquido)) {
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const btn = document.getElementById('btn-salvar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;animation:spin 1s linear infinite">sync</span> Salvando...';
+
+  let error;
+  if (editingId) {
+    ({ error } = await sb.from('moto_corridas').update({ plataforma, pagamento, km, bruto, liquido, outras, data }).eq('id', editingId));
+  } else {
+    ({ error } = await sb.from('moto_corridas').insert([{ plataforma, pagamento, km, bruto, liquido, outras, data }]));
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = editingId
+    ? '<span class="material-symbols-outlined" style="font-size:18px">edit</span> Salvar alterações'
+    : '<span class="material-symbols-outlined" style="font-size:18px">save</span> Registrar Corrida';
+
+  if (error) {
+    console.error(error);
+    showToast('Erro ao salvar');
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const msg = editingId ? '✓ Corrida atualizada!' : '✓ Corrida registrada!';
+  closeModal();
+  await loadCorridas();
+  updateDash();
+  renderHistorico();
+  updateNotifBadge();
+  showTab('dash');
+  showToast(msg);
+}
+
+// ═══════════════════════════════════════════════
+// ABASTECIMENTO
+// ═══════════════════════════════════════════════
+function openFuelModal() {
+  const modal = document.getElementById('fuel-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('modal-open'));
+  setFuelData(0);
+  document.getElementById('f-fuel-valor').value = '';
+  document.getElementById('f-fuel-litros').value = '';
+  document.getElementById('fuel-error').classList.add('hidden');
+  renderFuelHistory();
+}
+
+function renderFuelHistory() {
+  const el = document.getElementById('fuel-history');
+  if (!abastecimentos.length) { el.innerHTML = ''; return; }
+  const fmt = d => {
+    const [y, m, dd] = d.split('-');
+    return `${dd}/${m}/${y}`;
+  };
+  el.innerHTML = `
+    <div class="text-outline text-xs font-semibold mt-1 mb-0.5">Histórico</div>
+    ${abastecimentos.slice(0, 20).map(a => `
+      <div class="flex items-center justify-between glass rounded-xl px-3 py-2.5">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-orange-400" style="font-variation-settings:'FILL' 1;font-size:16px">local_gas_station</span>
+          <div>
+            <div class="text-white text-sm font-semibold">${brl(a.valor)}</div>
+            <div class="text-outline text-xs">${fmt(a.data)}${a.litros > 0 ? ` · ${a.litros.toFixed(1).replace('.',',')} L` : ''}</div>
+          </div>
+        </div>
+        <button onclick="deletarAbastecimento(${a.id})" class="text-red-400/70 active:scale-90 transition-transform p-1 hover:text-red-400">
+          <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+        </button>
+      </div>
+    `).join('')}
+  `;
+}
+
+async function deletarAbastecimento(id) {
+  if (!confirm('Excluir este abastecimento?')) return;
+  const { error } = await sb.from('moto_abastecimentos').delete().eq('id', id);
+  if (error) { showToast('Erro ao excluir'); return; }
+  await loadAbastecimentos();
+  updateDash();
+  renderFuelHistory();
+  showToast('Abastecimento excluído');
+}
+
+function closeFuelModal() {
+  const modal = document.getElementById('fuel-modal');
+  modal.classList.remove('modal-open');
+  setTimeout(() => { modal.style.display = 'none'; }, 300);
+}
+
+function setFuelData(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  const str = d.toLocaleDateString('sv-SE', { timeZone: CONFIG_DATA.timezone || 'America/Sao_Paulo' });
+  document.getElementById('f-fuel-data').value = str;
+  highlightFuelBtn();
+}
+
+function highlightFuelBtn() {
+  const val = document.getElementById('f-fuel-data').value;
+  const today = todayStr();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = yesterday.toLocaleDateString('sv-SE', { timeZone: CONFIG_DATA.timezone || 'America/Sao_Paulo' });
+  ['fbtn-hoje', 'fbtn-ontem'].forEach(id => {
+    document.getElementById(id).classList.remove('bg-blue-500', 'text-white', 'border-blue-500');
+    document.getElementById(id).classList.add('border-outline-variant', 'text-outline');
+  });
+  if (val === today) {
+    document.getElementById('fbtn-hoje').classList.add('bg-blue-500', 'text-white', 'border-blue-500');
+    document.getElementById('fbtn-hoje').classList.remove('border-outline-variant', 'text-outline');
+  } else if (val === yStr) {
+    document.getElementById('fbtn-ontem').classList.add('bg-blue-500', 'text-white', 'border-blue-500');
+    document.getElementById('fbtn-ontem').classList.remove('border-outline-variant', 'text-outline');
+  }
+}
+
+async function salvarAbastecimento() {
+  const data   = document.getElementById('f-fuel-data').value;
+  const valor  = parseFloat(document.getElementById('f-fuel-valor').value);
+  const litros = parseFloat(document.getElementById('f-fuel-litros').value) || 0;
+  const errEl  = document.getElementById('fuel-error');
+
+  if (!data || isNaN(valor) || valor <= 0) {
+    errEl.textContent = 'Preencha a data e o valor gasto.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+
+  document.getElementById('btn-fuel').disabled = true;
+  const { error } = await sb.from('moto_abastecimentos').insert([{ data, valor, litros }]);
+  document.getElementById('btn-fuel').disabled = false;
+
+  if (error) {
+    console.error(error);
+    errEl.textContent = 'Erro ao salvar. Tente novamente.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  await loadAbastecimentos();
+  updateDash();
+  // limpa campos e atualiza histórico sem fechar o modal
+  document.getElementById('f-fuel-valor').value = '';
+  document.getElementById('f-fuel-litros').value = '';
+  renderFuelHistory();
+  showToast('⛽ Abastecimento registrado!');
+}
+
+// ═══════════════════════════════════════════════
+// HISTÓRICO
+// ═══════════════════════════════════════════════
+function setFiltro(v, el) {
+  filtroPlat = v;
+  document.querySelectorAll('.plat-chip').forEach(c => {
+    c.classList.remove('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+    c.classList.add('border-outline-variant', 'text-outline');
+  });
+  el.classList.add('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+  el.classList.remove('border-outline-variant', 'text-outline');
+  renderHistorico();
+}
+
+function renderHistorico() {
+  const { start, end } = calcPeriodDates(histPeriod, 'hist-custom-start', 'hist-custom-end');
+  const list = corridas.filter(c => {
+    if (filtroPlat !== 'all' && c.plat !== filtroPlat) return false;
+    const d = (c.data || '').slice(0, 10);
+    return d >= start && d <= end;
+  });
+  const el   = document.getElementById('hist-list');
+  if (!list.length) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:40px 0">
+        <span class="material-symbols-outlined" style="font-size:40px;color:#414755;display:block;margin-bottom:12px">motorcycle</span>
+        <p style="color:#8b90a0;font-size:13px">Nenhuma corrida.<br>Toque em <span style="color:#60a5fa;font-weight:700">+</span> para começar.</p>
+      </div>`;
+    return;
+  }
+  el.innerHTML = list.map(c => {
+    const rpkm  = c.km > 0 ? c.liquido / c.km : 0;
+    const st    = getStatus(rpkm);
+    const custo = (c.km * CONFIG.custoKm).toFixed(2).replace('.', ',');
+    // outras cobranças ficam com a plataforma — não somamos no ganho
+    const outrasBadge = c.outras > 0
+      ? `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;background:rgba(251,146,60,.15);color:#fb923c">${brl(c.outras)} cobr.extra</span>`
+      : '';
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:${colorPlat(c.plat)}">
+          ${iconPlat(c.plat)}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="color:white;font-size:14px;font-weight:600">${c.plat}</span>
+            <span style="color:#4ade80;font-size:14px;font-weight:700">${brl(c.liquido)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">
+            <span style="color:#8b90a0;font-size:10px">${fmtDate(c.data)}${fmtTime(c.data) ? ' ' + fmtTime(c.data) : ''} · ${c.km.toFixed(1)}km${c.tempo > 0 ? ` · ${c.tempo}h` : ''} · R$${custo} op.</span>
+            ${badgePag(c.pag)}
+            ${outrasBadge}
+            <span class="${st.cls}" style="padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700">${st.label}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <button onclick="editarCorrida(${c.id})" style="background:none;border:none;color:#414755;cursor:pointer;padding:4px;transition:color .2s" onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color='#414755'">
+            <span class="material-symbols-outlined" style="font-size:18px">edit</span>
+          </button>
+          <button onclick="deletar(${c.id})" style="background:none;border:none;color:#414755;cursor:pointer;padding:4px;transition:color .2s" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#414755'">
+            <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function deletar(id) {
+  if (!confirm('Remover esta corrida?')) return;
+  const { error } = await sb.from('moto_corridas').delete().eq('id', id);
+  if (error) { showToast('Erro ao remover'); return; }
+  await loadCorridas();
+  renderHistorico();
+  updateDash();
+  showToast('Corrida removida');
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════
+function exportarCSV() {
+  const header = 'Data,Plataforma,Pagamento,Km,ValorCorrida,Outras,MeuGanho,Taxa,CustoOp,Lucro,R$/km\n';
+  const rows = corridas.map(c => {
+    const taxa       = c.bruto - c.liquido;
+    const custoOp    = c.km * CONFIG.custoKm;
+    const totalGanho = c.liquido + c.outras;
+    const lucro      = totalGanho - custoOp;
+    const rpkm       = c.km > 0 ? c.liquido / c.km : 0;
+    return [c.data, c.plat, c.pag, c.km.toFixed(1), c.bruto.toFixed(2), c.outras.toFixed(2), c.liquido.toFixed(2), taxa.toFixed(2), custoOp.toFixed(2), lucro.toFixed(2), rpkm.toFixed(2)].join(',');
+  }).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'corridas_moto.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════
+function doLogin() {
+  const e = document.getElementById('l-email').value.trim();
+  const p = document.getElementById('l-pass').value;
+  if (e === 'gabriel18mello@gmail.com' && p === 'Etb013118.') {
+    document.cookie = 'corridas_auth=ok;path=/;max-age=86400';
+    document.getElementById('login-screen').style.display = 'none';
+  } else {
+    document.getElementById('l-err').classList.remove('hidden');
+  }
+}
+
+function checkAuth() {
+  if (!document.cookie.includes('corridas_auth=ok')) {
+    document.getElementById('login-screen').style.display = 'flex';
+  } else {
+    document.getElementById('login-screen').style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════
+function openSettings() {
+  const modal = document.getElementById('settings-modal');
+  modal.style.display = 'flex';
+  document.getElementById('cfg-preco-litro').value   = CONFIG_DATA.precoLitro;
+  document.getElementById('cfg-consumo').value       = CONFIG_DATA.consumo;
+  document.getElementById('cfg-custo-revisao').value = CONFIG_DATA.custoRevisao;
+  document.getElementById('cfg-km-revisao').value    = CONFIG_DATA.kmRevisao;
+  document.getElementById('cfg-meta').value          = CONFIG_DATA.metaDia;
+  document.getElementById('cfg-meta-semana').value   = CONFIG_DATA.metaSemana;
+  document.getElementById('cfg-meta-mes').value      = CONFIG_DATA.metaMes;
+  document.getElementById('cfg-timezone').value      = CONFIG_DATA.timezone || 'America/Sao_Paulo';
+  const perfil = loadPerfil();
+  document.getElementById('cfg-nome').value  = perfil.nome;
+  document.getElementById('avatar-btn').textContent = perfil.avatar;
+  updateCustoPreview();
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').style.display = 'none';
+}
+
+function updateCustoPreview() {
+  const preco    = parseFloat(document.getElementById('cfg-preco-litro').value)   || 0;
+  const consumo  = parseFloat(document.getElementById('cfg-consumo').value)       || 1;
+  const revisao  = parseFloat(document.getElementById('cfg-custo-revisao').value) || 0;
+  const kmRev    = parseFloat(document.getElementById('cfg-km-revisao').value)    || 1;
+  const gasKm    = preco / consumo;
+  const revKm    = revisao / kmRev;
+  const totalKm  = gasKm + revKm;
+  document.getElementById('cfg-custo-preview').textContent  = 'R$ ' + gasKm.toFixed(3).replace('.', ',') + '/km';
+  document.getElementById('cfg-rev-preview').textContent    = 'R$ ' + revKm.toFixed(3).replace('.', ',') + '/km';
+  document.getElementById('cfg-total-preview').textContent  = 'R$ ' + totalKm.toFixed(3).replace('.', ',') + '/km';
+  document.getElementById('cfg-total-breakdown').textContent= `R$${gasKm.toFixed(3).replace('.',',')} gas + R$${revKm.toFixed(3).replace('.',',')} rev`;
+}
+// compat alias (chamado pelo oninput do combustível)
+function updateCustoKmPreview() { updateCustoPreview(); }
+
+function saveSettings() {
+  const precoLitro   = parseFloat(document.getElementById('cfg-preco-litro').value);
+  const consumo      = parseFloat(document.getElementById('cfg-consumo').value);
+  const custoRevisao = parseFloat(document.getElementById('cfg-custo-revisao').value);
+  const kmRevisao    = parseFloat(document.getElementById('cfg-km-revisao').value);
+  const metaDia      = parseFloat(document.getElementById('cfg-meta').value);
+  const metaSemana   = parseFloat(document.getElementById('cfg-meta-semana').value);
+  const metaMes      = parseFloat(document.getElementById('cfg-meta-mes').value);
+
+  if (isNaN(precoLitro) || isNaN(consumo) || consumo <= 0) {
+    showToast('Verifique os campos de combustível');
+    return;
+  }
+
+  // Save profile
+  const nomePerfil = document.getElementById('cfg-nome').value || 'Motorista';
+  const avatarPerfil = document.getElementById('avatar-btn').textContent || '🏍️';
+  localStorage.setItem('dd_perfil', JSON.stringify({ nome: nomePerfil, avatar: avatarPerfil }));
+  // Update header
+  updateHeader();
+
+  const timezone = document.getElementById('cfg-timezone').value || CONFIG_DEFAULTS.timezone;
+  const newConfig = {
+    precoLitro:   isNaN(precoLitro)   ? CONFIG_DEFAULTS.precoLitro   : precoLitro,
+    consumo:      isNaN(consumo)      ? CONFIG_DEFAULTS.consumo      : consumo,
+    custoRevisao: isNaN(custoRevisao) ? CONFIG_DEFAULTS.custoRevisao : custoRevisao,
+    kmRevisao:    isNaN(kmRevisao)    ? CONFIG_DEFAULTS.kmRevisao    : kmRevisao,
+    metaDia:      isNaN(metaDia)      ? CONFIG_DEFAULTS.metaDia      : metaDia,
+    metaSemana:   isNaN(metaSemana)   ? CONFIG_DEFAULTS.metaSemana   : metaSemana,
+    metaMes:      isNaN(metaMes)      ? CONFIG_DEFAULTS.metaMes      : metaMes,
+    timezone,
+  };
+
+  // Atualiza o objeto CONFIG_DATA in-place (para o Proxy continuar funcionando)
+  Object.assign(CONFIG_DATA, newConfig);
+  localStorage.setItem('corridas_config', JSON.stringify(newConfig));
+
+  closeSettings();
+  updateDash();   // re-calcula tudo com novos valores
+  showToast('✓ Configurações salvas!');
+}
+
+function resetSettings() {
+  if (!confirm('Restaurar todas as configurações para o padrão?')) return;
+  Object.assign(CONFIG_DATA, CONFIG_DEFAULTS);
+  localStorage.removeItem('corridas_config');
+  closeSettings();
+  updateDash();
+  showToast('Configurações restauradas');
+}
+
+// ═══════════════════════════════════════════════
+// JORNADA DE TRABALHO
+// ═══════════════════════════════════════════════
+function loadJornadas() {
+  try { return JSON.parse(localStorage.getItem('dd_jornadas') || '[]'); } catch { return []; }
+}
+function saveJornadas(j) { localStorage.setItem('dd_jornadas', JSON.stringify(j)); }
+
+function calcSessaoHoras(s) {
+  const ini = timeToMin2(s.inicio);
+  const fim = timeToMin2(s.fim);
+  if (ini === null || fim === null) return 0;
+  const diff = fim >= ini ? fim - ini : (24 * 60 - ini) + fim; // cruzamento de meia-noite
+  return diff / 60;
+}
+
+function timeToMin2(hhmm) {
+  if (!hhmm) return null;
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
+
+function formatHoras(h) {
+  if (!h || h === 0) return '0h';
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return mm > 0 ? `${hh}h${mm.toString().padStart(2,'0')}` : `${hh}h`;
+}
+
+function openJornadaModal() {
+  const modal = document.getElementById('jornada-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('modal-open'));
+  document.getElementById('j-data').value   = todayStr();
+  document.getElementById('j-inicio').value = '';
+  document.getElementById('j-fim').value    = '';
+  document.getElementById('j-error').classList.add('hidden');
+  renderJornadaList();
+}
+
+function closeJornadaModal() {
+  const modal = document.getElementById('jornada-modal');
+  modal.classList.remove('modal-open');
+  setTimeout(() => { modal.style.display = 'none'; }, 300);
+}
+
+function renderJornadaList() {
+  const el = document.getElementById('jornada-list');
+  if (!el) return;
+  const jornadas = loadJornadas();
+  if (!jornadas.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:#8b90a0;font-size:12px">Nenhuma sessão registrada</div>';
+    return;
+  }
+  // group by date
+  const byDate = {};
+  jornadas.forEach(j => {
+    if (!byDate[j.data]) byDate[j.data] = [];
+    byDate[j.data].push(j);
+  });
+  el.innerHTML = Object.entries(byDate).sort(([a],[b]) => b.localeCompare(a)).map(([data, sessoes]) => {
+    const totalH = sessoes.reduce((s, j) => s + calcSessaoHoras(j), 0);
+    const fmtD   = data.split('-').reverse().join('/');
+    return `
+    <div style="border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="color:white;font-size:13px;font-weight:700">${fmtD}</span>
+        <span style="color:#60a5fa;font-size:12px;font-weight:700">${formatHoras(totalH)} total</span>
+      </div>
+      ${sessoes.map(s => {
+        const h = calcSessaoHoras(s);
+        return `<div style="display:flex;align-items:center;padding:8px 14px;gap:12px;border-bottom:1px solid rgba(255,255,255,.03)">
+          <span class="material-symbols-outlined" style="color:#8b90a0;font-size:16px">schedule</span>
+          <span style="color:#c1c6d7;font-size:12px;flex:1">${s.inicio} → ${s.fim}</span>
+          <span style="color:#8b90a0;font-size:11px">${formatHoras(h)}</span>
+          <button onclick="deleteSessao(${s.id})" style="background:none;border:none;color:#414755;cursor:pointer;padding:4px;transition:color .2s" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#414755'">
+            <span class="material-symbols-outlined" style="font-size:16px">delete</span>
+          </button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// OUTRAS ENTRADAS
+// ═══════════════════════════════════════════════
+function loadOutrasEntradas() {
+  try { return JSON.parse(localStorage.getItem('dd_outras_entradas') || '[]'); } catch { return []; }
+}
+function saveOutrasEntradas(e) { localStorage.setItem('dd_outras_entradas', JSON.stringify(e)); }
+
+const OE_CAT = { deslocamento:'🚗 Deslocamento', bonus:'🎁 Bônus', reembolso:'↩️ Reembolso', gorjeta:'🤝 Gorjeta', outros:'📦 Outros' };
+
+function openOutraEntradaModal() {
+  const modal = document.getElementById('outra-entrada-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('modal-open'));
+  document.getElementById('oe-data').value  = todayStr();
+  document.getElementById('oe-desc').value  = '';
+  document.getElementById('oe-valor').value = '';
+  document.getElementById('oe-error').classList.add('hidden');
+}
+
+function closeOutraEntradaModal() {
+  const modal = document.getElementById('outra-entrada-modal');
+  modal.classList.remove('modal-open');
+  setTimeout(() => { modal.style.display = 'none'; }, 300);
+}
+
+// salvarOutraEntrada and deleteOutraEntrada defined in EDIÇÃO section
+
+// ═══════════════════════════════════════════════
+// METAS DE CORRIDAS (dentro do modal de promos)
+// ═══════════════════════════════════════════════
+function loadMetas() {
+  try { return JSON.parse(localStorage.getItem('dd_metas_corridas') || '[]'); } catch { return []; }
+}
+function saveMetas(m) { localStorage.setItem('dd_metas_corridas', JSON.stringify(m)); }
+
+function salvarMeta() {
+  const plat    = document.getElementById('m-plat').value;
+  const corrAlvo= parseInt(document.getElementById('m-corridas').value);
+  const desc    = document.getElementById('m-desc').value.trim();
+  const bonus   = parseFloat(document.getElementById('m-bonus').value) || 0;
+  const inicio  = document.getElementById('m-inicio').value;
+  const fim     = document.getElementById('m-fim').value;
+  const errEl   = document.getElementById('m-error');
+  if (!desc || isNaN(corrAlvo) || corrAlvo < 1 || !inicio || !fim) {
+    errEl.classList.remove('hidden'); return;
+  }
+  errEl.classList.add('hidden');
+  const metas = loadMetas();
+  metas.unshift({ id: Date.now(), plat, corrAlvo, desc, bonus, inicio, fim });
+  saveMetas(metas);
+  document.getElementById('m-desc').value    = '';
+  document.getElementById('m-corridas').value = '';
+  document.getElementById('m-bonus').value    = '';
+  document.getElementById('m-inicio').value   = '';
+  document.getElementById('m-fim').value      = '';
+  renderMetaList();
+  showToast('✓ Meta adicionada!');
+}
+
+function deleteMeta(id) {
+  saveMetas(loadMetas().filter(m => m.id !== id));
+  renderMetaList();
+}
+
+function renderMetaList() {
+  const el = document.getElementById('meta-promo-list');
+  if (!el) return;
+  const metas   = loadMetas();
+  const today2  = todayStr();
+  if (!metas.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px 0;color:#8b90a0;font-size:12px">Nenhuma meta cadastrada</div>';
+    return;
+  }
+  el.innerHTML = metas.map(m => {
+    const active = today2 >= m.inicio && today2 <= m.fim;
+    const prog   = corridas.filter(c => {
+      const d = (c.data || '').slice(0, 10);
+      return d >= m.inicio && d <= m.fim && (m.plat === 'Todas' || c.plat === m.plat);
+    }).length;
+    const pct    = Math.min(100, Math.round(prog / m.corrAlvo * 100));
+    const cor    = pct >= 100 ? '#4ade80' : active ? '#fb923c' : '#8b90a0';
+    const fmtD   = d => d.split('-').reverse().join('/');
+    return `
+    <div style="padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <span style="color:white;font-size:12px;font-weight:700">${iconPlat(m.plat)} ${m.plat} — ${m.desc}</span><br>
+          <span style="color:#8b90a0;font-size:10px">${fmtD(m.inicio)} a ${fmtD(m.fim)} · ${m.corrAlvo} corridas${m.bonus > 0 ? ' · bônus ' + brl(m.bonus) : ''}</span>
+        </div>
+        <button onclick="deleteMeta(${m.id})" style="background:none;border:none;color:#414755;cursor:pointer;padding:4px;transition:color .2s" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#414755'">
+          <span class="material-symbols-outlined" style="font-size:16px">delete</span>
+        </button>
+      </div>
+      <div style="height:4px;border-radius:4px;background:rgba(255,255,255,.08)">
+        <div style="height:4px;border-radius:4px;background:${cor};width:${pct}%;transition:width .4s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span style="color:${cor};font-size:10px;font-weight:700">${prog}/${m.corrAlvo} corridas</span>
+        <span style="color:${cor};font-size:10px;font-weight:700">${pct}%${pct>=100?' ✓':''}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// PROMOÇÕES
+// ═══════════════════════════════════════════════
+function loadPromos() {
+  try { return JSON.parse(localStorage.getItem('dd_promos') || '[]'); } catch { return []; }
+}
+
+function savePromos(promos) {
+  localStorage.setItem('dd_promos', JSON.stringify(promos));
+}
+
+function getActivePromos() {
+  const promos = loadPromos();
+  const now    = new Date();
+  const diaSemana = now.getDay();
+  const hhmm = now.getHours() * 60 + now.getMinutes();
+  return promos.filter(p => {
+    if (!p.dias.includes(diaSemana)) return false;
+    const ini = timeToMin(p.inicio);
+    const fim = timeToMin(p.fim);
+    if (ini === null || fim === null) return false;
+    if (fim > ini) return hhmm >= ini && hhmm <= fim;
+    // crosses midnight
+    return hhmm >= ini || hhmm <= fim;
+  });
+}
+
+function getUpcomingPromos(minutesAhead = 30) {
+  const promos = loadPromos();
+  const now    = new Date();
+  const diaSemana = now.getDay();
+  const hhmm  = now.getHours() * 60 + now.getMinutes();
+  return promos.filter(p => {
+    if (!p.dias.includes(diaSemana)) return false;
+    const ini = timeToMin(p.inicio);
+    if (ini === null) return false;
+    return ini > hhmm && ini <= hhmm + minutesAhead;
+  });
+}
+
+function timeToMin(hhmm) {
+  if (!hhmm) return null;
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function updatePromosAtivas() {
+  const ativas  = getActivePromos();
+  const promos  = loadPromos();
+  const ativasCard = document.getElementById('promos-ativas-card');
+  const promosBtn  = document.getElementById('promos-btn');
+  const promosBtnSub = document.getElementById('promos-btn-sub');
+
+  if (ativas.length > 0) {
+    ativasCard?.classList.remove('hidden');
+    promosBtn?.classList.add('hidden');
+    const listEl = document.getElementById('promos-ativas-list');
+    if (listEl) listEl.innerHTML = ativas.map(p => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.25)">
+        <span style="font-size:18px">${promoIcon(p.tipo)}</span>
+        <div style="flex:1">
+          <div style="color:white;font-size:12px;font-weight:700">${p.plat} — ${p.tipo}</div>
+          <div style="color:#94a3b8;font-size:10px">${p.desc} · até ${p.fim}</div>
+        </div>
+        <span style="color:#fb923c;font-size:10px;font-weight:700">ATIVA</span>
+      </div>`).join('');
+  } else {
+    ativasCard?.classList.add('hidden');
+    promosBtn?.classList.remove('hidden');
+    const total = promos.length;
+    if (promosBtnSub) promosBtnSub.textContent = total > 0 ? `${total} promoção${total > 1 ? 'ões' : ''} cadastrada${total > 1 ? 's' : ''}` : 'Cadastre promoções e taxas zero';
+  }
+}
+
+function promoIcon(tipo) {
+  return { 'Taxa zero': '🎯', 'Bônus': '💰', 'Surge': '⚡', 'Promo': '🔥' }[tipo] || '🔥';
+}
+
+function toggleDiaPromo(el) {
+  const active = el.dataset.active === '1';
+  if (active) {
+    el.dataset.active = '0';
+    el.classList.remove('border-orange-400', 'bg-orange-400/10', 'text-orange-400');
+    el.classList.add('border-outline-variant', 'text-outline');
+  } else {
+    el.dataset.active = '1';
+    el.classList.add('border-orange-400', 'bg-orange-400/10', 'text-orange-400');
+    el.classList.remove('border-outline-variant', 'text-outline');
+  }
+}
+
+function salvarPromo() {
+  const plat   = document.getElementById('p-plat').value;
+  const tipo   = document.getElementById('p-tipo').value;
+  const desc   = document.getElementById('p-desc').value.trim();
+  const inicio = document.getElementById('p-inicio').value;
+  const fim    = document.getElementById('p-fim').value;
+  const errEl  = document.getElementById('p-error');
+  const dias   = [...document.querySelectorAll('#p-dias-row [data-dia]')]
+    .filter(b => b.dataset.active === '1')
+    .map(b => parseInt(b.dataset.dia));
+
+  if (!desc || !inicio || !fim || dias.length === 0) {
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+
+  const promos = loadPromos();
+  promos.push({ id: Date.now(), plat, tipo, desc, dias, inicio, fim });
+  savePromos(promos);
+
+  // reset form
+  document.getElementById('p-desc').value  = '';
+  document.getElementById('p-inicio').value = '';
+  document.getElementById('p-fim').value    = '';
+  document.querySelectorAll('#p-dias-row [data-dia]').forEach(b => {
+    b.dataset.active = '0';
+    b.classList.remove('border-orange-400', 'bg-orange-400/10', 'text-orange-400');
+    b.classList.add('border-outline-variant', 'text-outline');
+  });
+
+  renderPromoList();
+  updatePromosAtivas();
+  showToast('✓ Promoção adicionada!');
+}
+
+function deletePromo(id) {
+  const promos = loadPromos().filter(p => p.id !== id);
+  savePromos(promos);
+  renderPromoList();
+  updatePromosAtivas();
+  showToast('Promoção removida');
+}
+
+function renderPromoList() {
+  const promos = loadPromos();
+  const el = document.getElementById('promo-list');
+  if (!el) return;
+  if (!promos.length) {
+    el.innerHTML = `<div style="text-align:center;padding:24px 0">
+      <span class="material-symbols-outlined" style="font-size:36px;color:#414755;display:block;margin-bottom:8px">local_offer</span>
+      <p style="color:#8b90a0;font-size:12px">Nenhuma promoção cadastrada</p>
+    </div>`;
+    return;
+  }
+  const DIAS_LABEL = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  el.innerHTML = promos.map(p => {
+    const diasStr = p.dias.map(d => DIAS_LABEL[d]).join(', ');
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)">
+      <span style="font-size:22px;flex-shrink:0">${promoIcon(p.tipo)}</span>
+      <div style="flex:1;min-width:0">
+        <div style="color:white;font-size:13px;font-weight:700">${p.plat} — ${p.tipo}</div>
+        <div style="color:#c1c6d7;font-size:12px;margin-top:1px">${p.desc}</div>
+        <div style="color:#8b90a0;font-size:10px;margin-top:2px">${diasStr} · ${p.inicio} às ${p.fim}</div>
+      </div>
+      <button onclick="deletePromo(${p.id})" style="background:none;border:none;color:#414755;cursor:pointer;padding:6px;flex-shrink:0;transition:color .2s" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#414755'">
+        <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function openPromoModal() {
+  const modal = document.getElementById('promo-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('modal-open'));
+  document.getElementById('m-inicio').value = todayStr();
+  document.getElementById('m-fim').value    = todayStr();
+  renderPromoList();
+  renderMetaList();
+}
+
+function closePromoModal() {
+  const modal = document.getElementById('promo-modal');
+  modal.classList.remove('modal-open');
+  setTimeout(() => { modal.style.display = 'none'; }, 300);
+}
+
+// ═══════════════════════════════════════════════
+// EDIÇÃO — SESSÃO DE JORNADA
+// ═══════════════════════════════════════════════
+let editingJornadaId = null;
+
+function editSessao(id) {
+  const s = loadJornadas().find(j => j.id === id);
+  if (!s) return;
+  editingJornadaId = id;
+  document.getElementById('j-data').value   = s.data;
+  document.getElementById('j-inicio').value = s.inicio;
+  document.getElementById('j-fim').value    = s.fim;
+  document.getElementById('j-form-title').textContent = 'Editar sessão';
+  document.getElementById('j-cancel-btn').classList.remove('hidden');
+  document.getElementById('j-save-btn').innerHTML =
+    '<span class="material-symbols-outlined" style="font-size:18px">save</span> Salvar alterações';
+  document.getElementById('j-save-btn').style.background = '#059669';
+  document.getElementById('j-save-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function cancelEditSessao() {
+  editingJornadaId = null;
+  document.getElementById('j-data').value   = todayStr();
+  document.getElementById('j-inicio').value = '';
+  document.getElementById('j-fim').value    = '';
+  document.getElementById('j-form-title').textContent = 'Nova sessão';
+  document.getElementById('j-cancel-btn').classList.add('hidden');
+  document.getElementById('j-save-btn').innerHTML =
+    '<span class="material-symbols-outlined" style="font-size:18px">add</span> Adicionar sessão';
+  document.getElementById('j-save-btn').style.background = '#3b82f6';
+}
+
+function salvarSessao() {
+  const data   = document.getElementById('j-data').value;
+  const inicio = document.getElementById('j-inicio').value;
+  const fim    = document.getElementById('j-fim').value;
+  const errEl  = document.getElementById('j-error');
+  if (!data || !inicio || !fim) { errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+  const jornadas = loadJornadas();
+  if (editingJornadaId) {
+    const idx = jornadas.findIndex(j => j.id === editingJornadaId);
+    if (idx !== -1) jornadas[idx] = { ...jornadas[idx], data, inicio, fim };
+    editingJornadaId = null;
+    cancelEditSessao();
+  } else {
+    jornadas.unshift({ id: Date.now(), data, inicio, fim });
+    document.getElementById('j-inicio').value = '';
+    document.getElementById('j-fim').value    = '';
+  }
+  saveJornadas(jornadas);
+  renderJornadaList();
+  updateDash();
+  showToast(editingJornadaId ? '✓ Sessão atualizada!' : '✓ Sessão registrada!');
+}
+
+function deleteSessao(id) {
+  saveJornadas(loadJornadas().filter(j => j.id !== id));
+  renderJornadaList();
+  updateDash();
+}
+
+// ═══════════════════════════════════════════════
+// EDIÇÃO — OUTRAS ENTRADAS
+// ═══════════════════════════════════════════════
+let editingEntradaId = null;
+
+function editOutraEntrada(id) {
+  const e = loadOutrasEntradas().find(x => x.id === id);
+  if (!e) return;
+  editingEntradaId = id;
+  const modal = document.getElementById('outra-entrada-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('modal-open'));
+  document.getElementById('oe-data').value  = e.data;
+  document.getElementById('oe-cat').value   = e.cat;
+  document.getElementById('oe-desc').value  = e.desc;
+  document.getElementById('oe-valor').value = e.valor;
+  document.getElementById('oe-modal-title').textContent = 'Editar entrada';
+  document.getElementById('oe-cancel-btn').classList.remove('hidden');
+  document.getElementById('oe-save-btn').innerHTML =
+    '<span class="material-symbols-outlined" style="font-size:18px">save</span> Salvar alterações';
+}
+
+function cancelEditEntrada() {
+  editingEntradaId = null;
+  document.getElementById('oe-modal-title').textContent = 'Outra entrada';
+  document.getElementById('oe-cancel-btn').classList.add('hidden');
+  document.getElementById('oe-save-btn').innerHTML =
+    '<span class="material-symbols-outlined" style="font-size:18px">save</span> Registrar entrada';
+}
+
+function salvarOutraEntrada() {
+  const data  = document.getElementById('oe-data').value;
+  const cat   = document.getElementById('oe-cat').value;
+  const desc  = document.getElementById('oe-desc').value.trim();
+  const valor = parseFloat(document.getElementById('oe-valor').value);
+  const errEl = document.getElementById('oe-error');
+  if (!data || !desc || isNaN(valor) || valor <= 0) { errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+  const entradas = loadOutrasEntradas();
+  if (editingEntradaId) {
+    const idx = entradas.findIndex(x => x.id === editingEntradaId);
+    if (idx !== -1) entradas[idx] = { ...entradas[idx], data, cat, desc, valor };
+    editingEntradaId = null;
+    cancelEditEntrada();
+  } else {
+    entradas.unshift({ id: Date.now(), data, cat, desc, valor });
+  }
+  saveOutrasEntradas(entradas);
+  closeOutraEntradaModal();
+  renderFinanceiro();
+  updateDash();
+  showToast('✓ Entrada salva!');
+}
+
+function deleteOutraEntrada(id) {
+  saveOutrasEntradas(loadOutrasEntradas().filter(e => e.id !== id));
+  renderFinanceiro();
+  updateDash();
+  showToast('Entrada removida');
+}
+
+// ═══════════════════════════════════════════════
+// EDIÇÃO — DESPESAS (Supabase)
+// ═══════════════════════════════════════════════
+let editingDespesaId = null;
+
+function editDespesa(id) {
+  const d = outrasDespesas.find(x => x.id === id);
+  if (!d) return;
+  editingDespesaId = id;
+  const modal = document.getElementById('despesa-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('modal-open'));
+  document.getElementById('f-desp-data').value  = (d.data || '').slice(0, 10);
+  document.getElementById('f-desp-cat').value   = d.categoria;
+  document.getElementById('f-desp-desc').value  = d.descricao;
+  document.getElementById('f-desp-valor').value = d.valor;
+  document.getElementById('desp-modal-title').textContent = 'Editar Despesa';
+  document.getElementById('desp-cancel-btn').classList.remove('hidden');
+  document.getElementById('desp-save-btn').innerHTML =
+    '<span class="material-symbols-outlined" style="font-size:18px">save</span> Salvar alterações';
+}
+
+function cancelEditDespesa() {
+  editingDespesaId = null;
+  document.getElementById('desp-modal-title').textContent = 'Nova Despesa';
+  document.getElementById('desp-cancel-btn').classList.add('hidden');
+  document.getElementById('desp-save-btn').innerHTML =
+    '<span class="material-symbols-outlined" style="font-size:18px">save</span> Registrar despesa';
+}
+
+async function deletarDespesa(id) {
+  if (!confirm('Remover esta despesa?')) return;
+  const { error } = await sb.from('outras_despesas').delete().eq('id', id);
+  if (error) { showToast('Erro ao remover'); return; }
+  await loadOutrasDespesas();
+  renderFinanceiro();
+  updateDash();
+  showToast('Despesa removida');
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+const DIAS  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const now   = new Date();
+document.getElementById('nav-date').textContent =
+  `${DIAS[now.getDay()]}, ${now.getDate()} ${MESES[now.getMonth()]} ${now.getFullYear()}`;
+
+checkAuth();
+
+(async () => {
+  await Promise.all([loadCorridas(), loadAbastecimentos(), loadOutrasDespesas()]);
+  updateDash();
+  renderHistorico();
+  updateNotifBadge();
+})();
+</script>
+</body>
+</html>
