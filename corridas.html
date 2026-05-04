@@ -717,19 +717,6 @@
         <div id="achievements" class="space-y-2"></div>
       </div>
 
-      <!-- Push Notifications -->
-      <div class="glass rounded-2xl p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">notifications_active</span>
-          <h3 class="text-white text-sm font-semibold">Notificações Push</h3>
-        </div>
-        <p style="color:#8b90a0;font-size:12px;margin-bottom:12px;line-height:1.5">Receba avisos com o app fechado: resumo diário às 21h, meta atingida, vencimentos de documentos.</p>
-        <button id="push-toggle-btn" onclick="togglePush()"
-          style="width:100%;padding:10px 16px;border-radius:12px;border:1px solid rgba(59,130,246,.3);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:rgba(59,130,246,.15);color:#60a5fa">
-          Ativar notificações push
-        </button>
-        <p style="color:#414755;font-size:10px;text-align:center;margin-top:8px">No iPhone, instale o app na tela inicial pelo Safari</p>
-      </div>
     </div>
   </div>
 
@@ -1062,6 +1049,20 @@
         <option value="UTC">UTC</option>
       </select>
       <p class="text-outline/60 text-[9px] mt-2 px-1">Usado para calcular "hoje" e o gráfico de atividade por hora corretamente</p>
+    </div>
+
+    <!-- Push Notifications -->
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">notifications_active</span>
+        <span class="text-white text-sm font-semibold">Notificações Push</span>
+      </div>
+      <p style="color:#8b90a0;font-size:12px;margin-bottom:12px;line-height:1.5">Receba avisos com o app fechado: resumo diário às 21h, metas e vencimentos.</p>
+      <button id="push-toggle-btn" onclick="togglePush()"
+        style="width:100%;padding:10px 16px;border-radius:12px;border:1px solid rgba(59,130,246,.3);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:rgba(59,130,246,.15);color:#60a5fa">
+        Ativar notificações push
+      </button>
+      <p style="color:#414755;font-size:10px;text-align:center;margin-top:8px">No iPhone, instale o app na tela inicial pelo Safari</p>
     </div>
 
     <!-- Save button -->
@@ -3227,6 +3228,7 @@ function openSettings() {
   document.getElementById('cfg-nome').value  = perfil.nome;
   document.getElementById('avatar-btn').textContent = perfil.avatar;
   updateCustoPreview();
+  updatePushBtn();
 }
 
 function closeSettings() {
