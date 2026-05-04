@@ -717,19 +717,6 @@
         <div id="achievements" class="space-y-2"></div>
       </div>
 
-      <!-- Push Notifications -->
-      <div class="glass rounded-2xl p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">notifications_active</span>
-          <h3 class="text-white text-sm font-semibold">Notificações Push</h3>
-        </div>
-        <p style="color:#8b90a0;font-size:12px;margin-bottom:12px;line-height:1.5">Receba avisos com o app fechado: resumo diário às 21h, meta atingida, vencimentos de documentos.</p>
-        <button id="push-toggle-btn" onclick="togglePush()"
-          style="width:100%;padding:10px 16px;border-radius:12px;border:1px solid rgba(59,130,246,.3);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:rgba(59,130,246,.15);color:#60a5fa">
-          Ativar notificações push
-        </button>
-        <p style="color:#414755;font-size:10px;text-align:center;margin-top:8px">No iPhone, instale o app na tela inicial pelo Safari</p>
-      </div>
     </div>
   </div>
 
@@ -1062,6 +1049,20 @@
         <option value="UTC">UTC</option>
       </select>
       <p class="text-outline/60 text-[9px] mt-2 px-1">Usado para calcular "hoje" e o gráfico de atividade por hora corretamente</p>
+    </div>
+
+    <!-- Push Notifications -->
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">notifications_active</span>
+        <span class="text-white text-sm font-semibold">Notificações Push</span>
+      </div>
+      <p style="color:#8b90a0;font-size:12px;margin-bottom:12px;line-height:1.5">Receba avisos com o app fechado: resumo diário às 21h, metas e vencimentos.</p>
+      <button id="push-toggle-btn" onclick="togglePush()"
+        style="width:100%;padding:10px 16px;border-radius:12px;border:1px solid rgba(59,130,246,.3);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:rgba(59,130,246,.15);color:#60a5fa">
+        Ativar notificações push
+      </button>
+      <p style="color:#414755;font-size:10px;text-align:center;margin-top:8px">No iPhone, instale o app na tela inicial pelo Safari</p>
     </div>
 
     <!-- Save button -->
@@ -1646,7 +1647,7 @@ function badgePag(p) {
 // DATA LOADING
 // ═══════════════════════════════════════════════
 async function loadCorridas() {
-  const q = sb.from('moto_corridas').select('*');
+  const q = sb.from('dashdriver_corridas').select('*');
   q._orders = ['data.desc', 'id.desc'];
   const { data, error } = await q._exec();
   if (error) { console.error(error); showToast('Erro ao carregar dados'); return; }
@@ -1664,7 +1665,7 @@ async function loadCorridas() {
 }
 
 async function loadAbastecimentos() {
-  const q = sb.from('moto_abastecimentos').select('*');
+  const q = sb.from('dashdriver_abastecimentos').select('*');
   q._orders = ['data.desc', 'id.desc'];
   const { data, error } = await q._exec();
   if (error) { console.error(error); return; }
@@ -1677,7 +1678,7 @@ async function loadAbastecimentos() {
 }
 
 async function loadOutrasDespesas() {
-  const q = sb.from('outras_despesas').select('*');
+  const q = sb.from('dashdriver_outras_despesas').select('*');
   q._orders = ['data.desc', 'id.desc'];
   const { data, error } = await q._exec();
   if (error) { console.error(error); return; }
@@ -2473,11 +2474,11 @@ async function salvarDespesa() {
   errEl.classList.add('hidden');
   let error;
   if (editingDespesaId) {
-    ({ error } = await sb.from('outras_despesas').update({ data, categoria: cat, descricao: desc, valor }).eq('id', editingDespesaId));
+    ({ error } = await sb.from('dashdriver_outras_despesas').update({ data, categoria: cat, descricao: desc, valor }).eq('id', editingDespesaId));
     editingDespesaId = null;
     cancelEditDespesa();
   } else {
-    ({ error } = await sb.from('outras_despesas').insert([{ data, categoria: cat, descricao: desc, valor }]));
+    ({ error } = await sb.from('dashdriver_outras_despesas').insert([{ data, categoria: cat, descricao: desc, valor }]));
   }
   if (error) { showToast('Erro ao salvar'); return; }
   await loadOutrasDespesas();
@@ -2946,9 +2947,9 @@ async function salvarCorrida() {
 
   let error;
   if (editingId) {
-    ({ error } = await sb.from('moto_corridas').update({ plataforma, pagamento, km, bruto, liquido, outras, data }).eq('id', editingId));
+    ({ error } = await sb.from('dashdriver_corridas').update({ plataforma, pagamento, km, bruto, liquido, outras, data }).eq('id', editingId));
   } else {
-    ({ error } = await sb.from('moto_corridas').insert([{ plataforma, pagamento, km, bruto, liquido, outras, data }]));
+    ({ error } = await sb.from('dashdriver_corridas').insert([{ plataforma, pagamento, km, bruto, liquido, outras, data }]));
   }
 
   btn.disabled = false;
@@ -3016,7 +3017,7 @@ function renderFuelHistory() {
 
 async function deletarAbastecimento(id) {
   if (!confirm('Excluir este abastecimento?')) return;
-  const { error } = await sb.from('moto_abastecimentos').delete().eq('id', id);
+  const { error } = await sb.from('dashdriver_abastecimentos').delete().eq('id', id);
   if (error) { showToast('Erro ao excluir'); return; }
   await loadAbastecimentos();
   updateDash();
@@ -3071,7 +3072,7 @@ async function salvarAbastecimento() {
   errEl.classList.add('hidden');
 
   document.getElementById('btn-fuel').disabled = true;
-  const { error } = await sb.from('moto_abastecimentos').insert([{ data, valor, litros }]);
+  const { error } = await sb.from('dashdriver_abastecimentos').insert([{ data, valor, litros }]);
   document.getElementById('btn-fuel').disabled = false;
 
   if (error) {
@@ -3159,7 +3160,7 @@ function renderHistorico() {
 
 async function deletar(id) {
   if (!confirm('Remover esta corrida?')) return;
-  const { error } = await sb.from('moto_corridas').delete().eq('id', id);
+  const { error } = await sb.from('dashdriver_corridas').delete().eq('id', id);
   if (error) { showToast('Erro ao remover'); return; }
   await loadCorridas();
   renderHistorico();
@@ -3227,6 +3228,7 @@ function openSettings() {
   document.getElementById('cfg-nome').value  = perfil.nome;
   document.getElementById('avatar-btn').textContent = perfil.avatar;
   updateCustoPreview();
+  updatePushBtn();
 }
 
 function closeSettings() {
@@ -3446,7 +3448,7 @@ function salvarMeta() {
 
 function deleteMeta(id) {
   saveMetas(loadMetas().filter(m => m.id !== id));
-  sbDelete('moto_metas_corridas', id);
+  sbDelete('dashdriver_metas_corridas', id);
   renderMetaList();
 }
 
@@ -3728,7 +3730,7 @@ function salvarSessao() {
 
 function deleteSessao(id) {
   saveJornadas(loadJornadas().filter(j => j.id !== id));
-  sbDelete('moto_jornadas', id);
+  sbDelete('dashdriver_jornadas', id);
   renderJornadaList();
   updateDash();
 }
@@ -3789,7 +3791,7 @@ function salvarOutraEntrada() {
 
 function deleteOutraEntrada(id) {
   saveOutrasEntradas(loadOutrasEntradas().filter(e => e.id !== id));
-  sbDelete('moto_outras_entradas', id);
+  sbDelete('dashdriver_outras_entradas', id);
   renderFinanceiro();
   updateDash();
   showToast('Entrada removida');
@@ -3827,7 +3829,7 @@ function cancelEditDespesa() {
 
 async function deletarDespesa(id) {
   if (!confirm('Remover esta despesa?')) return;
-  const { error } = await sb.from('outras_despesas').delete().eq('id', id);
+  const { error } = await sb.from('dashdriver_outras_despesas').delete().eq('id', id);
   if (error) { showToast('Erro ao remover'); return; }
   await loadOutrasDespesas();
   renderFinanceiro();
@@ -3889,7 +3891,7 @@ async function unsubscribePush() {
     const sub = await reg.pushManager.getSubscription();
     if (sub) {
       await sub.unsubscribe();
-      await fetch(`${SB_URL}/rest/v1/moto_push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`, {
+      await fetch(`${SB_URL}/rest/v1/dashdriver_push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`, {
         method: 'DELETE', headers: SB_HEADERS,
       });
     }
@@ -3956,9 +3958,9 @@ function checkGoalPush() {
 async function syncFromSB() {
   try {
     const [rJ, rOE, rM] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/moto_jornadas?select=*&order=id.asc`, { headers: SB_HEADERS }),
-      fetch(`${SB_URL}/rest/v1/moto_outras_entradas?select=*&order=id.asc`, { headers: SB_HEADERS }),
-      fetch(`${SB_URL}/rest/v1/moto_metas_corridas?select=*&order=id.asc`, { headers: SB_HEADERS }),
+      fetch(`${SB_URL}/rest/v1/dashdriver_jornadas?select=*&order=id.asc`, { headers: SB_HEADERS }),
+      fetch(`${SB_URL}/rest/v1/dashdriver_outras_entradas?select=*&order=id.asc`, { headers: SB_HEADERS }),
+      fetch(`${SB_URL}/rest/v1/dashdriver_metas_corridas?select=*&order=id.asc`, { headers: SB_HEADERS }),
     ]);
     if (rJ.ok)  { const d = await rJ.json();  if (Array.isArray(d) && d.length)  { localStorage.setItem('dd_jornadas', JSON.stringify(d)); } }
     if (rOE.ok) { const d = await rOE.json(); if (Array.isArray(d) && d.length)  { localStorage.setItem('dd_outras_entradas', JSON.stringify(d)); } }
@@ -3979,13 +3981,13 @@ async function sbUpsert(table, rows) {
 
 // Sobrescreve save* para incluir sync Supabase (fire-and-forget)
 const _saveJornadas = saveJornadas;
-saveJornadas = function(arr) { _saveJornadas(arr); sbUpsert('moto_jornadas', arr); };
+saveJornadas = function(arr) { _saveJornadas(arr); sbUpsert('dashdriver_jornadas', arr); };
 
 const _saveOutrasEntradas = saveOutrasEntradas;
-saveOutrasEntradas = function(arr) { _saveOutrasEntradas(arr); sbUpsert('moto_outras_entradas', arr); };
+saveOutrasEntradas = function(arr) { _saveOutrasEntradas(arr); sbUpsert('dashdriver_outras_entradas', arr); };
 
 const _saveMetas = saveMetas;
-saveMetas = function(arr) { _saveMetas(arr); sbUpsert('moto_metas_corridas', arr); };
+saveMetas = function(arr) { _saveMetas(arr); sbUpsert('dashdriver_metas_corridas', arr); };
 
 // ── DELETE sync helpers ────────────────────────────
 async function sbDelete(table, id) {

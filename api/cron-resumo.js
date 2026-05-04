@@ -18,7 +18,7 @@ module.exports = async function handler(req, res) {
 
   // Busca corridas de hoje
   const rC = await fetch(
-    `${SB_URL}/rest/v1/moto_corridas?select=liquido&data=eq.${today}`,
+    `${SB_URL}/rest/v1/dashdriver_corridas?select=liquido&data=eq.${today}`,
     { headers: { apikey: SB_KEY } },
   );
   const corridas = await rC.json();
@@ -29,7 +29,7 @@ module.exports = async function handler(req, res) {
 
   // Busca jornadas de hoje para calcular horas trabalhadas
   const rJ = await fetch(
-    `${SB_URL}/rest/v1/moto_jornadas?select=inicio,fim&data=eq.${today}`,
+    `${SB_URL}/rest/v1/dashdriver_jornadas?select=inicio,fim&data=eq.${today}`,
     { headers: { apikey: SB_KEY } },
   );
   const jornadas = await rJ.json();
@@ -63,7 +63,7 @@ module.exports = async function handler(req, res) {
   });
 
   // Busca subscriptions
-  const rS = await fetch(`${SB_URL}/rest/v1/moto_push_subscriptions?select=*`, {
+  const rS = await fetch(`${SB_URL}/rest/v1/dashdriver_push_subscriptions?select=*`, {
     headers: { apikey: SB_KEY },
   });
   const subs = await rS.json();
