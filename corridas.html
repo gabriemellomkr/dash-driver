@@ -43,8 +43,8 @@
   </script>
 
   <style>
-    * { -webkit-tap-highlight-color: transparent; }
-    body { font-family: 'Inter', -apple-system, sans-serif; background-color: #131315; color: #e4e2e4; }
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background-color: #131315; color: #e4e2e4; max-width: 100vw; overflow-x: hidden; }
 
     .glass {
       background: rgba(31, 31, 33, 0.7);
@@ -344,8 +344,8 @@
         </div>
       </div>
 
-      <!-- Charts — donuts lado a lado -->
-      <div class="grid grid-cols-2 gap-3">
+      <!-- Charts — donuts empilhados no mobile -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="glass rounded-2xl p-3">
           <div class="flex items-center gap-1.5 mb-2">
             <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:14px">donut_large</span>
@@ -1512,9 +1512,18 @@ const sb = {
     async _exec() {
       let url = `${SB_URL}/rest/v1/${this._table}?select=${this._cols}`;
       if (this._orders.length) url += '&order=' + this._orders.join(',');
-      const r = await fetch(url, { headers: SB_HEADERS });
-      const data = r.ok ? await r.json() : null;
-      return { data, error: r.ok ? null : await r.json().catch(() => ({ message: r.statusText })) };
+      try {
+        const r = await fetch(url, { headers: SB_HEADERS });
+        const data = r.ok ? await r.json() : null;
+        let error = null;
+        if (!r.ok) {
+          const errData = await r.json().catch(() => null);
+          error = errData || { message: `${r.status} ${r.statusText}` };
+        }
+        return { data, error };
+      } catch (e) {
+        return { data: null, error: { message: e.message || 'Erro de rede/CORS' } };
+      }
     }
   })
 };
@@ -1578,11 +1587,11 @@ const fmtTime = d => {
   return hm === '00:00' ? '' : hm; // esconde hora 00:00 (corridas sem hora registrada)
 };
 
-function showToast(msg) {
+function showToast(msg, duration = 2600) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2600);
+  setTimeout(() => t.classList.remove('show'), duration);
 }
 
 function getStartDate() {
@@ -1650,7 +1659,11 @@ async function loadCorridas() {
   const q = sb.from('dashdriver_corridas').select('*');
   q._orders = ['data.desc', 'id.desc'];
   const { data, error } = await q._exec();
-  if (error) { console.error(error); showToast('Erro ao carregar dados'); return; }
+  if (error) { 
+    console.error('Supabase Error:', error); 
+    showToast('Erro Supabase: ' + (error.message || 'Falha na conexão'), 5000); 
+    return; 
+  }
   corridas = (data || []).map(r => ({
     id:     r.id,
     data:   r.data,
