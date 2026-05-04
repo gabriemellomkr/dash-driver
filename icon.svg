@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#131315"/>
+  <!-- moto silhouette -->
+  <circle cx="150" cy="330" r="72" fill="none" stroke="#60a5fa" stroke-width="28"/>
+  <circle cx="362" cy="330" r="72" fill="none" stroke="#60a5fa" stroke-width="28"/>
+  <!-- body -->
+  <path d="M200 310 L240 200 L320 200 L370 310" fill="none" stroke="#adc6ff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M150 310 L200 310 L240 260 L310 260 L370 310" fill="none" stroke="#adc6ff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- handlebar -->
+  <path d="M300 200 L340 180 L360 190" fill="none" stroke="#60a5fa" stroke-width="18" stroke-linecap="round"/>
+  <!-- seat -->
+  <path d="M240 200 L310 200" stroke="#60a5fa" stroke-width="18" stroke-linecap="round"/>
+  <!-- speedometer arc -->
+  <path d="M290 130 A60 60 0 0 1 380 175" fill="none" stroke="#4b8eff" stroke-width="10" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="335" cy="140" r="6" fill="#60a5fa" opacity="0.8"/>
+</svg>

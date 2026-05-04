@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#131315">
   <title>DashDriver</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.png">
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -3394,6 +3397,7 @@ function salvarMeta() {
 
 function deleteMeta(id) {
   saveMetas(loadMetas().filter(m => m.id !== id));
+  sbDelete('moto_metas_corridas', id);
   renderMetaList();
 }
 
@@ -3675,6 +3679,7 @@ function salvarSessao() {
 
 function deleteSessao(id) {
   saveJornadas(loadJornadas().filter(j => j.id !== id));
+  sbDelete('moto_jornadas', id);
   renderJornadaList();
   updateDash();
 }
@@ -3735,6 +3740,7 @@ function salvarOutraEntrada() {
 
 function deleteOutraEntrada(id) {
   saveOutrasEntradas(loadOutrasEntradas().filter(e => e.id !== id));
+  sbDelete('moto_outras_entradas', id);
   renderFinanceiro();
   updateDash();
   showToast('Entrada removida');
@@ -3789,10 +3795,60 @@ const now   = new Date();
 document.getElementById('nav-date').textContent =
   `${DIAS[now.getDay()]}, ${now.getDate()} ${MESES[now.getMonth()]} ${now.getFullYear()}`;
 
+// ── PWA: registra service worker ──────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// ── SUPABASE SYNC: jornadas, outras entradas, metas ──
+async function syncFromSB() {
+  try {
+    const [rJ, rOE, rM] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/moto_jornadas?select=*&order=id.asc`, { headers: SB_HEADERS }),
+      fetch(`${SB_URL}/rest/v1/moto_outras_entradas?select=*&order=id.asc`, { headers: SB_HEADERS }),
+      fetch(`${SB_URL}/rest/v1/moto_metas_corridas?select=*&order=id.asc`, { headers: SB_HEADERS }),
+    ]);
+    if (rJ.ok)  { const d = await rJ.json();  if (Array.isArray(d) && d.length)  { localStorage.setItem('dd_jornadas', JSON.stringify(d)); } }
+    if (rOE.ok) { const d = await rOE.json(); if (Array.isArray(d) && d.length)  { localStorage.setItem('dd_outras_entradas', JSON.stringify(d)); } }
+    if (rM.ok)  { const d = await rM.json();  if (Array.isArray(d) && d.length)  { localStorage.setItem('dd_metas_corridas', JSON.stringify(d)); } }
+  } catch { /* offline — usa localStorage */ }
+}
+
+async function sbUpsert(table, rows) {
+  if (!rows || !rows.length) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(rows),
+    });
+  } catch { /* salvo só no localStorage nesse caso */ }
+}
+
+// Sobrescreve save* para incluir sync Supabase (fire-and-forget)
+const _saveJornadas = saveJornadas;
+saveJornadas = function(arr) { _saveJornadas(arr); sbUpsert('moto_jornadas', arr); };
+
+const _saveOutrasEntradas = saveOutrasEntradas;
+saveOutrasEntradas = function(arr) { _saveOutrasEntradas(arr); sbUpsert('moto_outras_entradas', arr); };
+
+const _saveMetas = saveMetas;
+saveMetas = function(arr) { _saveMetas(arr); sbUpsert('moto_metas_corridas', arr); };
+
+// ── DELETE sync helpers ────────────────────────────
+async function sbDelete(table, id) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: SB_HEADERS,
+    });
+  } catch {}
+}
+
 checkAuth();
 
 (async () => {
-  await Promise.all([loadCorridas(), loadAbastecimentos(), loadOutrasDespesas()]);
+  await Promise.all([loadCorridas(), loadAbastecimentos(), loadOutrasDespesas(), syncFromSB()]);
   updateDash();
   renderHistorico();
   updateNotifBadge();
