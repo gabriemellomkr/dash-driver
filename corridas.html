@@ -1487,26 +1487,43 @@ const sb = {
     order(col, { ascending = true } = {}) { this._orders.push(`${col}.${ascending ? 'asc' : 'desc'}`); return this; },
     async insert(rows) {
       const body = Array.isArray(rows) ? rows[0] : rows;
-      const r = await fetch(`${SB_URL}/rest/v1/${this._table}`, {
-        method: 'POST', headers: SB_HEADERS, body: JSON.stringify(body)
-      });
-      const data = r.ok ? await r.json() : null;
-      return { data, error: r.ok ? null : await r.json().catch(() => ({ message: r.statusText })) };
+      try {
+        const r = await fetch(`${SB_URL}/rest/v1/${this._table}`, {
+          method: 'POST', headers: SB_HEADERS, body: JSON.stringify(body)
+        });
+        let data = null, error = null;
+        if (r.ok) {
+          const text = await r.text();
+          data = text ? JSON.parse(text) : {};
+        } else {
+          const errData = await r.json().catch(() => null);
+          error = errData || { message: `${r.status} ${r.statusText}` };
+        }
+        return { data, error };
+      } catch (e) {
+        return { data: null, error: { message: e.message || 'Erro de rede' } };
+      }
     },
     update(body) { this._update = body; return this; },
     delete() { this._delete = true; return this; },
     async eq(col, val) {
-      if (this._update) {
-        const r = await fetch(`${SB_URL}/rest/v1/${this._table}?${col}=eq.${val}`, {
-          method: 'PATCH', headers: SB_HEADERS, body: JSON.stringify(this._update)
+      const method = this._update ? 'PATCH' : (this._delete ? 'DELETE' : 'GET');
+      const url = `${SB_URL}/rest/v1/${this._table}?${col}=eq.${val}`;
+      try {
+        const r = await fetch(url, {
+          method, headers: SB_HEADERS, body: this._update ? JSON.stringify(this._update) : undefined
         });
-        return { error: r.ok ? null : await r.json().catch(() => ({ message: r.statusText })) };
-      }
-      if (this._delete) {
-        const r = await fetch(`${SB_URL}/rest/v1/${this._table}?${col}=eq.${val}`, {
-          method: 'DELETE', headers: SB_HEADERS
-        });
-        return { error: r.ok ? null : await r.json().catch(() => ({ message: r.statusText })) };
+        let data = null, error = null;
+        if (r.ok) {
+          const text = await r.text();
+          data = text ? JSON.parse(text) : {};
+        } else {
+          const errData = await r.json().catch(() => null);
+          error = errData || { message: `${r.status} ${r.statusText}` };
+        }
+        return { data, error };
+      } catch (e) {
+        return { data: null, error: { message: e.message || 'Erro de rede' } };
       }
     },
     async _exec() {
@@ -2493,7 +2510,11 @@ async function salvarDespesa() {
   } else {
     ({ error } = await sb.from('dashdriver_outras_despesas').insert([{ data, categoria: cat, descricao: desc, valor }]));
   }
-  if (error) { showToast('Erro ao salvar'); return; }
+  if (error) { 
+    console.error('Save Despesa Error:', error);
+    showToast('Erro: ' + (error.message || 'Falha ao salvar'), 4000); 
+    return; 
+  }
   await loadOutrasDespesas();
   closeDespesaModal();
   renderFinanceiro();
@@ -2971,8 +2992,8 @@ async function salvarCorrida() {
     : '<span class="material-symbols-outlined" style="font-size:18px">save</span> Registrar Corrida';
 
   if (error) {
-    console.error(error);
-    showToast('Erro ao salvar');
+    console.error('Save Corrida Error:', error);
+    showToast('Erro: ' + (error.message || 'Falha ao salvar'), 4000);
     errEl.classList.remove('hidden');
     return;
   }
@@ -3089,8 +3110,8 @@ async function salvarAbastecimento() {
   document.getElementById('btn-fuel').disabled = false;
 
   if (error) {
-    console.error(error);
-    errEl.textContent = 'Erro ao salvar. Tente novamente.';
+    console.error('Fuel Save Error:', error);
+    errEl.textContent = 'Erro: ' + (error.message || 'Falha ao salvar');
     errEl.classList.remove('hidden');
     return;
   }
