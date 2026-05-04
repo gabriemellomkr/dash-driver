@@ -16,8 +16,13 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Supabase e APIs externas: sempre network first
-  if (e.request.url.includes('supabase') || e.request.url.includes('nucleocriativo') || e.request.method !== 'GET') {
+  // Supabase, APIs e /api/*: sempre network first
+  if (
+    e.request.url.includes('supabase') ||
+    e.request.url.includes('nucleocriativo') ||
+    e.request.url.includes('/api/') ||
+    e.request.method !== 'GET'
+  ) {
     return;
   }
   e.respondWith(
@@ -31,5 +36,46 @@ self.addEventListener('fetch', e => {
       });
       return cached || network;
     })
+  );
+});
+
+// ── Push Notifications ────────────────────────────
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data?.json() || {}; } catch {}
+
+  const title   = data.title || 'DashDriver';
+  const options = {
+    body:    data.body  || '',
+    icon:    data.icon  || '/icon-192.png',
+    badge:   '/icon-192.png',
+    tag:     data.tag   || 'dashdriver',
+    data:    { url: data.url || '/' },
+    vibrate: [200, 100, 200],
+  };
+  e.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = e.notification.data?.url || '/';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      const existing = list.find(c => c.url.includes(self.location.origin));
+      if (existing) return existing.focus();
+      return clients.openWindow(url);
+    })
+  );
+});
+
+self.addEventListener('pushsubscriptionchange', e => {
+  e.waitUntil(
+    self.registration.pushManager.subscribe(e.oldSubscription.options).then(sub =>
+      fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub }),
+      })
+    )
   );
 });

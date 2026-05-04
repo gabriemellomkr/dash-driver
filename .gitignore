@@ -2,5 +2,3 @@
 node_modules/
 package-lock.json
 gen-icons.js
-package.json
-package-lock.json
