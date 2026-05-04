@@ -2639,6 +2639,38 @@ function generateNotifications() {
     }
   }
 
+  // ── Falta para meta do dia ──
+  if (metaDia > 0) {
+    const todayTotal = corridas
+      .filter(c => (c.data || '').slice(0, 10) === today)
+      .reduce((s, c) => s + c.liquido, 0);
+    const falta = metaDia - todayTotal;
+    const pct   = todayTotal / metaDia;
+    if (pct >= 0.5 && pct < 1) {
+      notifs.push({
+        icon: 'trending_up', color: '#60a5fa',
+        msg: `Falta ${brl(falta)} para bater a meta do dia (${Math.round(pct * 100)}% concluído)`,
+        urgency: pct >= 0.8 ? 'med' : 'low'
+      });
+    }
+  }
+
+  // ── Resumo diário (após 18h) ──
+  if (localHour() >= 18) {
+    const hojeC   = corridas.filter(c => (c.data || '').slice(0, 10) === today);
+    const totalDia = hojeC.reduce((s, c) => s + c.liquido, 0);
+    if (hojeC.length > 0) {
+      const jHoje   = loadJornadas().filter(j => j.data === today);
+      const hTrab   = jHoje.reduce((s, j) => s + calcSessaoHoras(j), 0);
+      const hStr    = hTrab > 0 ? ` · ${formatHoras(hTrab)} trabalhadas` : '';
+      notifs.push({
+        icon: 'summarize', color: '#34d399',
+        msg: `Resumo do dia: ${hojeC.length} corrida${hojeC.length !== 1 ? 's' : ''} · ${brl(totalDia)}${hStr}`,
+        urgency: 'low'
+      });
+    }
+  }
+
   // ── Promoções próximas (≤ 30 min) ──
   getUpcomingPromos(30).forEach(p => {
     const ini = timeToMin(p.inicio);
@@ -2675,7 +2707,8 @@ function generateNotifications() {
     }
   }
 
-  return notifs;
+  const ORDER = { high: 0, med: 1, low: 2 };
+  return notifs.sort((a, b) => (ORDER[a.urgency] ?? 2) - (ORDER[b.urgency] ?? 2));
 }
 
 function openNotifications() {
