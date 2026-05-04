@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'invalid subscription' });
   }
 
-  const r = await fetch(`${SB_URL}/rest/v1/moto_push_subscriptions`, {
+  const r = await fetch(`${SB_URL}/rest/v1/dashdriver_push_subscriptions`, {
     method: 'POST',
     headers: {
       apikey: SB_KEY,
