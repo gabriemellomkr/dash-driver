@@ -1561,7 +1561,7 @@ const CONFIG_DEFAULTS = {
 // custoKm = gasolina/km + revisão/km
 function loadConfig() {
   try {
-    const saved = JSON.parse(localStorage.getItem('corridas_config') || '{}');
+    const saved = JSON.parse(localStorage.getItem('dd_config') || localStorage.getItem('corridas_config') || '{}');
     return { ...CONFIG_DEFAULTS, ...saved };
   } catch { return { ...CONFIG_DEFAULTS }; }
 }
@@ -3286,13 +3286,18 @@ function updateCustoPreview() {
 function updateCustoKmPreview() { updateCustoPreview(); }
 
 function saveSettings() {
-  const precoLitro   = parseFloat(document.getElementById('cfg-preco-litro').value);
-  const consumo      = parseFloat(document.getElementById('cfg-consumo').value);
-  const custoRevisao = parseFloat(document.getElementById('cfg-custo-revisao').value);
-  const kmRevisao    = parseFloat(document.getElementById('cfg-km-revisao').value);
-  const metaDia      = parseFloat(document.getElementById('cfg-meta').value);
-  const metaSemana   = parseFloat(document.getElementById('cfg-meta-semana').value);
-  const metaMes      = parseFloat(document.getElementById('cfg-meta-mes').value);
+  const parseVal = (id) => {
+    const val = document.getElementById(id).value.replace(',', '.');
+    return parseFloat(val);
+  };
+
+  const precoLitro   = parseVal('cfg-preco-litro');
+  const consumo      = parseVal('cfg-consumo');
+  const custoRevisao = parseVal('cfg-custo-revisao');
+  const kmRevisao    = parseVal('cfg-km-revisao');
+  const metaDia      = parseVal('cfg-meta');
+  const metaSemana   = parseVal('cfg-meta-semana');
+  const metaMes      = parseVal('cfg-meta-mes');
 
   if (isNaN(precoLitro) || isNaN(consumo) || consumo <= 0) {
     showToast('Verifique os campos de combustível');
@@ -3302,14 +3307,14 @@ function saveSettings() {
   // Save profile
   const nomePerfil = document.getElementById('cfg-nome').value || 'Motorista';
   const avatarPerfil = document.getElementById('avatar-btn').textContent || '🏍️';
-  localStorage.setItem('dd_perfil', JSON.stringify({ nome: nomePerfil, avatar: avatarPerfil }));
-  // Update header
+  const perfil = { nome: nomePerfil, avatar: avatarPerfil };
+  localStorage.setItem('dd_perfil', JSON.stringify(perfil));
   updateHeader();
 
   const timezone = document.getElementById('cfg-timezone').value || CONFIG_DEFAULTS.timezone;
   const newConfig = {
-    precoLitro:   isNaN(precoLitro)   ? CONFIG_DEFAULTS.precoLitro   : precoLitro,
-    consumo:      isNaN(consumo)      ? CONFIG_DEFAULTS.consumo      : consumo,
+    precoLitro,
+    consumo,
     custoRevisao: isNaN(custoRevisao) ? CONFIG_DEFAULTS.custoRevisao : custoRevisao,
     kmRevisao:    isNaN(kmRevisao)    ? CONFIG_DEFAULTS.kmRevisao    : kmRevisao,
     metaDia:      isNaN(metaDia)      ? CONFIG_DEFAULTS.metaDia      : metaDia,
@@ -3318,18 +3323,34 @@ function saveSettings() {
     timezone,
   };
 
-  // Atualiza o objeto CONFIG_DATA in-place (para o Proxy continuar funcionando)
   Object.assign(CONFIG_DATA, newConfig);
-  localStorage.setItem('corridas_config', JSON.stringify(newConfig));
+  localStorage.setItem('dd_config', JSON.stringify(newConfig));
+  
+  // Sync to Supabase
+  sbUpsert('dashdriver_config', [{
+    id: 1,
+    preco_litro: newConfig.precoLitro,
+    consumo: newConfig.consumo,
+    custo_revisao: newConfig.custoRevisao,
+    km_revisao: newConfig.kmRevisao,
+    meta_dia: newConfig.metaDia,
+    meta_semana: newConfig.metaSemana,
+    meta_mes: newConfig.metaMes,
+    timezone: newConfig.timezone,
+    nome_perfil: perfil.nome,
+    avatar_perfil: perfil.avatar,
+    updated_at: new Date().toISOString()
+  }]);
 
   closeSettings();
-  updateDash();   // re-calcula tudo com novos valores
+  updateDash();
   showToast('✓ Configurações salvas!');
 }
 
 function resetSettings() {
   if (!confirm('Restaurar todas as configurações para o padrão?')) return;
   Object.assign(CONFIG_DATA, CONFIG_DEFAULTS);
+  localStorage.removeItem('dd_config');
   localStorage.removeItem('corridas_config');
   closeSettings();
   updateDash();
@@ -3991,15 +4012,38 @@ function checkGoalPush() {
 // ── SUPABASE SYNC: jornadas, outras entradas, metas ──
 async function syncFromSB() {
   try {
-    const [rJ, rOE, rM] = await Promise.all([
+    const [rJ, rOE, rM, rC] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/dashdriver_jornadas?select=*&order=id.asc`, { headers: SB_HEADERS }),
       fetch(`${SB_URL}/rest/v1/dashdriver_outras_entradas?select=*&order=id.asc`, { headers: SB_HEADERS }),
       fetch(`${SB_URL}/rest/v1/dashdriver_metas_corridas?select=*&order=id.asc`, { headers: SB_HEADERS }),
+      fetch(`${SB_URL}/rest/v1/dashdriver_config?select=*&id=eq.1`, { headers: SB_HEADERS }),
     ]);
     if (rJ.ok)  { const d = await rJ.json();  if (Array.isArray(d) && d.length)  { localStorage.setItem('dd_jornadas', JSON.stringify(d)); } }
     if (rOE.ok) { const d = await rOE.json(); if (Array.isArray(d) && d.length)  { localStorage.setItem('dd_outras_entradas', JSON.stringify(d)); } }
     if (rM.ok)  { const d = await rM.json();  if (Array.isArray(d) && d.length)  { localStorage.setItem('dd_metas_corridas', JSON.stringify(d)); } }
-  } catch { /* offline — usa localStorage */ }
+    
+    if (rC.ok) {
+      const d = await rC.json();
+      if (Array.isArray(d) && d.length) {
+        const c = d[0];
+        const newConfig = {
+          precoLitro:   Number(c.preco_litro),
+          consumo:      Number(c.consumo),
+          custoRevisao: Number(c.custo_revisao),
+          kmRevisao:    Number(c.km_revisao),
+          metaDia:      Number(c.meta_dia),
+          metaSemana:   Number(c.meta_semana),
+          metaMes:      Number(c.meta_mes),
+          timezone:     c.timezone
+        };
+        localStorage.setItem('dd_config', JSON.stringify(newConfig));
+        localStorage.setItem('dd_perfil', JSON.stringify({ nome: c.nome_perfil, avatar: c.avatar_perfil }));
+        Object.assign(CONFIG_DATA, newConfig);
+        updateHeader();
+        updateDash();
+      }
+    }
+  } catch (err) { console.error('Sync error:', err); }
 }
 
 async function sbUpsert(table, rows) {

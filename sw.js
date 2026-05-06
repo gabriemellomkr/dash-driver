@@ -1,4 +1,4 @@
-const CACHE = 'dashdriver-v2';
+const CACHE = 'dashdriver-v3';
 const ASSETS = ['/', '/corridas.html', '/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', e => {
