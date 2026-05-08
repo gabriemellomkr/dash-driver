@@ -1,0 +1,159 @@
+/* DashDriver Global Styles */
+* { 
+  -webkit-tap-highlight-color: transparent; 
+  box-sizing: border-box; 
+}
+
+body { 
+  font-family: 'Inter', -apple-system, sans-serif; 
+  background-color: #131315; 
+  color: #e4e2e4; 
+  max-width: 100vw; 
+  overflow-x: hidden; 
+}
+
+.glass {
+  background: rgba(31, 31, 33, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+.glass-strong {
+  background: rgba(20, 20, 22, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+::-webkit-scrollbar { 
+  width: 4px; 
+  height: 4px; 
+}
+
+::-webkit-scrollbar-track { 
+  background: transparent; 
+}
+
+::-webkit-scrollbar-thumb { 
+  background: rgba(255,255,255,0.12); 
+  border-radius: 4px; 
+}
+
+.page { 
+  display: none; 
+}
+
+.page.active { 
+  display: block; 
+}
+
+/* Bottom sheet */
+#insert-modal { 
+  display: none; 
+}
+
+#insert-modal.open { 
+  display: flex; 
+}
+
+#modal-content { 
+  transform: translateY(100%); 
+  transition: transform 320ms cubic-bezier(0.32,0.72,0,1); 
+}
+
+#insert-modal.open #modal-content { 
+  transform: translateY(0); 
+}
+
+/* Filter chips scrollable */
+.chips-row { 
+  overflow-x: auto; 
+  -webkit-overflow-scrolling: touch; 
+  scrollbar-width: none; 
+}
+
+.chips-row::-webkit-scrollbar { 
+  display: none; 
+}
+
+/* Status badges */
+.s-otima   { background: rgba(52,199,89,.15);  color: #5ddb7e; }
+.s-boa     { background: rgba(59,130,246,.15); color: #60a5fa; }
+.s-ok      { background: rgba(251,146,60,.15); color: #fb923c; }
+.s-prej    { background: rgba(239,68,68,.15);  color: #f87171; }
+
+/* Meta bar */
+.meta-track { 
+  background: #2a2a2c; 
+  border-radius: 4px; 
+  height: 6px; 
+  overflow: hidden; 
+}
+
+.meta-fill  { 
+  height: 100%; 
+  border-radius: 4px; 
+  transition: width .6s ease; 
+}
+
+/* Nav active glow */
+.nav-active span { 
+  color: #60a5fa !important; 
+}
+
+.nav-active .nav-dot { 
+  display: block; 
+}
+
+.nav-dot { 
+  display: none; 
+  width: 4px; 
+  height: 4px; 
+  border-radius: 50%; 
+  background: #60a5fa; 
+  margin: 0 auto; 
+}
+
+/* Toast */
+.toast {
+  position: fixed; 
+  bottom: 88px; 
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: #353437; 
+  color: #e4e2e4;
+  padding: 10px 20px; 
+  border-radius: 20px;
+  font-size: 13px; 
+  z-index: 9999;
+  opacity: 0; 
+  transition: all .28s ease;
+  pointer-events: none; 
+  white-space: nowrap;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
+.toast.show { 
+  opacity: 1; 
+  transform: translateX(-50%) translateY(0); 
+}
+
+/* Modal open state for bottom-sheet modals */
+.modal-open { 
+  display: flex !important; 
+}
+
+.modal-open > div:last-child { 
+  transform: translateY(0) !important; 
+}
+
+/* Fade in page */
+.page.active { 
+  animation: fadeUp .2s ease; 
+}
+
+@keyframes fadeUp {
+  from { opacity: .4; transform: translateY(6px); }
+  to   { opacity: 1;  transform: translateY(0); }
+}

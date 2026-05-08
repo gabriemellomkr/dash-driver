@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#131315">
+  <title>DashDriver</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  
+  <link rel="stylesheet" href="src/css/style.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "background":              "#131315",
+            "surface":                 "#131315",
+            "surface-container-lowest":"#0e0e10",
+            "surface-container-low":   "#1b1b1d",
+            "surface-container":       "#1f1f21",
+            "surface-container-high":  "#2a2a2c",
+            "surface-container-highest":"#353437",
+            "on-surface":              "#e4e2e4",
+            "on-surface-variant":      "#c1c6d7",
+            "outline":                 "#8b90a0",
+            "outline-variant":         "#414755",
+            "primary":                 "#adc6ff",
+            "primary-container":       "#4b8eff",
+            "on-primary":              "#002e69",
+            "secondary-container":     "#35477a",
+            "error":                   "#ffb4ab",
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-background text-on-surface overflow-x-hidden">
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<div id="login-screen" class="fixed inset-0 z-[9999] flex items-center justify-center px-6" style="background:#0e0e10; display:none">
+  <div class="glass rounded-3xl p-8 w-full max-w-sm" style="box-shadow:0 0 40px rgba(0,122,255,.1)">
+    <div class="flex items-center gap-3 mb-7">
+      <div class="w-11 h-11 rounded-2xl flex items-center justify-center" style="background:rgba(0,122,255,.15)">
+        <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1">speed</span>
+      </div>
+      <div>
+        <h1 class="text-white font-black text-base tracking-tight">DashDriver</h1>
+        <p class="text-outline text-xs mt-0.5">Acesso restrito</p>
+      </div>
+    </div>
+    <div class="flex flex-col gap-3">
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">E-mail</label>
+        <input type="email" id="l-email" placeholder="seu@email.com"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">Senha</label>
+        <input type="password" id="l-pass" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter')doLogin()"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+      <button onclick="doLogin()"
+        class="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl mt-1 active:scale-95 transition-all hover:bg-blue-400"
+        style="box-shadow:0 0 20px rgba(59,130,246,.3)">
+        Entrar
+      </button>
+      <div id="l-err" class="text-red-400 text-xs text-center hidden">E-mail ou senha incorretos</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header class="sticky top-0 z-50 border-b border-white/5 px-4 py-3 flex justify-between items-center"
+  style="background:rgba(14,14,16,0.85); backdrop-filter:blur(30px)">
+  <div class="flex items-center gap-3">
+    <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:22px">speed</span>
+    <div>
+      <div class="text-white font-black text-xs tracking-widest uppercase">DashDriver</div>
+      <div class="text-outline text-[9px] mt-0.5" id="nav-date">—</div>
+    </div>
+  </div>
+  <div class="flex gap-1">
+    <button onclick="openNotifications()" class="p-2 text-outline hover:text-blue-400 transition-colors active:scale-90 relative">
+      <span class="material-symbols-outlined" style="font-size:20px">notifications</span>
+      <span id="notif-badge" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+    </button>
+    <button onclick="openSettings()" class="p-2 text-outline hover:text-blue-400 transition-colors active:scale-90">
+      <span class="material-symbols-outlined" style="font-size:20px">account_circle</span>
+    </button>
+  </div>
+</header>
+
+<main class="pb-24">
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dash">
+    <div class="p-4 space-y-3">
+      <div class="chips-row">
+        <div class="flex gap-2 pb-1">
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" data-period="today" onclick="selectPeriod('today',this)">Hoje</button>
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" data-period="yesterday" onclick="selectPeriod('yesterday',this)">Ontem</button>
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" data-period="week" onclick="selectPeriod('week',this)">Semana</button>
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" data-period="month" onclick="selectPeriod('month',this)">Mês</button>
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" data-period="all" onclick="selectPeriod('all',this)">Tudo</button>
+          <button class="period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" data-period="custom" onclick="selectPeriod('custom',this)">Personalizado</button>
+        </div>
+        <div id="custom-range" class="hidden flex gap-2 mt-2 items-center">
+          <input type="date" id="custom-start" onchange="updateDash()" class="flex-1 bg-surface-container-high border border-outline-variant rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors">
+          <span class="text-outline text-xs">até</span>
+          <input type="date" id="custom-end" onchange="updateDash()" class="flex-1 bg-surface-container-high border border-outline-variant rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass rounded-2xl p-4">
+          <div class="flex items-center gap-1.5 mb-3">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">motorcycle</span>
+            <span class="text-outline text-[9px] font-semibold uppercase tracking-wider">Corridas</span>
+          </div>
+          <div class="text-white text-2xl font-black tracking-tight" id="d-corridas">—</div>
+          <div class="text-outline text-[10px] mt-0.5">no período</div>
+        </div>
+        <div class="glass rounded-2xl p-4">
+          <div class="flex items-center gap-1.5 mb-3">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">route</span>
+            <span class="text-outline text-[9px] font-semibold uppercase tracking-wider">Km rodados</span>
+          </div>
+          <div class="text-white text-2xl font-black tracking-tight" id="d-km">—</div>
+          <div class="text-outline text-[10px] mt-0.5">km</div>
+        </div>
+        <div class="glass rounded-2xl p-4">
+          <div class="flex items-center gap-1.5 mb-3">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">payments</span>
+            <span class="text-outline text-[9px] font-semibold uppercase tracking-wider">Receita líq.</span>
+          </div>
+          <div class="text-white text-2xl font-black tracking-tight" id="d-receita">—</div>
+          <div class="text-outline text-[10px] mt-0.5" id="d-receita-sub">—</div>
+        </div>
+        <div class="glass rounded-2xl p-4">
+          <div class="flex items-center gap-1.5 mb-3">
+            <span class="material-symbols-outlined text-green-400" style="font-variation-settings:'FILL' 1; font-size:16px">account_balance_wallet</span>
+            <span class="text-outline text-[9px] font-semibold uppercase tracking-wider">Lucro real</span>
+          </div>
+          <div class="text-2xl font-black tracking-tight" id="d-lucro">—</div>
+          <div class="text-outline text-[10px] mt-0.5" id="d-lucro-sub">receita − gastos</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass rounded-2xl p-3">
+          <div class="text-outline text-[8px] font-semibold uppercase tracking-wider mb-1.5">R$/km</div>
+          <div class="text-white text-base font-bold" id="d-rpkm">—</div>
+        </div>
+        <div class="glass rounded-2xl p-3" style="cursor:pointer" onclick="openFuelModal()">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-outline text-[8px] font-semibold uppercase tracking-wider">⛽ Gasolina</span>
+            <span class="material-symbols-outlined text-orange-400" style="font-size:13px">add_circle</span>
+          </div>
+          <div class="text-white text-sm font-bold" id="d-gas">R$ 0,00</div>
+          <div class="text-outline text-[9px]" id="d-gas-litros">toque p/ registrar</div>
+        </div>
+      </div>
+
+      <div id="jornada-dash-card" class="glass rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">schedule</span>
+            <h3 class="text-white text-sm font-semibold">Jornada de trabalho</h3>
+          </div>
+          <button onclick="openJornadaModal()" class="flex items-center gap-1 text-blue-400 text-xs font-semibold active:scale-90 transition-transform">
+            <span class="material-symbols-outlined" style="font-size:14px">add</span>Registrar
+          </button>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div><div class="text-outline text-[9px] font-semibold uppercase mb-1">Hoje</div><div class="text-white text-sm font-bold" id="d-jornada-hoje">0h</div></div>
+          <div><div class="text-outline text-[9px] font-semibold uppercase mb-1">Período</div><div class="text-white text-sm font-bold" id="d-jornada-periodo">0h</div></div>
+          <div><div class="text-outline text-[9px] font-semibold uppercase mb-1">R$/hora</div><div class="text-blue-400 text-sm font-bold" id="d-rph">—</div></div>
+        </div>
+      </div>
+
+      <div id="meta-card" class="glass rounded-2xl p-4 hidden">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-blue-400" style="font-variation-settings:'FILL' 1; font-size:16px">flag</span>
+            <span class="text-white text-sm font-semibold" id="meta-titulo">Meta do dia</span>
+          </div>
+          <span class="text-blue-400 text-sm font-bold" id="meta-pct">0%</span>
+        </div>
+        <div class="meta-track"><div class="meta-fill" id="meta-bar" style="width:0%;background:#3b82f6"></div></div>
+        <div class="flex justify-between text-[10px] text-outline mt-2"><span id="meta-atual">R$ 0</span><span id="meta-falta"></span><span id="meta-valor">Meta: R$ 150</span></div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="glass rounded-2xl p-3"><div class="flex items-center gap-1.5 mb-2"><span class="material-symbols-outlined text-blue-400" style="font-size:14px">donut_large</span><h3 class="text-white text-xs font-semibold">Plataforma</h3></div><div style="height:130px;position:relative"><canvas id="chart-plat"></canvas></div></div>
+        <div class="glass rounded-2xl p-3"><div class="flex items-center gap-1.5 mb-2"><span class="material-symbols-outlined text-blue-400" style="font-size:14px">wallet</span><h3 class="text-white text-xs font-semibold">Pagamento</h3></div><div style="height:130px;position:relative"><canvas id="chart-pag"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CORRIDAS -->
+  <div class="page" id="page-corridas">
+    <div class="p-4 space-y-3">
+      <div class="chips-row">
+        <div class="flex gap-2 pb-1">
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" onclick="setHistPeriod('today',this)">Hoje</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('yesterday',this)">Ontem</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('week',this)">Semana</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('month',this)">Mês</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('all',this)">Tudo</button>
+        </div>
+      </div>
+      <div class="glass rounded-2xl p-4" id="hist-card"><div id="hist-list"></div></div>
+    </div>
+  </div>
+
+  <!-- FINANCEIRO -->
+  <div class="page" id="page-financeiro">
+    <div class="p-4 space-y-3">
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-green-400" style="font-size:16px">account_balance</span><h3 class="text-white text-sm font-semibold">Resumo financeiro</h3></div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="rounded-xl p-3 text-center bg-green-400/10 border border-green-400/20"><div class="text-green-400 text-sm font-black" id="fin-receita">R$ 0</div><div class="text-outline text-[9px]">Receita</div></div>
+          <div class="rounded-xl p-3 text-center bg-red-400/10 border border-red-400/20"><div class="text-red-400 text-sm font-black" id="fin-despesas">R$ 0</div><div class="text-outline text-[9px]">Despesas</div></div>
+          <div class="rounded-xl p-3 text-center bg-blue-400/10 border border-blue-400/20"><div class="text-blue-400 text-sm font-black" id="fin-resultado">R$ 0</div><div class="text-outline text-[9px]">Resultado</div></div>
+        </div>
+      </div>
+      <div id="fin-entradas-list" class="space-y-2"></div>
+      <div id="fin-saidas-list" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- ANALISE -->
+  <div class="page" id="page-analise">
+    <div class="p-4 space-y-3">
+       <div id="an-heatmap" class="glass rounded-2xl p-4"></div>
+       <div id="an-horas" class="glass rounded-2xl p-4"></div>
+       <div id="an-diasemana" class="glass rounded-2xl p-4"></div>
+    </div>
+  </div>
+
+  <!-- VEICULO -->
+  <div class="page" id="page-veiculo">
+    <div class="p-4 space-y-3">
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-blue-400" style="font-size:16px">directions_car</span><h3 class="text-white text-sm font-semibold">Veículo</h3></div>
+        <div class="space-y-3">
+          <input type="text" id="v-modelo" placeholder="Modelo" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
+          <input type="text" id="v-placa" placeholder="Placa" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
+          <button onclick="salvarVeiculo()" class="w-full bg-blue-500 text-white font-bold py-3 rounded-xl">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARREIRA -->
+  <div class="page" id="page-carreira">
+    <div class="p-4 space-y-3">
+      <div class="glass rounded-2xl p-6 text-center" id="carreira-level-card">
+        <div class="text-5xl mb-2" id="carreira-level-icon">🆕</div>
+        <h2 class="text-white text-xl font-black mb-1" id="carreira-level-name">Iniciante</h2>
+        <div class="w-full h-2 bg-white/10 rounded-full mt-4"><div id="carreira-progress-bar" class="h-2 bg-blue-500 rounded-full w-0"></div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<nav class="fixed bottom-0 left-0 w-full border-t border-white/5 z-40 bg-background/90 backdrop-blur-xl">
+  <div class="flex justify-around items-center py-2">
+    <button onclick="showTab('dash')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-blue-400">dashboard</span><span class="text-[8px]">Dash</span></button>
+    <button onclick="showTab('corridas')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined">motorcycle</span><span class="text-[8px]">Corridas</span></button>
+    <button onclick="showTab('financeiro')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined">payments</span><span class="text-[8px]">Finanças</span></button>
+    <button onclick="showTab('analise')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined">insights</span><span class="text-[8px]">Análise</span></button>
+  </div>
+</nav>
+
+<button id="fab-add" onclick="openModal()" class="fixed z-50 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-white bottom-20 right-4 shadow-xl shadow-blue-500/20">
+  <span class="material-symbols-outlined">add</span>
+</button>
+
+<!-- MODALS -->
+<div id="insert-modal" class="fixed inset-0 z-[100] flex-col justify-end hidden">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div>
+  <div class="glass-strong w-full rounded-t-3xl p-6 relative z-10">
+    <h2 class="text-white text-lg font-bold mb-4" id="modal-title">Nova Corrida</h2>
+    <form id="add-ride-form" class="space-y-3">
+      <input type="number" id="f-km" placeholder="Km" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
+      <input type="number" id="f-bruto" placeholder="Bruto" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
+      <input type="number" id="f-liquido" placeholder="Líquido" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
+      <button onclick="salvarCorrida()" class="w-full bg-blue-500 text-white font-bold py-4 rounded-xl">Salvar</button>
+    </form>
+  </div>
+</div>
+
+<div id="settings-modal" class="fixed inset-0 z-[100] flex-col justify-end hidden">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeSettings()"></div>
+  <div class="glass-strong w-full rounded-t-3xl p-6 relative z-10">
+    <h2 class="text-white text-lg font-bold mb-4">Configurações</h2>
+    <input type="text" id="cfg-nome" placeholder="Nome" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
+    <button onclick="saveSettings()" class="w-full bg-blue-500 text-white font-bold py-4 rounded-xl mt-4">Salvar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Scripts -->
+<script src="src/js/state.js"></script>
+<script src="src/js/sb-client.js"></script>
+<script src="src/js/utils.js"></script>
+<script src="src/js/auth.js"></script>
+<script src="src/js/ui.js"></script>
+<script src="src/js/data.js"></script>
+<script src="src/js/dashboard.js"></script>
+<script src="src/js/history.js"></script>
+<script src="src/js/analysis.js"></script>
+<script src="src/js/financial.js"></script>
+<script src="src/js/career.js"></script>
+<script src="src/js/vehicle.js"></script>
+<script src="src/js/editor.js"></script>
+<script src="src/js/notifications.js"></script>
+<script src="src/js/main.js"></script>
+
+</body>
+</html>
