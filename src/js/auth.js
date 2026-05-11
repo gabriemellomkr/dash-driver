@@ -44,6 +44,48 @@ window.doLogin = async function() {
   }
 };
 
+window.doSignUp = async function() {
+  const name = document.getElementById('s-name').value;
+  const email = document.getElementById('s-email').value;
+  const password = document.getElementById('s-pass').value;
+  const errEl = document.getElementById('s-err');
+
+  if (!name || !email || !password) {
+    errEl.textContent = "Preencha todos os campos";
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: name }
+    }
+  });
+
+  if (error) {
+    errEl.textContent = error.message || "Erro ao criar conta";
+    errEl.classList.remove('hidden');
+  } else {
+    utils.toast("Conta criada! Verifique seu e-mail.", "success");
+    toggleAuth('login');
+  }
+};
+
+window.toggleAuth = function(to) {
+  const login = document.getElementById('login-screen');
+  const signup = document.getElementById('signup-screen');
+  
+  if (to === 'signup') {
+    login.style.display = 'none';
+    signup.style.display = 'flex';
+  } else {
+    signup.style.display = 'none';
+    login.style.display = 'flex';
+  }
+};
+
 window.doLogout = async function() {
   await supabase.auth.signOut();
   window.location.reload();

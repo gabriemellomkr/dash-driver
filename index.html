@@ -78,6 +78,50 @@
         Entrar
       </button>
       <div id="l-err" class="text-red-400 text-xs text-center hidden">E-mail ou senha incorretos</div>
+      <button onclick="toggleAuth('signup')" class="text-outline text-xs mt-2 hover:text-white transition-colors text-center">
+        Não tem uma conta? <span class="text-blue-400 font-bold">Cadastre-se</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ CADASTRO ═══════════════════ -->
+<div id="signup-screen" class="fixed inset-0 z-[9999] flex items-center justify-center px-6" style="background:#0e0e10; display:none">
+  <div class="glass rounded-3xl p-8 w-full max-w-sm" style="box-shadow:0 0 40px rgba(0,122,255,.1)">
+    <div class="flex items-center gap-3 mb-7">
+      <div class="w-11 h-11 rounded-2xl flex items-center justify-center" style="background:rgba(0,122,255,.15)">
+        <span class="material-symbols-outlined text-green-400" style="font-variation-settings:'FILL' 1">person_add</span>
+      </div>
+      <div>
+        <h1 class="text-white font-black text-base tracking-tight">Criar Conta</h1>
+        <p class="text-outline text-xs mt-0.5">Teste grátis por 7 dias</p>
+      </div>
+    </div>
+    <div class="flex flex-col gap-3">
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">Nome Completo</label>
+        <input type="text" id="s-name" placeholder="Como quer ser chamado?"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-green-500 transition-colors">
+      </div>
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">E-mail</label>
+        <input type="email" id="s-email" placeholder="seu@email.com"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-green-500 transition-colors">
+      </div>
+      <div>
+        <label class="text-outline text-xs block mb-1.5 font-medium">Senha</label>
+        <input type="password" id="s-pass" placeholder="Mínimo 6 caracteres"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-green-500 transition-colors">
+      </div>
+      <button onclick="doSignUp()"
+        class="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl mt-1 active:scale-95 transition-all hover:bg-blue-400"
+        style="box-shadow:0 0 20px rgba(59,130,246,.3)">
+        Começar Agora
+      </button>
+      <button onclick="toggleAuth('login')" class="text-outline text-xs mt-2 hover:text-white transition-colors">
+        Já tem uma conta? <span class="text-blue-400 font-bold">Entrar</span>
+      </button>
+      <div id="s-err" class="text-red-400 text-xs text-center hidden">Erro ao criar conta</div>
     </div>
   </div>
 </div>
