@@ -308,6 +308,42 @@
     </div>
   </div>
 
+  <!-- ADMIN (SAAS) -->
+  <div class="page" id="page-admin">
+    <div class="p-4 space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-black text-white tracking-tight">Painel Admin</h2>
+          <p class="text-outline text-xs">Gestão de Motoristas & SaaS</p>
+        </div>
+        <div class="bg-blue-500/10 p-2 rounded-xl border border-blue-500/20">
+          <span class="material-symbols-outlined text-blue-400">monitoring</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass p-4 rounded-2xl border border-white/5">
+          <p class="text-[10px] text-outline uppercase font-bold tracking-wider mb-1">Motoristas</p>
+          <p id="adm-total-users" class="text-xl font-black text-white">0</p>
+        </div>
+        <div class="glass p-4 rounded-2xl border border-white/5">
+          <p class="text-[10px] text-outline uppercase font-bold tracking-wider mb-1">Status Ativo</p>
+          <p id="adm-active-users" class="text-xl font-black text-green-400">0</p>
+        </div>
+      </div>
+
+      <div class="glass rounded-3xl overflow-hidden border border-white/5">
+        <div class="bg-white/5 px-4 py-3 flex items-center justify-between">
+          <p class="text-[10px] text-outline uppercase font-bold tracking-wider">Lista de Clientes</p>
+          <span class="material-symbols-outlined text-outline text-sm">group</span>
+        </div>
+        <div id="adm-users-list" class="divide-y divide-white/5">
+          <div class="p-4 text-center text-outline text-xs italic">Carregando motoristas...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- CARREIRA -->
   <div class="page" id="page-carreira">
     <div class="p-4 space-y-3">
@@ -326,6 +362,7 @@
     <button onclick="showTab('corridas')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined">motorcycle</span><span class="text-[8px]">Corridas</span></button>
     <button onclick="showTab('financeiro')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined">payments</span><span class="text-[8px]">Finanças</span></button>
     <button onclick="showTab('analise')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined">insights</span><span class="text-[8px]">Análise</span></button>
+    <button id="nav-admin" onclick="showTab('admin')" class="hidden flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-blue-400">shield_person</span><span class="text-[8px] text-blue-400">Admin</span></button>
   </div>
 </nav>
 
@@ -371,6 +408,7 @@
 <script src="src/js/financial.js"></script>
 <script src="src/js/career.js"></script>
 <script src="src/js/vehicle.js"></script>
+<script src="src/js/admin.js"></script>
 <script src="src/js/editor.js"></script>
 <script src="src/js/notifications.js"></script>
 <script src="src/js/main.js"></script>

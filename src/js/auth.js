@@ -8,9 +8,27 @@ window.checkSession = async function() {
   
   if (session) {
     APP_STATE.user = session.user;
+    
+    // Busca o perfil (SaaS)
+    const { data: profile } = await supabase
+      .from('dashdriver_usuarios')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+    
+    APP_STATE.profile = profile;
+    
     document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('signup-screen').style.display = 'none';
+    
     await data.loadAll();
     showTab('dash');
+
+    // Se for admin, mostra a aba secreta
+    if (APP_STATE.profile?.role === 'super_admin') {
+      const adminNav = document.getElementById('nav-admin');
+      if (adminNav) adminNav.classList.remove('hidden');
+    }
   } else {
     document.getElementById('login-screen').style.display = 'flex';
   }
@@ -37,10 +55,26 @@ window.doLogin = async function() {
     errEl.classList.remove('hidden');
   } else {
     APP_STATE.user = data.user;
+    
+    // Busca o perfil (SaaS)
+    const { data: profile } = await supabase
+      .from('dashdriver_usuarios')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+    
+    APP_STATE.profile = profile;
+
     document.getElementById('login-screen').style.display = 'none';
     await data.loadAll();
     showTab('dash');
     utils.toast("Bem-vindo ao DashDriver!", "success");
+
+    // Se for admin, mostra a aba secreta
+    if (APP_STATE.profile?.role === 'super_admin') {
+      const adminNav = document.getElementById('nav-admin');
+      if (adminNav) adminNav.classList.remove('hidden');
+    }
   }
 };
 

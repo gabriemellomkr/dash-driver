@@ -7,6 +7,7 @@ async function initApp() {
   
   // Initialize state
   updateHeader();
+  if (window.admin) admin.init();
   showTab('dash');
   
   // Register Service Worker if available

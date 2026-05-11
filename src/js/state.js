@@ -20,6 +20,7 @@ window.CONFIG_DATA = {
 
 window.APP_STATE = {
   user: null,
+  profile: null, // Guardará role, subscription, etc.
   corridas: [],
   abastecimentos: [],
   despesas: [],
