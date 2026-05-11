@@ -3,7 +3,7 @@
  * Initializing the official Supabase JS client.
  */
 
-const SB_URL = "https://db.nucleocriativo.com.br";
+const SB_URL = "https://db-dash.nucleocriativo.com.br";
 const SB_KEY = "uSLPst+6To2N5BXF3VipCYxUYkzL133Oy0bscyopivY=";
 
 // Official client
