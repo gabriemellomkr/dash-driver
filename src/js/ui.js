@@ -41,7 +41,6 @@ window.showTab = function(tabId) {
   if (tabId === 'financeiro') renderFinanceiro();
   if (tabId === 'veiculo') loadVeiculoUI();
   if (tabId === 'carreira') renderCarreira();
-  if (tabId === 'admin') admin.init();
 };
 
 window.openModal = function() {
