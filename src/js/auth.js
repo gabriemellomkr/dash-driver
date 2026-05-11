@@ -16,7 +16,7 @@ window.checkSession = async function() {
         // Se for admin, mostra a aba secreta
         if (profile?.role === 'super_admin') {
           const adminNav = document.getElementById('nav-admin');
-          if (adminNav) adminNav.classList.remove('hidden');
+          if (adminNav) adminNav.style.display = 'flex';
         }
       });
     
