@@ -1,14 +1,8 @@
 /* DashDriver Main Initialization */
 
 async function initApp() {
-  await loadCorridas();
-  await loadAbastecimentos();
-  await loadOutrasDespesas();
-  
-  // Initialize state
-  updateHeader();
-  if (window.admin) admin.init();
-  showTab('dash');
+  // O checkSession no auth.js cuidará do carregamento se houver usuário
+  console.log("DashDriver initialized");
   
   // Register Service Worker if available
   if ('serviceWorker' in navigator) {
