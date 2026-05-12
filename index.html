@@ -106,7 +106,7 @@
 <main class="pb-24">
   <!-- DASHBOARD -->
   <div class="page active" id="page-dash">
-    <div class="p-3 space-y-2.5">
+    <div class="max-w-2xl mx-auto p-3 sm:p-5 space-y-3">
 
       <!-- Filtro de período -->
       <div>
@@ -155,136 +155,138 @@
       </div>
 
       <!-- ══ HERO CARD ══ -->
-      <div class="glass rounded-2xl p-4">
-        <div class="grid grid-cols-2 gap-4 mb-3">
+      <div class="glass rounded-2xl p-4 sm:p-5">
+        <div class="grid grid-cols-2 gap-4 sm:gap-8 mb-4">
           <div>
-            <div class="flex items-center gap-1 mb-1">
-              <span class="material-symbols-outlined text-blue-400" style="font-size:12px;font-variation-settings:'FILL' 1">payments</span>
-              <span class="text-outline text-[9px] font-bold uppercase tracking-wider">Receita Líq.</span>
+            <div class="flex items-center gap-1.5 mb-1.5">
+              <span class="material-symbols-outlined text-blue-400" style="font-size:13px;font-variation-settings:'FILL' 1">payments</span>
+              <span class="text-outline text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Receita Líq.</span>
             </div>
-            <div class="text-white font-black tracking-tight" style="font-size:1.6rem;line-height:1" id="d-receita">—</div>
-            <div class="text-outline text-[10px] mt-1" id="d-receita-sub">Bruto: —</div>
+            <div class="text-white font-black tracking-tight" style="font-size:clamp(1.5rem,5vw,2.1rem);line-height:1" id="d-receita">—</div>
+            <div class="text-outline text-[10px] sm:text-[11px] mt-1.5" id="d-receita-sub">Bruto: —</div>
           </div>
           <div>
-            <div class="flex items-center gap-1 mb-1">
-              <span class="material-symbols-outlined text-green-400" style="font-size:12px;font-variation-settings:'FILL' 1">account_balance_wallet</span>
-              <span class="text-outline text-[9px] font-bold uppercase tracking-wider">Lucro Real</span>
+            <div class="flex items-center gap-1.5 mb-1.5">
+              <span class="material-symbols-outlined text-green-400" style="font-size:13px;font-variation-settings:'FILL' 1">account_balance_wallet</span>
+              <span class="text-outline text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Lucro Real</span>
             </div>
-            <div class="font-black tracking-tight" style="font-size:1.6rem;line-height:1" id="d-lucro">—</div>
-            <div class="text-outline text-[10px] mt-1">receita − gastos</div>
+            <div class="font-black tracking-tight" style="font-size:clamp(1.5rem,5vw,2.1rem);line-height:1" id="d-lucro">—</div>
+            <div class="text-outline text-[10px] sm:text-[11px] mt-1.5">receita − gastos</div>
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-2 pt-3 border-t border-white/5">
-          <!-- Gasolina -->
-          <div class="flex items-center gap-1.5 rounded-xl p-2 active:bg-white/5 transition-colors" style="cursor:pointer" onclick="openFuelModal()">
-            <span class="material-symbols-outlined text-orange-400" style="font-size:15px">local_gas_station</span>
+        <!-- Footer: Gasolina | Outros Gastos -->
+        <div class="grid grid-cols-2 pt-3 border-t border-white/5">
+          <div class="flex items-center gap-2 pr-3 cursor-pointer active:opacity-70 transition-opacity" onclick="openFuelModal()">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(251,146,60,0.12)">
+              <span class="material-symbols-outlined text-orange-400" style="font-size:14px">local_gas_station</span>
+            </div>
             <div class="min-w-0">
-              <div class="text-outline" style="font-size:8px;font-weight:700;text-transform:uppercase">Gasolina</div>
-              <div class="text-white font-bold" style="font-size:11px" id="d-gas">R$ 0,00</div>
+              <div class="text-outline" style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Gasolina</div>
+              <div class="text-white font-bold text-xs" id="d-gas">R$ 0,00</div>
             </div>
           </div>
-          <!-- Outros gastos -->
-          <div class="flex items-center gap-1.5 rounded-xl p-2 active:bg-white/5 transition-colors" style="cursor:pointer" onclick="openDespesaModal()">
-            <span class="material-symbols-outlined text-purple-400" style="font-size:15px">receipt_long</span>
+          <div class="flex items-center gap-2 pl-3 border-l border-white/5 cursor-pointer active:opacity-70 transition-opacity" onclick="openDespesaModal()">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(168,85,247,0.12)">
+              <span class="material-symbols-outlined text-purple-400" style="font-size:14px">receipt_long</span>
+            </div>
             <div class="min-w-0">
-              <div class="text-outline" style="font-size:8px;font-weight:700;text-transform:uppercase">Outros gastos</div>
-              <div class="text-white font-bold" style="font-size:11px" id="d-outros-gastos">R$ 0,00</div>
+              <div class="text-outline" style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Outros gastos</div>
+              <div class="text-white font-bold text-xs" id="d-outros-gastos">R$ 0,00</div>
             </div>
           </div>
-        </div>
-
         </div>
       </div>
 
+
       <!-- ══ KPIs ══ -->
-      <div class="grid gap-1.5" style="grid-template-columns:repeat(4,1fr)">
-        <div class="glass rounded-xl p-2 text-center">
-          <div class="text-outline font-bold uppercase" style="font-size:7px;margin-bottom:2px">Corridas</div>
-          <div class="text-white font-black" style="font-size:13px" id="d-corridas">—</div>
+      <div class="grid gap-2" style="grid-template-columns:repeat(4,1fr)">
+        <div class="glass rounded-xl p-2.5 sm:p-3.5 text-center">
+          <div class="text-outline font-bold uppercase" style="font-size:8px;margin-bottom:3px">Corridas</div>
+          <div class="text-white font-black text-sm sm:text-base" id="d-corridas">—</div>
         </div>
-        <div class="glass rounded-xl p-2 text-center">
-          <div class="text-outline font-bold uppercase" style="font-size:7px;margin-bottom:2px">Km</div>
-          <div class="text-white font-black" style="font-size:13px" id="d-km">—</div>
+        <div class="glass rounded-xl p-2.5 sm:p-3.5 text-center">
+          <div class="text-outline font-bold uppercase" style="font-size:8px;margin-bottom:3px">Km</div>
+          <div class="text-white font-black text-sm sm:text-base" id="d-km">—</div>
         </div>
-        <div class="glass rounded-xl p-2 text-center">
-          <div class="text-outline font-bold uppercase" style="font-size:7px;margin-bottom:2px">R$/km</div>
-          <div class="text-white font-black" style="font-size:13px" id="d-rpkm">—</div>
+        <div class="glass rounded-xl p-2.5 sm:p-3.5 text-center">
+          <div class="text-outline font-bold uppercase" style="font-size:8px;margin-bottom:3px">R$/km</div>
+          <div class="text-white font-black text-sm sm:text-base" id="d-rpkm">—</div>
         </div>
-        <div class="glass rounded-xl p-2 text-center">
-          <div class="text-outline font-bold uppercase" style="font-size:7px;margin-bottom:2px">R$/h</div>
-          <div class="text-blue-400 font-black" style="font-size:13px" id="d-rph">—</div>
+        <div class="glass rounded-xl p-2.5 sm:p-3.5 text-center">
+          <div class="text-outline font-bold uppercase" style="font-size:8px;margin-bottom:3px">R$/h</div>
+          <div class="text-blue-400 font-black text-sm sm:text-base" id="d-rph">—</div>
         </div>
       </div>
 
       <!-- ══ METAS compactas ══ -->
-      <div class="glass rounded-2xl p-3" id="meta-card">
-        <div class="flex items-center gap-1.5 mb-2">
+      <div class="glass rounded-2xl p-3 sm:p-4" id="meta-card">
+        <div class="flex items-center gap-1.5 mb-3">
           <span class="material-symbols-outlined text-blue-400" style="font-size:13px;font-variation-settings:'FILL' 1">flag</span>
-          <span class="text-white text-[11px] font-semibold">Metas</span>
+          <span class="text-white text-xs font-semibold">Metas</span>
         </div>
-        <div class="space-y-2">
+        <div class="space-y-3">
           <!-- Diária -->
           <div>
-            <div class="flex justify-between items-center mb-0.5">
-              <span class="text-outline text-[9px]">Diária</span>
-              <div class="flex items-center gap-2">
-                <span class="text-outline text-[9px]" id="meta-d-atual">R$0</span>
-                <span class="text-white text-[9px] font-bold" id="meta-d-pct">0%</span>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-outline text-[10px] font-medium">Diária</span>
+              <div class="flex items-center gap-3">
+                <span class="text-outline text-[10px]" id="meta-d-atual">R$0</span>
+                <span class="text-white text-[10px] font-bold" id="meta-d-pct">0%</span>
               </div>
             </div>
-            <div class="w-full h-1 bg-white/10 rounded-full"><div id="meta-d-bar" class="h-1 bg-blue-500 rounded-full transition-all" style="width:0%"></div></div>
-            <div class="text-outline text-[8px] text-right mt-0.5" id="meta-d-valor">—</div>
+            <div class="w-full h-1.5 bg-white/10 rounded-full"><div id="meta-d-bar" class="h-1.5 bg-blue-500 rounded-full transition-all" style="width:0%"></div></div>
+            <div class="text-outline text-[9px] text-right mt-1" id="meta-d-valor">—</div>
           </div>
           <!-- Semanal -->
           <div>
-            <div class="flex justify-between items-center mb-0.5">
-              <span class="text-outline text-[9px]">Semanal</span>
-              <div class="flex items-center gap-2">
-                <span class="text-outline text-[9px]" id="meta-s-atual">R$0</span>
-                <span class="text-white text-[9px] font-bold" id="meta-s-pct">0%</span>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-outline text-[10px] font-medium">Semanal</span>
+              <div class="flex items-center gap-3">
+                <span class="text-outline text-[10px]" id="meta-s-atual">R$0</span>
+                <span class="text-white text-[10px] font-bold" id="meta-s-pct">0%</span>
               </div>
             </div>
-            <div class="w-full h-1 bg-white/10 rounded-full"><div id="meta-s-bar" class="h-1 bg-purple-500 rounded-full transition-all" style="width:0%"></div></div>
-            <div class="text-outline text-[8px] text-right mt-0.5" id="meta-s-valor">—</div>
+            <div class="w-full h-1.5 bg-white/10 rounded-full"><div id="meta-s-bar" class="h-1.5 bg-purple-500 rounded-full transition-all" style="width:0%"></div></div>
+            <div class="text-outline text-[9px] text-right mt-1" id="meta-s-valor">—</div>
           </div>
           <!-- Mensal -->
           <div>
-            <div class="flex justify-between items-center mb-0.5">
-              <span class="text-outline text-[9px]">Mensal</span>
-              <div class="flex items-center gap-2">
-                <span class="text-outline text-[9px]" id="meta-m-atual">R$0</span>
-                <span class="text-white text-[9px] font-bold" id="meta-m-pct">0%</span>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-outline text-[10px] font-medium">Mensal</span>
+              <div class="flex items-center gap-3">
+                <span class="text-outline text-[10px]" id="meta-m-atual">R$0</span>
+                <span class="text-white text-[10px] font-bold" id="meta-m-pct">0%</span>
               </div>
             </div>
-            <div class="w-full h-1 bg-white/10 rounded-full"><div id="meta-m-bar" class="h-1 bg-amber-500 rounded-full transition-all" style="width:0%"></div></div>
-            <div class="text-outline text-[8px] text-right mt-0.5" id="meta-m-valor">—</div>
+            <div class="w-full h-1.5 bg-white/10 rounded-full"><div id="meta-m-bar" class="h-1.5 bg-amber-500 rounded-full transition-all" style="width:0%"></div></div>
+            <div class="text-outline text-[9px] text-right mt-1" id="meta-m-valor">—</div>
           </div>
         </div>
       </div>
 
       <!-- ══ INDRIVER + TAXAS lado a lado ══ -->
-      <div class="grid grid-cols-2 gap-2.5">
-        <div class="glass rounded-2xl p-3">
-          <div class="flex items-center justify-between mb-2">
-            <div class="flex items-center gap-1">
-              <span class="material-symbols-outlined text-emerald-400" style="font-size:12px">account_balance</span>
-              <span class="text-white text-[10px] font-semibold">InDriver</span>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass rounded-2xl p-3 sm:p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-emerald-400" style="font-size:14px">account_balance</span>
+              <span class="text-white text-xs font-semibold">InDriver</span>
             </div>
-            <button onclick="openIndriverRecarga()" class="text-emerald-400 text-[9px] font-bold">+ Saldo</button>
+            <button onclick="openIndriverRecarga()" class="text-emerald-400 text-[9px] font-bold hover:text-emerald-300 transition-colors">+ Saldo</button>
           </div>
-          <div class="font-black leading-none mb-1.5" style="font-size:1.1rem" id="d-indriver-saldo" style="color:#34d399">R$ 0,00</div>
-          <div class="w-full h-1 bg-white/10 rounded-full mb-1">
-            <div id="d-indriver-bar" class="h-1 rounded-full transition-all" style="width:100%;background:#34d399"></div>
+          <div class="font-black leading-none mb-2" style="font-size:1.15rem" id="d-indriver-saldo" style="color:#34d399">R$ 0,00</div>
+          <div class="w-full h-1.5 bg-white/10 rounded-full mb-1.5">
+            <div id="d-indriver-bar" class="h-1.5 rounded-full transition-all" style="width:100%;background:#34d399"></div>
           </div>
-          <div class="text-[8px] font-semibold" id="d-indriver-status" style="color:#34d399">disponível</div>
+          <div class="text-[9px] font-semibold" id="d-indriver-status" style="color:#34d399">disponível</div>
         </div>
-        <div class="glass rounded-2xl p-3">
-          <div class="flex items-center gap-1 mb-2">
-            <span class="material-symbols-outlined text-amber-400" style="font-size:12px">percent</span>
-            <span class="text-white text-[10px] font-semibold">Taxas</span>
+        <div class="glass rounded-2xl p-3 sm:p-4">
+          <div class="flex items-center gap-1.5 mb-3">
+            <span class="material-symbols-outlined text-amber-400" style="font-size:14px">percent</span>
+            <span class="text-white text-xs font-semibold">Taxas</span>
           </div>
-          <div id="d-taxa-list" class="space-y-1.5">
-            <div class="text-outline text-[9px]">Sem dados</div>
+          <div id="d-taxa-list" class="space-y-2">
+            <div class="text-outline text-[9px]">Sem dados no período</div>
           </div>
         </div>
       </div>
