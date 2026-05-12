@@ -254,16 +254,48 @@
   <!-- VEICULO -->
   <div class="page" id="page-veiculo">
     <div class="p-4 space-y-3">
+      <!-- Dados básicos -->
       <div class="glass rounded-2xl p-4">
-        <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-blue-400" style="font-size:16px">directions_car</span><h3 class="text-white text-sm font-semibold">Veículo</h3></div>
-        <div class="space-y-3">
-          <input type="text" id="v-modelo" placeholder="Modelo" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
-          <input type="text" id="v-placa" placeholder="Placa" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
-          <button onclick="salvarVeiculo()" class="w-full bg-blue-500 text-white font-bold py-3 rounded-xl">Salvar</button>
+        <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-blue-400" style="font-size:16px">directions_car</span><h3 class="text-white text-sm font-semibold">Dados do Veículo</h3></div>
+        <div class="space-y-2">
+          <input type="text" id="v-modelo" placeholder="Modelo (ex: Honda CG 160)" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="v-placa" placeholder="Placa" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+            <input type="text" id="v-renavan" placeholder="RENAVAM" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+          </div>
         </div>
       </div>
+
+      <!-- CNH -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-yellow-400" style="font-size:16px">badge</span><h3 class="text-white text-sm font-semibold">CNH</h3></div>
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" id="v-cnh-num" placeholder="Número da CNH" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+          <input type="date" id="v-cnh-venc" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div id="cnh-status" class="mt-2 space-y-1"></div>
+      </div>
+
+      <!-- Documentos -->
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-green-400" style="font-size:16px">description</span><h3 class="text-white text-sm font-semibold">Documentos do Veículo</h3></div>
+        <div class="space-y-2">
+          <div><label class="text-outline text-[9px] uppercase font-bold mb-1 block">Vencimento IPVA</label>
+          <input type="date" id="v-ipva" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500"></div>
+          <div><label class="text-outline text-[9px] uppercase font-bold mb-1 block">Vencimento Seguro</label>
+          <input type="date" id="v-seguro" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500"></div>
+          <div><label class="text-outline text-[9px] uppercase font-bold mb-1 block">Vencimento Licenciamento</label>
+          <input type="date" id="v-licenc" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500"></div>
+        </div>
+        <div id="docs-status" class="mt-3 space-y-1"></div>
+      </div>
+
+      <button onclick="salvarVeiculo()" class="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
+        <span class="material-symbols-outlined" style="font-size:18px">save</span> Salvar Veículo
+      </button>
     </div>
   </div>
+
 
   <!-- CARREIRA -->
   <div class="page" id="page-carreira">
@@ -325,13 +357,93 @@
 <!-- MODALS -->
 <div id="insert-modal" class="fixed inset-0 z-[100] flex-col justify-end hidden">
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div>
-  <div class="glass-strong w-full rounded-t-3xl p-6 relative z-10">
-    <h2 class="text-white text-lg font-bold mb-4" id="modal-title">Nova Corrida</h2>
-    <form id="add-ride-form" class="space-y-3">
-      <input type="number" id="f-km" placeholder="Km" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
-      <input type="number" id="f-bruto" placeholder="Bruto" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
-      <input type="number" id="f-liquido" placeholder="Líquido" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm">
-      <button onclick="salvarCorrida()" class="w-full bg-blue-500 text-white font-bold py-4 rounded-xl">Salvar</button>
+  <div class="glass-strong w-full rounded-t-3xl p-5 relative z-10 max-h-[90vh] overflow-y-auto">
+    <h2 class="text-white text-base font-bold mb-4" id="modal-title">Lançar Corrida</h2>
+
+    <!-- Atalhos de data -->
+    <div class="flex gap-2 mb-3">
+      <button id="btn-hoje"      onclick="setFormData(0)"  style="flex:1;padding:6px 0;border-radius:10px;border:1px solid #414755;color:#8b90a0;font-size:11px;font-weight:600;background:transparent">Hoje</button>
+      <button id="btn-ontem"     onclick="setFormData(-1)" style="flex:1;padding:6px 0;border-radius:10px;border:1px solid #414755;color:#8b90a0;font-size:11px;font-weight:600;background:transparent">Ontem</button>
+      <button id="btn-anteontem" onclick="setFormData(-2)" style="flex:1;padding:6px 0;border-radius:10px;border:1px solid #414755;color:#8b90a0;font-size:11px;font-weight:600;background:transparent">Anteontem</button>
+    </div>
+
+    <form id="add-ride-form" class="space-y-3" onsubmit="return false">
+      <!-- Plataforma e Pagamento -->
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Plataforma</label>
+          <select id="f-plat" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+            <option value="Uber">Uber</option>
+            <option value="99">99</option>
+            <option value="InDriver">InDriver</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Pagamento</label>
+          <select id="f-pag" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+            <option value="Pix">Pix</option>
+            <option value="Cartão">Cartão</option>
+            <option value="Dinheiro">Dinheiro</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Data e Hora -->
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Data</label>
+          <input type="date" id="f-data" onchange="highlightDateBtn()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Hora</label>
+          <input type="time" id="f-hora" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <!-- Valores -->
+      <div class="grid grid-cols-3 gap-2">
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Km</label>
+          <input type="number" id="f-km" step="0.1" placeholder="0.0" oninput="calcTaxa()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Bruto</label>
+          <input type="number" id="f-bruto" step="0.01" placeholder="0,00" oninput="calcTaxa()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Líquido</label>
+          <input type="number" id="f-liquido" step="0.01" placeholder="0,00" oninput="calcTaxa()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <!-- Cobranças extra -->
+      <div>
+        <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Cobranças extras (R$)</label>
+        <input type="number" id="f-outras" step="0.01" placeholder="0,00" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+      </div>
+
+      <!-- Taxa preview -->
+      <div id="taxa-preview" style="display:none" class="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-xl p-3">
+        <span class="material-symbols-outlined text-orange-400 text-sm">percent</span>
+        <span class="text-orange-400 text-xs font-bold">Taxa plataforma: </span>
+        <span id="taxa-pct-display" class="text-orange-400 text-xs font-bold"></span>
+      </div>
+
+      <!-- Preview da corrida -->
+      <div id="preview-card" class="hidden bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+        <div class="text-blue-400 text-[10px] uppercase font-bold mb-2">Preview</div>
+        <div id="preview-body" class="grid grid-cols-3 gap-2"></div>
+      </div>
+
+      <!-- Erro -->
+      <div id="form-error" class="hidden text-red-400 text-xs text-center">Preencha todos os campos obrigatórios</div>
+
+      <button id="btn-salvar" type="button" onclick="salvarCorrida()"
+        class="w-full bg-blue-500 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+        style="box-shadow:0 0 20px rgba(59,130,246,.25)">
+        <span class="material-symbols-outlined" style="font-size:18px">save</span> Registrar Corrida
+      </button>
     </form>
   </div>
 </div>

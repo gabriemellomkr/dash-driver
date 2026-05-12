@@ -49,9 +49,14 @@ window.renderHistorico = function() {
           <span class="text-outline text-[10px]">${c.km.toFixed(1)} km</span>
         </div>
       </div>
-      <button onclick="deletarCorrida(${c.id})" class="text-outline hover:text-red-400 transition-colors">
-        <span class="material-symbols-outlined text-lg">delete</span>
-      </button>
+      <div class="flex gap-1">
+        <button onclick="editarCorrida(${c.id})" class="text-outline hover:text-blue-400 transition-colors p-1">
+          <span class="material-symbols-outlined text-lg">edit</span>
+        </button>
+        <button onclick="deletarCorrida(${c.id})" class="text-outline hover:text-red-400 transition-colors p-1">
+          <span class="material-symbols-outlined text-lg">delete</span>
+        </button>
+      </div>
     </div>
   `).join('');
 };
