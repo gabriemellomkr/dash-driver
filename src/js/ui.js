@@ -36,11 +36,13 @@ window.showTab = function(tabId) {
   }
 
   // Reload specific data if needed
+  if (tabId === 'dash') renderDashboard();
   if (tabId === 'corridas') renderHistorico();
   if (tabId === 'analise') renderAnalise();
   if (tabId === 'financeiro') renderFinanceiro();
   if (tabId === 'veiculo') loadVeiculoUI();
   if (tabId === 'carreira') renderCarreira();
+  if (tabId === 'admin') renderAdmin();
 };
 
 window.openModal = function() {

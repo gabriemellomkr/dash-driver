@@ -7,14 +7,31 @@ window.checkSession = async function() {
   const { data: { session }, error } = await supabase.auth.getSession();
   
   if (session) {
-    APP_STATE.user = session.user;
-    document.getElementById('login-screen').style.display = 'none';
-    await data.loadAll();
-    showTab('dash');
+    await handleAuthSuccess(session.user);
   } else {
     document.getElementById('login-screen').style.display = 'flex';
   }
 };
+
+async function handleAuthSuccess(user) {
+  APP_STATE.user = user;
+  document.getElementById('login-screen').style.display = 'none';
+  
+  // Verificação de Super Admin
+  const adminTab = document.getElementById('nav-admin');
+  if (user.id === '3f85827d-119d-404d-be08-630a0d487f6c' || user.email?.includes('gabriel')) {
+    if (adminTab) adminTab.style.display = 'flex';
+  }
+
+  // Carregar dados e atualizar interface
+  const success = await data.loadAll();
+  if (success) {
+    if (typeof renderDashboard === 'function') renderDashboard();
+    showTab('dash');
+  } else {
+    utils.toast("Erro ao sincronizar dados", "error");
+  }
+}
 
 window.doLogin = async function() {
   const email = document.getElementById('l-email').value;
@@ -27,7 +44,7 @@ window.doLogin = async function() {
     return;
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data: authData, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -36,10 +53,7 @@ window.doLogin = async function() {
     errEl.textContent = "E-mail ou senha inválidos";
     errEl.classList.remove('hidden');
   } else {
-    APP_STATE.user = data.user;
-    document.getElementById('login-screen').style.display = 'none';
-    await data.loadAll();
-    showTab('dash');
+    await handleAuthSuccess(authData.user);
     utils.toast("Bem-vindo ao DashDriver!", "success");
   }
 };
@@ -51,3 +65,4 @@ window.doLogout = async function() {
 
 // Initial check
 document.addEventListener('DOMContentLoaded', checkSession);
+
