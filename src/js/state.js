@@ -10,9 +10,9 @@ window.CONFIG_DATA = {
   consumo: 0,
   custoRevisao: 0,
   kmRevisao: 0,
-  metaDiaria: 0,
-  metaSemana: 0,
-  metaMes: 0,
+  metaDiaria:  0,
+  metaSemanal: 0,  // alias: metaSemana
+  metaMensal:  0,  // alias: metaMes
   timezone: "America/Sao_Paulo",
   pushEnabled: false,
   pushSubscription: null
@@ -29,7 +29,9 @@ window.APP_STATE = {
   metas: [],
   currentPeriod: 'today',
   filterPlat: 'all',
-  lastUpdate: null
+  lastUpdate: null,
+  indriverSaldo: 0,      // saldo atual em créditos InDriver
+  indriverSaldoMax: 100  // referência para a barra de progresso
 };
 
 // Initialize from localStorage if available
