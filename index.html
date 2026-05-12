@@ -214,12 +214,13 @@
     <div class="p-4 space-y-3">
       <div class="chips-row">
         <div class="flex gap-2 pb-1">
-          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" onclick="setHistPeriod('today',this)">Hoje</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('today',this)">Hoje</button>
           <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('yesterday',this)">Ontem</button>
           <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('week',this)">Semana</button>
           <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('month',this)">Mês</button>
-          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('all',this)">Tudo</button>
+          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" onclick="setHistPeriod('all',this)">Tudo</button>
         </div>
+
       </div>
       <div class="glass rounded-2xl p-4" id="hist-card"><div id="hist-list"></div></div>
     </div>

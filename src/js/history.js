@@ -1,6 +1,6 @@
 /* DashDriver History Logic */
 
-let histPeriod = 'today';
+let histPeriod = 'all';
 let filtroPlat = 'all';
 
 window.setHistPeriod = function(p, el) {
