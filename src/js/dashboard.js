@@ -67,6 +67,8 @@ function updateKPIs(list) {
   document.getElementById('d-lucro').style.color    = lucro >= 0 ? '#4ade80' : '#f87171';
   document.getElementById('d-rpkm').textContent     = rpkm.toFixed(2).replace('.', ',');
   document.getElementById('d-gas').textContent      = utils.formatBRL(gas);
+  const elDesp = document.getElementById('d-outros-gastos');
+  if (elDesp) elDesp.textContent = utils.formatBRL(desp);
 }
 
 /* ─── METAS (Diária / Semanal / Mensal) ───────────── */
@@ -284,13 +286,58 @@ function renderDonut(canvasId, labels, data, colors, instanceKey) {
 /* ─── SELEÇÃO DE PERÍODO ──────────────────────────── */
 window.selectPeriod = function(p, el) {
   APP_STATE.currentPeriod = p;
+
+  // Atualiza chips
   document.querySelectorAll('.period-chip').forEach(c => {
     c.classList.remove('border-blue-500','bg-blue-500/10','text-blue-400');
     c.classList.add('border-outline-variant','text-outline');
   });
   el.classList.add('border-blue-500','bg-blue-500/10','text-blue-400');
   el.classList.remove('border-outline-variant','text-outline');
-  renderDashboard();
+
+  // Painel de data personalizada
+  const panel = document.getElementById('custom-date-panel');
+  if (panel) {
+    if (p === 'custom') {
+      panel.style.maxHeight = '200px';
+      panel.style.opacity  = '1';
+    } else {
+      panel.style.maxHeight = '0';
+      panel.style.opacity   = '0';
+    }
+  }
+
+  // Renderiza só se não for custom (custom renderiza ao aplicar)
+  if (p !== 'custom') renderDashboard();
+};
+
+/* ─── APLICAR PERÍODO PERSONALIZADO ──────────────── */
+window.applyCustomPeriod = function(force) {
+  const start = document.getElementById('custom-start')?.value;
+  const end   = document.getElementById('custom-end')?.value;
+  const label = document.getElementById('custom-date-label');
+
+  if (start && end) {
+    if (end < start) {
+      if (label) label.textContent = '⚠ Data final antes da inicial';
+      return;
+    }
+    const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
+    if (label) label.textContent = `${fmt(start)} → ${fmt(end)}`;
+    if (force || true) renderDashboard(); // renderiza automaticamente ao mudar qualquer data
+  } else {
+    if (label) label.textContent = start ? 'Selecione a data final' : 'Selecione as datas acima';
+  }
+};
+
+
+/* ─── MODAL DE DESPESA RÁPIDA ─────────────────── */
+window.openDespesaModal = function() {
+  // Redireciona para a aba de finanças com o modal de despesa aberto
+  if (typeof showTab === 'function') showTab('financeiro');
+  setTimeout(() => {
+    if (typeof openNovaDespesa === 'function') openNovaDespesa();
+  }, 150);
 };
 
 /* ─── RECARGA INDRIVER ────────────────────────────── */

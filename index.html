@@ -109,12 +109,49 @@
     <div class="p-3 space-y-2.5">
 
       <!-- Filtro de período -->
-      <div class="flex gap-2 overflow-x-auto pb-0.5" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
-        <button class="period-chip flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" data-period="today" onclick="selectPeriod('today',this)">Hoje</button>
-        <button class="period-chip flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border border-outline-variant text-outline" data-period="yesterday" onclick="selectPeriod('yesterday',this)">Ontem</button>
-        <button class="period-chip flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border border-outline-variant text-outline" data-period="week" onclick="selectPeriod('week',this)">Semana</button>
-        <button class="period-chip flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border border-outline-variant text-outline" data-period="month" onclick="selectPeriod('month',this)">Mês</button>
-        <button class="period-chip flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border border-outline-variant text-outline" data-period="all" onclick="selectPeriod('all',this)">Tudo</button>
+      <div>
+        <div class="flex gap-2 overflow-x-auto pb-0.5" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
+          <button class="period-chip flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" data-period="today" onclick="selectPeriod('today',this)">Hoje</button>
+          <button class="period-chip flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border border-outline-variant text-outline" data-period="yesterday" onclick="selectPeriod('yesterday',this)">Ontem</button>
+          <button class="period-chip flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border border-outline-variant text-outline" data-period="week" onclick="selectPeriod('week',this)">Semana</button>
+          <button class="period-chip flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border border-outline-variant text-outline" data-period="month" onclick="selectPeriod('month',this)">Mês</button>
+          <button class="period-chip flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border border-outline-variant text-outline" data-period="all" onclick="selectPeriod('all',this)">Tudo</button>
+          <button class="period-chip flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold border border-outline-variant text-outline" data-period="custom" onclick="selectPeriod('custom',this)">
+            <span class="material-symbols-outlined" style="font-size:11px">calendar_month</span>Período
+          </button>
+        </div>
+
+        <!-- Painel de data personalizada — oculto por padrão -->
+        <div id="custom-date-panel" class="overflow-hidden transition-all duration-300" style="max-height:0;opacity:0">
+          <div class="glass rounded-2xl p-3 mt-2">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="material-symbols-outlined text-blue-400" style="font-size:13px">date_range</span>
+              <span class="text-white text-[11px] font-semibold">Período personalizado</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <div class="text-outline text-[9px] font-bold uppercase mb-1">De</div>
+                <input type="date" id="custom-start"
+                  class="w-full rounded-xl px-2.5 py-2 text-white text-[11px] border border-outline-variant focus:border-blue-500 outline-none transition-colors"
+                  style="background:#1f1f21;color-scheme:dark"
+                  onchange="applyCustomPeriod()">
+              </div>
+              <div>
+                <div class="text-outline text-[9px] font-bold uppercase mb-1">Até</div>
+                <input type="date" id="custom-end"
+                  class="w-full rounded-xl px-2.5 py-2 text-white text-[11px] border border-outline-variant focus:border-blue-500 outline-none transition-colors"
+                  style="background:#1f1f21;color-scheme:dark"
+                  onchange="applyCustomPeriod()">
+              </div>
+            </div>
+            <div class="flex items-center justify-between mt-2.5">
+              <span class="text-outline text-[9px]" id="custom-date-label">Selecione as datas acima</span>
+              <button onclick="applyCustomPeriod(true)" class="flex items-center gap-1 bg-blue-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all">
+                <span class="material-symbols-outlined" style="font-size:11px">check</span>Aplicar
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ══ HERO CARD ══ -->
@@ -137,15 +174,25 @@
             <div class="text-outline text-[10px] mt-1">receita − gastos</div>
           </div>
         </div>
-        <div class="flex items-center justify-between pt-3 border-t border-white/5">
-          <div class="flex items-center gap-1.5" style="cursor:pointer" onclick="openFuelModal()">
-            <span class="material-symbols-outlined text-orange-400" style="font-size:14px">local_gas_station</span>
-            <span class="text-outline text-[10px]">Gasolina:</span>
-            <span class="text-white text-[11px] font-bold" id="d-gas">R$ 0,00</span>
+        <div class="grid grid-cols-2 gap-2 pt-3 border-t border-white/5">
+          <!-- Gasolina -->
+          <div class="flex items-center gap-1.5 rounded-xl p-2 active:bg-white/5 transition-colors" style="cursor:pointer" onclick="openFuelModal()">
+            <span class="material-symbols-outlined text-orange-400" style="font-size:15px">local_gas_station</span>
+            <div class="min-w-0">
+              <div class="text-outline" style="font-size:8px;font-weight:700;text-transform:uppercase">Gasolina</div>
+              <div class="text-white font-bold" style="font-size:11px" id="d-gas">R$ 0,00</div>
+            </div>
           </div>
-          <button onclick="openModal()" class="flex items-center gap-1 bg-blue-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all">
-            <span class="material-symbols-outlined" style="font-size:13px">add</span>Corrida
-          </button>
+          <!-- Outros gastos -->
+          <div class="flex items-center gap-1.5 rounded-xl p-2 active:bg-white/5 transition-colors" style="cursor:pointer" onclick="openDespesaModal()">
+            <span class="material-symbols-outlined text-purple-400" style="font-size:15px">receipt_long</span>
+            <div class="min-w-0">
+              <div class="text-outline" style="font-size:8px;font-weight:700;text-transform:uppercase">Outros gastos</div>
+              <div class="text-white font-bold" style="font-size:11px" id="d-outros-gastos">R$ 0,00</div>
+            </div>
+          </div>
+        </div>
+
         </div>
       </div>
 
