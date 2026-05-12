@@ -493,89 +493,93 @@
   <div class="glass-strong w-full rounded-t-3xl p-5 relative z-10 max-h-[90vh] overflow-y-auto">
     <h2 class="text-white text-base font-bold mb-4" id="modal-title">Lançar Corrida</h2>
 
-    <!-- Atalhos de data -->
-    <div class="flex gap-2 mb-3">
-      <button id="btn-hoje"      onclick="setFormData(0)"  style="flex:1;padding:6px 0;border-radius:10px;border:1px solid #414755;color:#8b90a0;font-size:11px;font-weight:600;background:transparent">Hoje</button>
-      <button id="btn-ontem"     onclick="setFormData(-1)" style="flex:1;padding:6px 0;border-radius:10px;border:1px solid #414755;color:#8b90a0;font-size:11px;font-weight:600;background:transparent">Ontem</button>
-      <button id="btn-anteontem" onclick="setFormData(-2)" style="flex:1;padding:6px 0;border-radius:10px;border:1px solid #414755;color:#8b90a0;font-size:11px;font-weight:600;background:transparent">Anteontem</button>
-    </div>
-
-    <form id="add-ride-form" class="space-y-3" onsubmit="return false">
-      <!-- Plataforma e Pagamento -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Plataforma</label>
-          <select id="f-plat" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-            <option value="Uber">Uber</option>
-            <option value="99">99</option>
-            <option value="InDriver">InDriver</option>
-            <option value="Outros">Outros</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Pagamento</label>
-          <select id="f-pag" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-            <option value="Pix">Pix</option>
-            <option value="Cartão">Cartão</option>
-            <option value="Dinheiro">Dinheiro</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Data e Hora -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Data</label>
-          <input type="date" id="f-data" onchange="highlightDateBtn()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-        </div>
-        <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Hora</label>
-          <input type="time" id="f-hora" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-        </div>
-      </div>
-
-      <!-- Valores -->
-      <div class="grid grid-cols-3 gap-2">
-        <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Km</label>
-          <input type="number" id="f-km" step="0.1" placeholder="0.0" oninput="calcTaxa()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-        </div>
-        <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Bruto</label>
-          <input type="number" id="f-bruto" step="0.01" placeholder="0,00" oninput="calcTaxa()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-        </div>
-        <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Líquido</label>
-          <input type="number" id="f-liquido" step="0.01" placeholder="0,00" oninput="calcTaxa()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-        </div>
-      </div>
-
-      <!-- Cobranças extra -->
+    <form id="form-corrida" class="p-4 space-y-4">
+      
+      <!-- Seletor de Plataforma -->
       <div>
-        <label class="text-outline text-[10px] uppercase font-bold mb-1 block">Cobranças extras (R$)</label>
-        <input type="number" id="f-outras" step="0.01" placeholder="0,00" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+        <label class="text-outline text-[10px] uppercase font-bold mb-2 block">Plataforma</label>
+        <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <input type="hidden" id="f-plataforma" value="Uber">
+          <button type="button" onclick="setPlat('Uber', this)" class="plat-btn flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-500 bg-blue-500/10 text-blue-400 font-bold text-xs transition-all active:scale-95">
+            <span class="w-2 h-2 rounded-full bg-white"></span> Uber
+          </button>
+          <button type="button" onclick="setPlat('99', this)" class="plat-btn flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-high text-outline font-bold text-xs transition-all active:scale-95">
+            <span class="w-2 h-2 rounded-full bg-yellow-500"></span> 99
+          </button>
+          <button type="button" onclick="setPlat('InDriver', this)" class="plat-btn flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-high text-outline font-bold text-xs transition-all active:scale-95">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> InDriver
+          </button>
+          <button type="button" onclick="setPlat('Particular', this)" class="plat-btn flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-high text-outline font-bold text-xs transition-all active:scale-95">
+            <span class="w-2 h-2 rounded-full bg-purple-500"></span> Particular
+          </button>
+        </div>
       </div>
 
-      <!-- Taxa preview -->
-      <div id="taxa-preview" style="display:none" class="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-xl p-3">
-        <span class="material-symbols-outlined text-orange-400 text-sm">percent</span>
-        <span class="text-orange-400 text-xs font-bold">Taxa plataforma: </span>
-        <span id="taxa-pct-display" class="text-orange-400 text-xs font-bold"></span>
+      <!-- Tipo de Registro -->
+      <div class="grid grid-cols-2 gap-2 bg-surface-container-low p-1 rounded-xl">
+        <button type="button" id="btn-tipo-normal" onclick="setTipoReg('normal')" class="py-2 rounded-lg bg-blue-500 text-white text-[11px] font-bold transition-all">Corrida Normal</button>
+        <button type="button" id="btn-tipo-cancel" onclick="setTipoReg('cancel')" class="py-2 rounded-lg text-outline text-[11px] font-bold transition-all">Cancelamento</button>
+        <input type="hidden" id="f-tipo-reg" value="normal">
       </div>
 
-      <!-- Preview da corrida -->
-      <div id="preview-card" class="hidden bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
-        <div class="text-blue-400 text-[10px] uppercase font-bold mb-2">Preview</div>
-        <div id="preview-body" class="grid grid-cols-3 gap-2"></div>
+      <!-- Grid de Valores e KM -->
+      <div class="grid grid-cols-2 gap-3">
+        <div id="field-km">
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Distância (km)</label>
+          <div class="relative">
+            <input type="number" id="f-km" step="0.1" placeholder="0.0" oninput="calcQuickStats()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+            <span class="absolute right-3 top-3.5 text-[10px] text-outline font-bold">KM</span>
+          </div>
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Valor Líquido</label>
+          <div class="relative">
+            <input type="number" id="f-liquido" step="0.01" placeholder="0,00" oninput="calcQuickStats()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm font-bold focus:outline-none focus:border-blue-500 transition-colors">
+            <span class="absolute left-3 top-3.5 text-[10px] text-outline font-bold">R$</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Erro -->
-      <div id="form-error" class="hidden text-red-400 text-xs text-center">Preencha todos os campos obrigatórios</div>
+      <!-- Campos Secundários (Bruto e Gorjeta) -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Valor Bruto (Opcional)</label>
+          <input type="number" id="f-bruto" step="0.01" placeholder="Quanto o passageiro pagou" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-xs focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Gorjeta</label>
+          <input type="number" id="f-gorjeta" step="0.01" placeholder="R$ 0,00" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-xs focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <!-- Forma de Pagamento -->
+      <div>
+        <label class="text-outline text-[10px] uppercase font-bold mb-2 block">Pagamento</label>
+        <div class="flex gap-2">
+          <input type="hidden" id="f-pagamento" value="App">
+          <button type="button" onclick="setPag('App', this)" class="pag-btn flex-1 py-2 rounded-xl border border-blue-500 bg-blue-500/10 text-blue-400 text-[10px] font-bold transition-all">APP / Cartão</button>
+          <button type="button" onclick="setPag('Pix', this)" class="pag-btn flex-1 py-2 rounded-xl border border-outline-variant bg-surface-container-high text-outline text-[10px] font-bold transition-all">PIX</button>
+          <button type="button" onclick="setPag('Dinheiro', this)" class="pag-btn flex-1 py-2 rounded-xl border border-outline-variant bg-surface-container-high text-outline text-[10px] font-bold transition-all">DINHEIRO</button>
+        </div>
+      </div>
+
+      <!-- Badge de Qualidade (Dinâmico) -->
+      <div id="f-stats-badge" class="hidden flex items-center justify-between bg-white/5 rounded-2xl p-3 border border-white/5">
+        <div class="flex flex-col">
+          <span class="text-outline text-[8px] font-bold uppercase">Resultado</span>
+          <span id="f-stats-label" class="text-xs font-bold">—</span>
+        </div>
+        <div class="flex flex-col text-right">
+          <span class="text-outline text-[8px] font-bold uppercase">R$ / KM</span>
+          <span id="f-stats-rpkm" class="text-xs font-black text-white">R$ 0,00</span>
+        </div>
+      </div>
+
+      <div id="form-error" class="hidden text-red-400 text-[10px] text-center font-bold">Preencha os campos obrigatórios</div>
 
       <button id="btn-salvar" type="button" onclick="salvarCorrida()"
-        class="w-full bg-blue-500 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
-        style="box-shadow:0 0 20px rgba(59,130,246,.25)">
-        <span class="material-symbols-outlined" style="font-size:18px">save</span> Registrar Corrida
+        class="w-full bg-blue-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-blue-500/20">
+        <span class="material-symbols-outlined" style="font-size:20px">check_circle</span> FINALIZAR REGISTRO
       </button>
     </form>
   </div>

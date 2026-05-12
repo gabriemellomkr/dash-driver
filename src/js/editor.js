@@ -14,17 +14,98 @@ function todayStr() {
 window.openModal = function() {
   editingId = null;
   document.getElementById('modal-title').textContent = 'Lançar Corrida';
-  document.getElementById('btn-salvar').innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">save</span> Registrar Corrida';
   const modal = document.getElementById('insert-modal');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
-  document.getElementById('add-ride-form').reset();
-  document.getElementById('f-data').value = todayStr();
-  document.getElementById('f-hora').value = nowTimeStr();
-  highlightDateBtn();
-  document.getElementById('preview-card').classList.add('hidden');
+  
+  const form = document.getElementById('form-corrida');
+  if (form) form.reset();
+  
+  // Reset UI custom elements
+  setPlat('Uber', document.querySelector('.plat-btn'));
+  setPag('App', document.querySelector('.pag-btn'));
+  setTipoReg('normal');
+  
+  document.getElementById('f-stats-badge').classList.add('hidden');
   document.getElementById('form-error').classList.add('hidden');
-  document.getElementById('taxa-preview').style.display = 'none';
+};
+
+window.setPlat = function(plat, btn) {
+  document.getElementById('f-plataforma').value = plat;
+  document.querySelectorAll('.plat-btn').forEach(b => {
+    b.classList.remove('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+    b.classList.add('border-outline-variant', 'bg-surface-container-high', 'text-outline');
+  });
+  btn.classList.remove('border-outline-variant', 'bg-surface-container-high', 'text-outline');
+  btn.classList.add('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+  calcQuickStats();
+};
+
+window.setPag = function(pag, btn) {
+  document.getElementById('f-pagamento').value = pag;
+  document.querySelectorAll('.pag-btn').forEach(b => {
+    b.classList.remove('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+    b.classList.add('border-outline-variant', 'bg-surface-container-high', 'text-outline');
+  });
+  btn.classList.remove('border-outline-variant', 'bg-surface-container-high', 'text-outline');
+  btn.classList.add('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+};
+
+window.setTipoReg = function(tipo) {
+  document.getElementById('f-tipo-reg').value = tipo;
+  const bNormal = document.getElementById('btn-tipo-normal');
+  const bCancel = document.getElementById('btn-tipo-cancel');
+  const fKm     = document.getElementById('field-km');
+  const inputKm = document.getElementById('f-km');
+
+  if (tipo === 'cancel') {
+    bCancel.classList.add('bg-blue-500', 'text-white');
+    bCancel.classList.remove('text-outline');
+    bNormal.classList.remove('bg-blue-500', 'text-white');
+    bNormal.classList.add('text-outline');
+    fKm.style.opacity = '0.3';
+    inputKm.disabled = true;
+    inputKm.value = '0';
+  } else {
+    bNormal.classList.add('bg-blue-500', 'text-white');
+    bNormal.classList.remove('text-outline');
+    bCancel.classList.remove('bg-blue-500', 'text-white');
+    bCancel.classList.add('text-outline');
+    fKm.style.opacity = '1';
+    inputKm.disabled = false;
+    if (inputKm.value === '0') inputKm.value = '';
+  }
+  calcQuickStats();
+};
+
+window.calcQuickStats = function() {
+  const km = parseFloat(document.getElementById('f-km').value) || 0;
+  const liq = parseFloat(document.getElementById('f-liquido').value) || 0;
+  const badge = document.getElementById('f-stats-badge');
+  const label = document.getElementById('f-stats-label');
+  const rpkmVal = document.getElementById('f-stats-rpkm');
+
+  if (km > 0 && liq > 0) {
+    badge.classList.remove('hidden');
+    const rpkm = liq / km;
+    rpkmVal.textContent = `R$ ${rpkm.toFixed(2).replace('.', ',')}`;
+    
+    if (rpkm >= 2.5) {
+      label.textContent = '💎 EXCELENTE';
+      label.className = 'text-xs font-bold text-blue-400';
+    } else if (rpkm >= 2.0) {
+      label.textContent = '✅ BOA';
+      label.className = 'text-xs font-bold text-green-400';
+    } else if (rpkm >= 1.5) {
+      label.textContent = '⚠️ REGULAR';
+      label.className = 'text-xs font-bold text-yellow-500';
+    } else {
+      label.textContent = '❌ RUIM';
+      label.className = 'text-xs font-bold text-red-400';
+    }
+  } else {
+    badge.classList.add('hidden');
+  }
 };
 
 window.editarCorrida = function(id) {
@@ -32,23 +113,29 @@ window.editarCorrida = function(id) {
   if (!c) return;
   editingId = id;
   document.getElementById('modal-title').textContent = 'Editar Corrida';
-  document.getElementById('btn-salvar').innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">edit</span> Salvar alterações';
   const modal = document.getElementById('insert-modal');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
-  document.getElementById('add-ride-form').reset();
-  document.getElementById('f-plat').value    = c.plat;
-  document.getElementById('f-pag').value     = c.pag;
+  
+  // Reset e preenchimento
+  const form = document.getElementById('form-corrida');
+  if (form) form.reset();
+
+  // Mapear chips de plataforma
+  const platBtn = Array.from(document.querySelectorAll('.plat-btn')).find(b => b.innerText.includes(c.plataforma));
+  if (platBtn) setPlat(c.plataforma, platBtn);
+
+  // Mapear chips de pagamento
+  const pagBtn = Array.from(document.querySelectorAll('.pag-btn')).find(b => b.innerText.includes(c.pagamento));
+  if (pagBtn) setPag(c.pagamento, pagBtn);
+
   document.getElementById('f-km').value      = c.km;
   document.getElementById('f-bruto').value   = c.bruto;
-  document.getElementById('f-outras').value  = c.outras || '';
   document.getElementById('f-liquido').value = c.liquido;
-  const rawData = c.data || '';
-  document.getElementById('f-data').value = rawData.split('T')[0];
-  const timePart = rawData.includes('T') ? rawData.split('T')[1].slice(0,5) : '';
-  document.getElementById('f-hora').value = timePart;
-  highlightDateBtn();
-  calcTaxa();
+  document.getElementById('f-gorjeta').value = c.gorjeta || '';
+  
+  setTipoReg(c.km === 0 ? 'cancel' : 'normal');
+  calcQuickStats();
   document.getElementById('form-error').classList.add('hidden');
 };
 
@@ -59,76 +146,42 @@ window.closeModal = function() {
   editingId = null;
 };
 
-window.calcTaxa = function() {
-  const bruto = parseFloat(document.getElementById('f-bruto').value) || 0;
-  const liq   = parseFloat(document.getElementById('f-liquido').value) || 0;
-  const el    = document.getElementById('taxa-preview');
-  if (bruto > 0 && liq > 0 && bruto > liq) {
-    const diff = bruto - liq;
-    const pct  = (diff / bruto * 100).toFixed(1);
-    el.style.display = 'flex';
-    document.getElementById('taxa-pct-display').textContent = `${pct}%  (−${utils.formatBRL(diff)})`;
-  } else {
-    el.style.display = 'none';
-  }
-  calcPreview();
-};
-
-function calcPreview() {
-  const km   = parseFloat(document.getElementById('f-km').value)     || 0;
-  const liq  = parseFloat(document.getElementById('f-liquido').value) || 0;
-  const prev = document.getElementById('preview-card');
-  if (!km || !liq) { prev.classList.add('hidden'); return; }
-
-  const custoKm = CONFIG_DATA.precoLitro > 0 && CONFIG_DATA.consumo > 0
-    ? (CONFIG_DATA.precoLitro / CONFIG_DATA.consumo)
-    : 0;
-  const custoOp = km * custoKm;
-  const lucro   = liq - custoOp;
-  const rpkm    = liq / km;
-
-  prev.classList.remove('hidden');
-  document.getElementById('preview-body').innerHTML = `
-    <div style="text-align:center">
-      <div style="color:#8b90a0;font-size:8px;font-weight:700;text-transform:uppercase;margin-bottom:4px">Custo op.</div>
-      <div style="color:#f87171;font-size:14px;font-weight:800">${utils.formatBRL(custoOp)}</div>
-    </div>
-    <div style="text-align:center">
-      <div style="color:#8b90a0;font-size:8px;font-weight:700;text-transform:uppercase;margin-bottom:4px">Lucro</div>
-      <div style="color:${lucro >= 0 ? '#4ade80' : '#f87171'};font-size:14px;font-weight:800">${utils.formatBRL(lucro)}</div>
-    </div>
-    <div style="text-align:center">
-      <div style="color:#8b90a0;font-size:8px;font-weight:700;text-transform:uppercase;margin-bottom:4px">R$/km</div>
-      <div style="color:white;font-size:14px;font-weight:800">${rpkm.toFixed(2).replace('.', ',')}</div>
-    </div>`;
-}
-
 window.salvarCorrida = async function() {
   const errEl = document.getElementById('form-error');
   errEl.classList.add('hidden');
 
-  const plataforma = document.getElementById('f-plat').value;
-  const pagamento  = document.getElementById('f-pag').value;
-  const km      = parseFloat(document.getElementById('f-km').value);
-  const bruto   = parseFloat(document.getElementById('f-bruto').value);
-  const liquido = parseFloat(document.getElementById('f-liquido').value);
-  const outras  = parseFloat(document.getElementById('f-outras').value) || 0;
-  const dataVal = document.getElementById('f-data').value;
-  const horaVal = document.getElementById('f-hora').value;
-  const dataISO = dataVal ? (horaVal ? `${dataVal}T${horaVal}:00` : dataVal) : '';
+  const plataforma = document.getElementById('f-plataforma').value;
+  const pagamento  = document.getElementById('f-pagamento').value;
+  const tipoReg    = document.getElementById('f-tipo-reg').value;
+  const km         = parseFloat(document.getElementById('f-km').value) || 0;
+  const liquido    = parseFloat(document.getElementById('f-liquido').value);
+  const bruto      = parseFloat(document.getElementById('f-bruto').value) || liquido; // Se não informar bruto, assume líquido
+  const gorjeta    = parseFloat(document.getElementById('f-gorjeta').value) || 0;
 
-  if (!km || !bruto || !liquido || !dataVal || isNaN(km) || isNaN(bruto) || isNaN(liquido)) {
+  // Validação básica
+  if (isNaN(liquido) || (tipoReg === 'normal' && km <= 0)) {
     errEl.classList.remove('hidden');
+    errEl.textContent = 'Preencha os valores corretamente.';
     return;
   }
 
   const btn = document.getElementById('btn-salvar');
   btn.disabled = true;
-  btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">sync</span> Salvando...';
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size:20px">sync</span> PROCESSANDO...';
 
-  const payload = { plataforma, pagamento, km, bruto, liquido, outras, data: dataISO, user_id: APP_STATE.user?.id };
+  const payload = { 
+    plataforma, 
+    pagamento, 
+    km, 
+    bruto, 
+    liquido, 
+    gorjeta,
+    data: new Date().toISOString(), // Ajustável se quisermos campo de data de volta, mas para rapidez o hoje é default
+    user_id: APP_STATE.user?.id 
+  };
+  
   let error;
-
   if (editingId) {
     ({ error } = await supabase.from('dashdriver_corridas').update(payload).eq('id', editingId));
   } else {
@@ -136,13 +189,10 @@ window.salvarCorrida = async function() {
   }
 
   btn.disabled = false;
-  btn.innerHTML = editingId
-    ? '<span class="material-symbols-outlined" style="font-size:18px">edit</span> Salvar alterações'
-    : '<span class="material-symbols-outlined" style="font-size:18px">save</span> Registrar Corrida';
+  btn.innerHTML = originalText;
 
   if (error) {
     utils.toast('Erro ao salvar: ' + (error.message || ''), 'error');
-    errEl.classList.remove('hidden');
     return;
   }
 
@@ -150,27 +200,5 @@ window.salvarCorrida = async function() {
   await data.loadCorridas();
   renderDashboard();
   renderHistorico();
-  utils.toast(editingId ? '✓ Corrida atualizada!' : '✓ Corrida registrada!', 'success');
-};
-
-window.setFormData = function(offset) {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  const str = d.toLocaleDateString('sv-SE', { timeZone: CONFIG_DATA.timezone || 'America/Sao_Paulo' });
-  document.getElementById('f-data').value = str;
-  highlightDateBtn();
-};
-
-window.highlightDateBtn = function() {
-  const val   = document.getElementById('f-data').value;
-  const today = todayStr();
-  const ontem = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toLocaleDateString('sv-SE'); })();
-  const ante  = (() => { const d = new Date(); d.setDate(d.getDate() - 2); return d.toLocaleDateString('sv-SE'); })();
-
-  const active   = 'background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.5);color:#93c5fd';
-  const inactive = 'background:transparent;border-color:#414755;color:#8b90a0';
-
-  document.getElementById('btn-hoje').style.cssText       = val === today ? active : inactive;
-  document.getElementById('btn-ontem').style.cssText      = val === ontem ? active : inactive;
-  document.getElementById('btn-anteontem').style.cssText  = val === ante  ? active : inactive;
+  utils.toast(editingId ? '✓ Alterado com sucesso!' : '✓ Corrida registrada!', 'success');
 };
