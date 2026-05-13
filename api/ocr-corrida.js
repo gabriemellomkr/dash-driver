@@ -37,10 +37,12 @@ Formato esperado:
 
 Regras por plataforma:
 
-99 (app amarelo):
-- Campo "Valor bruto" ou "Corrida" → bruto
-- Campo "Sua parte" ou "Ganhos" → liquido
-- "Cartão" ou "Pagamento online" → pagamento: "App"
+99 (app amarelo, texto "Recebido pela 99" ou "99" visível):
+- A tela tem DUAS seções separadas de valor — leia com atenção:
+  * Seção "Pago pelo passageiro" ou "Pago por esta corrida" → esse Total é o BRUTO
+  * Seção "Seus ganhos" ou "Você ganhou" → esse Total é o LÍQUIDO
+- NÃO use o valor destacado no topo ("Você ganhou R$X") como bruto — ele é o líquido
+- "Online" ou "Cartão" ou "Pagamento online" → pagamento: "App"
 - "Pix" → pagamento: "Pix"
 - "Dinheiro" → pagamento: "Dinheiro"
 
