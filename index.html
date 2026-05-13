@@ -534,7 +534,18 @@
 <div id="insert-modal" class="fixed inset-0 z-[100] flex-col justify-end hidden">
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div>
   <div class="glass-strong w-full rounded-t-3xl p-5 relative z-10 max-h-[90vh] overflow-y-auto">
-    <h2 class="text-white text-base font-bold mb-4" id="modal-title">Lançar Corrida</h2>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-white text-base font-bold" id="modal-title">Lançar Corrida</h2>
+      <button id="btn-ocr" type="button" onclick="triggerOCR()"
+        title="Importar do print"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-outline text-[10px] font-bold hover:border-blue-500/50 hover:text-blue-400 active:scale-95 transition-all">
+        <span class="material-symbols-outlined" style="font-size:14px">photo_camera</span>
+        IMPORTAR PRINT
+      </button>
+    </div>
+    <!-- Input oculto para seleção de imagem (OCR) -->
+    <input type="file" id="ocr-input" accept="image/*" capture="environment"
+      class="hidden" onchange="handleOCRImage(this)">
 
     <form id="form-corrida" class="p-4 space-y-4">
 
@@ -735,6 +746,7 @@
 <script src="src/js/career.js"></script>
 <script src="src/js/vehicle.js"></script>
 <script src="src/js/editor.js"></script>
+<script src="src/js/ocr.js"></script>
 <script src="src/js/notifications.js"></script>
 <script src="src/js/admin.js"></script>
 <script src="src/js/main.js"></script>

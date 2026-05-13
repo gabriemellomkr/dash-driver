@@ -5,5 +5,10 @@
   ],
   "crons": [
     { "path": "/api/cron-resumo", "schedule": "0 0 * * *" }
-  ]
+  ],
+  "functions": {
+    "api/ocr-corrida.js": {
+      "maxDuration": 30
+    }
+  }
 }
