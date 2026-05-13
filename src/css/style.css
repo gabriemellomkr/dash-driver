@@ -65,7 +65,8 @@ main {
 }
 
 /* Bottom sheet — visibilidade controlada pelo Tailwind (hidden/flex) */
-#insert-modal.flex {
+#insert-modal.flex,
+#gasto-modal.flex {
   display: flex;
 }
 

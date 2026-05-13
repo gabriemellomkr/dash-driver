@@ -1,69 +1,322 @@
-/**
- * DashDriver - Financial
- * Income and expense management.
- */
+/* DashDriver — Aba Finanças */
 
-window.renderFinanceiro = function() {
-  const receitas = APP_STATE.corridas.reduce((s, c) => s + c.liquido, 0);
-  const despesas = APP_STATE.despesas.reduce((s, d) => s + d.valor, 0);
-  const gas = APP_STATE.abastecimentos.reduce((s, a) => s + a.valor, 0);
-  const totalDespesas = despesas + gas;
-  
-  document.getElementById('fin-receita').textContent = utils.formatBRL(receitas);
-  document.getElementById('fin-despesas').textContent = utils.formatBRL(totalDespesas);
-  document.getElementById('fin-resultado').textContent = utils.formatBRL(receitas - totalDespesas);
-  
-  renderFinList();
+let finPeriod = 'month';
+let pendingDeleteGastoId   = null;
+let pendingDeleteGastoTipo = null; // 'despesa' | 'abastecimento'
+
+const GASTO_CFG = {
+  gasolina:         { emoji: '⛽', label: 'Gasolina',        cor: '#f59e0b' },
+  alimentacao:      { emoji: '🍔', label: 'Alimentação',      cor: '#ec4899' },
+  recarga_indriver: { emoji: '💚', label: 'Recarga InDriver', cor: '#34d399' },
+  manutencao:       { emoji: '🔧', label: 'Manutenção',       cor: '#8b5cf6' },
+  outros:           { emoji: '💸', label: 'Outros',           cor: '#8b90a0' },
 };
 
-function renderFinList() {
-  const listEntradas = document.getElementById('fin-entradas-list');
-  const listSaidas = document.getElementById('fin-saidas-list');
-  if (!listEntradas || !listSaidas) return;
-  
-  // Limpa e adiciona cabeçalhos
-  listEntradas.innerHTML = '<h3 class="text-white text-xs font-semibold mb-2">Entradas (Corridas)</h3>';
-  listSaidas.innerHTML = '<h3 class="text-white text-xs font-semibold mb-2">Saídas (Despesas e Gasolina)</h3>';
-  
-  // Renderiza Entradas
-  if (APP_STATE.corridas.length === 0) {
-    listEntradas.innerHTML += '<div class="text-outline text-xs py-4 text-center">Nenhuma entrada</div>';
-  } else {
-    APP_STATE.corridas.slice(0, 15).forEach(c => {
-      const div = document.createElement('div');
-      div.className = 'glass rounded-xl p-3 flex justify-between items-center mb-2';
-      div.innerHTML = `
-        <div>
-          <div class="text-white text-xs font-medium">${c.plat}</div>
-          <div class="text-outline text-[10px]">${utils.formatDate(c.data)}</div>
-        </div>
-        <div class="text-green-400 text-sm font-bold">+ ${utils.formatBRL(c.liquido)}</div>
-      `;
-      listEntradas.appendChild(div);
-    });
-  }
+function gastoCfg(cat) {
+  return GASTO_CFG[cat] || GASTO_CFG['outros'];
+}
 
-  // Combina e renderiza Saídas
-  const todasSaidas = [
-    ...APP_STATE.abastecimentos.map(a => ({ ...a, tipo: 'Abastecimento', cat: '⛽' })),
-    ...APP_STATE.despesas.map(d => ({ ...d, tipo: d.categoria, cat: '💸' }))
-  ].sort((a, b) => new Date(b.data) - new Date(a.data));
-
-  if (todasSaidas.length === 0) {
-    listSaidas.innerHTML += '<div class="text-outline text-xs py-4 text-center">Nenhuma saída</div>';
-  } else {
-    todasSaidas.slice(0, 15).forEach(s => {
-      const div = document.createElement('div');
-      div.className = 'glass rounded-xl p-3 flex justify-between items-center mb-2';
-      div.innerHTML = `
-        <div>
-          <div class="text-white text-xs font-medium">${s.cat} ${s.tipo}</div>
-          <div class="text-outline text-[10px]">${utils.formatDate(s.data)}</div>
-        </div>
-        <div class="text-red-400 text-sm font-bold">- ${utils.formatBRL(s.valor)}</div>
-      `;
-      listSaidas.appendChild(div);
-    });
+// ─── Período ──────────────────────────────────────────
+function getFinDateRange() {
+  const today = new Date().toLocaleDateString('sv-SE');
+  switch (finPeriod) {
+    case 'today': return { start: today, end: today };
+    case 'week': {
+      const d = new Date(); d.setDate(d.getDate() - d.getDay());
+      return { start: d.toLocaleDateString('sv-SE'), end: today };
+    }
+    case 'month': return { start: today.slice(0, 8) + '01', end: today };
+    default:      return { start: '2000-01-01', end: '9999-12-31' };
   }
 }
 
+// ─── Receita correta por plataforma ───────────────────
+// InDriver: motorista recebe bruto em mãos (taxa sai do saldo pré-carregado)
+function calcReceita(corridas) {
+  return corridas.reduce((s, c) => {
+    if (c.plat === 'InDriver' && c.bruto > 0) return s + c.bruto;
+    return s + (c.liquido || 0);
+  }, 0);
+}
+
+// ─── Saldo InDriver ───────────────────────────────────
+function calcSaldoInDriver() {
+  const recargas = APP_STATE.despesas
+    .filter(d => d.categoria === 'recarga_indriver')
+    .reduce((s, d) => s + (d.valor || 0), 0);
+  const taxas = APP_STATE.corridas
+    .filter(c => c.plat === 'InDriver' && c.bruto > c.liquido)
+    .reduce((s, c) => s + (c.bruto - c.liquido), 0);
+  return { saldo: recargas - taxas, recargas, taxas };
+}
+
+// ─── Render principal ─────────────────────────────────
+window.renderFinanceiro = function() {
+  const { start, end } = getFinDateRange();
+
+  const corridas = APP_STATE.corridas.filter(c => {
+    const d = (c.data || '').split('T')[0];
+    return d >= start && d <= end;
+  });
+
+  const gastos = [
+    ...APP_STATE.abastecimentos
+      .filter(a => { const d = (a.data || '').split('T')[0]; return d >= start && d <= end; })
+      .map(a => ({ ...a, categoria: 'gasolina', tipo: 'abastecimento' })),
+    ...APP_STATE.despesas
+      .filter(d => { const dt = (d.data || '').split('T')[0]; return dt >= start && dt <= end; })
+      .map(d => ({ ...d, tipo: 'despesa' }))
+  ];
+
+  const receita     = calcReceita(corridas);
+  const totalGastos = gastos.reduce((s, g) => s + (g.valor || 0), 0);
+  const resultado   = receita - totalGastos;
+
+  // Cards de resumo
+  const elReceita   = document.getElementById('fin-receita');
+  const elDespesas  = document.getElementById('fin-despesas');
+  const elResultado = document.getElementById('fin-resultado');
+  if (elReceita)   elReceita.textContent   = utils.formatBRL(receita);
+  if (elDespesas)  elDespesas.textContent  = utils.formatBRL(totalGastos);
+  if (elResultado) {
+    elResultado.textContent = utils.formatBRL(resultado);
+    elResultado.style.color = resultado >= 0 ? '#4ade80' : '#f87171';
+  }
+
+  // Card saldo InDriver
+  const saldoCard = document.getElementById('fin-saldo-indriver');
+  if (saldoCard) {
+    const temInDriver = APP_STATE.corridas.some(c => c.plat === 'InDriver') ||
+                        APP_STATE.despesas.some(d => d.categoria === 'recarga_indriver');
+    if (temInDriver) {
+      saldoCard.classList.remove('hidden');
+      const { saldo, recargas, taxas } = calcSaldoInDriver();
+      const baixo = saldo < 10;
+
+      const elSaldo   = document.getElementById('fin-indriver-saldo');
+      const elStatus  = document.getElementById('fin-indriver-status');
+      const elDetalhe = document.getElementById('fin-indriver-detalhe');
+
+      if (elSaldo)   { elSaldo.textContent = utils.formatBRL(saldo); elSaldo.style.color = baixo ? '#f87171' : '#34d399'; }
+      if (elStatus)  { elStatus.textContent = baixo ? '⚠ Saldo baixo — recarregue!' : '✓ disponível'; elStatus.style.color = baixo ? '#f87171' : '#34d399'; }
+      if (elDetalhe) elDetalhe.textContent = `${utils.formatBRL(recargas)} em recargas · ${utils.formatBRL(taxas)} em taxas descontadas`;
+
+      // Sincroniza com o dashboard
+      APP_STATE.indriverSaldo    = saldo;
+      APP_STATE.indriverSaldoMax = Math.max(recargas, APP_STATE.indriverSaldoMax || 50);
+    } else {
+      saldoCard.classList.add('hidden');
+    }
+  }
+
+  renderFinTimeline(corridas, gastos);
+};
+
+// ─── Timeline unificada ───────────────────────────────
+function renderFinTimeline(corridas, gastos) {
+  const el = document.getElementById('fin-list');
+  if (!el) return;
+
+  const todos = [
+    ...corridas.map(c => ({
+      id: c.id, tipo: 'corrida',
+      data: (c.data || '').split('T')[0],
+      label: c.plat,
+      sub: `${c.km > 0 ? c.km.toFixed(1) + ' km' : 'km —'} · ${c.pag || ''}`,
+      valor: (c.plat === 'InDriver' && c.bruto > 0) ? c.bruto : (c.liquido || 0),
+      positivo: true, emoji: '🏍️'
+    })),
+    ...gastos.map(g => ({
+      id: g.id, tipo: g.tipo,
+      data: (g.data || '').split('T')[0],
+      label: gastoCfg(g.categoria).label,
+      sub: g.descricao || '',
+      valor: g.valor || 0,
+      positivo: false, emoji: gastoCfg(g.categoria).emoji,
+      categoria: g.categoria
+    }))
+  ].sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id);
+
+  if (todos.length === 0) {
+    el.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-14 opacity-40">
+        <span class="material-symbols-outlined mb-2" style="font-size:48px">account_balance_wallet</span>
+        <p class="text-sm font-medium">Nenhum lançamento</p>
+        <p class="text-[11px] mt-1 text-outline">Use o botão + Lançar para registrar gastos</p>
+      </div>`;
+    return;
+  }
+
+  const grupos = {};
+  todos.forEach(item => {
+    if (!grupos[item.data]) grupos[item.data] = [];
+    grupos[item.data].push(item);
+  });
+
+  const today = new Date().toLocaleDateString('sv-SE');
+  const yest  = (() => { const d = new Date(); d.setDate(d.getDate()-1); return d.toLocaleDateString('sv-SE'); })();
+  const dias  = Object.keys(grupos).sort((a, b) => b.localeCompare(a));
+
+  el.innerHTML = dias.map(day => {
+    const items    = grupos[day];
+    const totalDia = items.reduce((s, i) => i.positivo ? s + i.valor : s - i.valor, 0);
+    const dayLabel = day === today ? 'Hoje' : day === yest ? 'Ontem' :
+      new Date(day + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
+
+    const itemsHTML = items.map(item => {
+      const isPendingDel = pendingDeleteGastoId === item.id && pendingDeleteGastoTipo === item.tipo;
+      return `
+        <div class="flex items-center gap-3 px-4 py-3.5 border-b border-white/5 last:border-0">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/5 text-base">${item.emoji}</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-white text-[13px] font-bold">${item.label}</div>
+            ${item.sub ? `<div class="text-outline text-[10px]">${item.sub}</div>` : ''}
+          </div>
+          ${isPendingDel ? `
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <span class="text-red-400 text-[10px] font-semibold">Excluir?</span>
+              <button onclick="confirmarDeleteGasto(${item.id},'${item.tipo}')" class="bg-red-500/20 text-red-400 text-[10px] font-bold px-2.5 py-1.5 rounded-lg active:scale-95">Sim</button>
+              <button onclick="cancelarDeleteGasto()" class="bg-white/10 text-outline text-[10px] font-bold px-2.5 py-1.5 rounded-lg active:scale-95">Não</button>
+            </div>
+          ` : `
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <span class="${item.positivo ? 'text-green-400' : 'text-red-400'} font-black text-[13px]">
+                ${item.positivo ? '+' : '-'} ${utils.formatBRL(item.valor)}
+              </span>
+              ${item.tipo !== 'corrida' ? `
+                <button onclick="pedirDeleteGasto(${item.id},'${item.tipo}')" class="w-8 h-8 flex items-center justify-center text-outline hover:text-red-400 active:scale-90 transition-all rounded-lg">
+                  <span class="material-symbols-outlined" style="font-size:16px">delete</span>
+                </button>
+              ` : ''}
+            </div>
+          `}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="glass rounded-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-2 border-b border-white/5" style="background:rgba(255,255,255,0.02)">
+          <span class="text-white text-[11px] font-bold capitalize">${dayLabel}</span>
+          <span class="${totalDia >= 0 ? 'text-green-400' : 'text-red-400'} text-[11px] font-bold">${totalDia >= 0 ? '+' : ''}${utils.formatBRL(totalDia)}</span>
+        </div>
+        ${itemsHTML}
+      </div>`;
+  }).join('');
+}
+
+// ─── Filtro de período ────────────────────────────────
+window.setFinPeriod = function(p, el) {
+  finPeriod = p;
+  pendingDeleteGastoId = null;
+  document.querySelectorAll('.fin-period-chip').forEach(c => {
+    c.classList.remove('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+    c.classList.add('border-outline-variant', 'text-outline');
+  });
+  el.classList.add('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+  el.classList.remove('border-outline-variant', 'text-outline');
+  renderFinanceiro();
+};
+
+// ─── Modal de gasto ───────────────────────────────────
+window.openGastoModal = function(catPreset) {
+  const modal = document.getElementById('gasto-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+
+  document.getElementById('g-valor').value     = '';
+  document.getElementById('g-descricao').value = '';
+  document.getElementById('g-data').value      = new Date().toLocaleDateString('sv-SE');
+  document.getElementById('gasto-error').classList.add('hidden');
+
+  const cat = catPreset || 'gasolina';
+  document.getElementById('g-categoria').value = cat;
+  document.querySelectorAll('.gasto-cat-btn').forEach(b => {
+    const sel = b.dataset.cat === cat;
+    b.classList.toggle('border-blue-500',           sel);
+    b.classList.toggle('bg-blue-500/10',            sel);
+    b.classList.toggle('text-blue-400',             sel);
+    b.classList.toggle('border-outline-variant',    !sel);
+    b.classList.toggle('bg-surface-container-high', !sel);
+    b.classList.toggle('text-outline',              !sel);
+  });
+};
+
+window.closeGastoModal = function() {
+  const modal = document.getElementById('gasto-modal');
+  if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+};
+
+window.setGastoCat = function(cat, btn) {
+  document.getElementById('g-categoria').value = cat;
+  document.querySelectorAll('.gasto-cat-btn').forEach(b => {
+    b.classList.remove('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+    b.classList.add('border-outline-variant', 'bg-surface-container-high', 'text-outline');
+  });
+  btn.classList.add('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+  btn.classList.remove('border-outline-variant', 'bg-surface-container-high', 'text-outline');
+};
+
+window.salvarGasto = async function() {
+  const errEl     = document.getElementById('gasto-error');
+  const categoria = document.getElementById('g-categoria').value;
+  const valor     = parseFloat(document.getElementById('g-valor').value);
+  const descricao = document.getElementById('g-descricao').value || '';
+  const dataVal   = document.getElementById('g-data').value || new Date().toLocaleDateString('sv-SE');
+  errEl.classList.add('hidden');
+
+  if (isNaN(valor) || valor <= 0) { errEl.classList.remove('hidden'); return; }
+
+  const btn = document.getElementById('btn-salvar-gasto');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size:20px">sync</span> SALVANDO...';
+
+  const { error } = await supabase.from('dashdriver_outras_despesas').insert([{
+    categoria, valor, descricao, data: dataVal, user_id: APP_STATE.user?.id
+  }]);
+
+  btn.disabled = false;
+  btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:20px">check_circle</span> SALVAR GASTO';
+
+  if (error) { utils.toast('Erro ao salvar: ' + (error.message || ''), 'error'); return; }
+
+  closeGastoModal();
+  await data.loadOutrasDespesas();
+  renderFinanceiro();
+  if (typeof renderDashboard === 'function') renderDashboard();
+  utils.toast('✓ ' + gastoCfg(categoria).label + ' registrado!', 'success');
+};
+
+// ─── Delete de gasto ──────────────────────────────────
+window.pedirDeleteGasto = function(id, tipo) {
+  pendingDeleteGastoId   = id;
+  pendingDeleteGastoTipo = tipo;
+  renderFinanceiro();
+};
+
+window.cancelarDeleteGasto = function() {
+  pendingDeleteGastoId   = null;
+  pendingDeleteGastoTipo = null;
+  renderFinanceiro();
+};
+
+window.confirmarDeleteGasto = async function(id, tipo) {
+  const tabela  = tipo === 'abastecimento' ? 'dashdriver_abastecimentos' : 'dashdriver_outras_despesas';
+  const { error } = await supabase.from(tabela).delete().eq('id', id);
+  pendingDeleteGastoId   = null;
+  pendingDeleteGastoTipo = null;
+  if (!error) {
+    utils.toast('Gasto excluído', 'success');
+    await Promise.all([data.loadOutrasDespesas(), data.loadAbastecimentos()]);
+    renderFinanceiro();
+    if (typeof renderDashboard === 'function') renderDashboard();
+  } else {
+    utils.toast('Erro ao excluir', 'error');
+  }
+};
+
+// Alias para o dashboard (botão + Saldo no card InDriver)
+window.openIndriverRecarga = function() {
+  openGastoModal('recarga_indriver');
+  if (typeof showTab === 'function') showTab('financeiro');
+};

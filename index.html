@@ -404,17 +404,59 @@
 
   <!-- FINANCEIRO -->
   <div class="page" id="page-financeiro">
-    <div class="p-4 space-y-3">
-      <div class="glass rounded-2xl p-4">
-        <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-green-400" style="font-size:16px">account_balance</span><h3 class="text-white text-sm font-semibold">Resumo financeiro</h3></div>
-        <div class="grid grid-cols-3 gap-2">
-          <div class="rounded-xl p-3 text-center bg-green-400/10 border border-green-400/20"><div class="text-green-400 text-sm font-black" id="fin-receita">R$ 0</div><div class="text-outline text-[9px]">Receita</div></div>
-          <div class="rounded-xl p-3 text-center bg-red-400/10 border border-red-400/20"><div class="text-red-400 text-sm font-black" id="fin-despesas">R$ 0</div><div class="text-outline text-[9px]">Despesas</div></div>
-          <div class="rounded-xl p-3 text-center bg-blue-400/10 border border-blue-400/20"><div class="text-blue-400 text-sm font-black" id="fin-resultado">R$ 0</div><div class="text-outline text-[9px]">Resultado</div></div>
+    <!-- Sticky header -->
+    <div class="sticky top-[57px] z-30 border-b border-white/5 px-4 py-2.5 flex items-center justify-between" style="background:rgba(14,14,16,0.9);backdrop-filter:blur(20px)">
+      <span class="text-white text-sm font-bold">Finanças</span>
+      <button onclick="openGastoModal()" class="flex items-center gap-1.5 bg-blue-500 text-white text-[11px] font-bold px-3.5 py-2 rounded-xl active:scale-95 transition-all shadow-lg shadow-blue-500/20">
+        <span class="material-symbols-outlined" style="font-size:14px">add</span> Lançar
+      </button>
+    </div>
+
+    <div class="p-3 sm:p-4 space-y-3">
+
+      <!-- Filtro de período -->
+      <div class="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+        <button class="fin-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinPeriod('today',this)">Hoje</button>
+        <button class="fin-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinPeriod('week',this)">Semana</button>
+        <button class="fin-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-blue-500 bg-blue-500/10 text-blue-400 transition-all" onclick="setFinPeriod('month',this)">Mês</button>
+        <button class="fin-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinPeriod('all',this)">Tudo</button>
+      </div>
+
+      <!-- Cards de resumo -->
+      <div class="grid grid-cols-3 gap-2">
+        <div class="glass rounded-2xl p-3 text-center">
+          <div class="text-green-400 font-black text-sm" id="fin-receita">R$ 0</div>
+          <div class="text-outline text-[9px] mt-0.5">Receita</div>
+        </div>
+        <div class="glass rounded-2xl p-3 text-center">
+          <div class="text-red-400 font-black text-sm" id="fin-despesas">R$ 0</div>
+          <div class="text-outline text-[9px] mt-0.5">Gastos</div>
+        </div>
+        <div class="glass rounded-2xl p-3 text-center">
+          <div class="font-black text-sm" id="fin-resultado">R$ 0</div>
+          <div class="text-outline text-[9px] mt-0.5">Resultado</div>
         </div>
       </div>
-      <div id="fin-entradas-list" class="space-y-2"></div>
-      <div id="fin-saidas-list" class="space-y-2"></div>
+
+      <!-- Card Saldo InDriver (oculto se não usar InDriver) -->
+      <div id="fin-saldo-indriver" class="hidden glass rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-emerald-400" style="font-size:16px;font-variation-settings:'FILL' 1">account_balance</span>
+            <span class="text-white text-sm font-semibold">Saldo InDriver</span>
+          </div>
+          <button onclick="openGastoModal('recarga_indriver')" class="flex items-center gap-1 text-emerald-400 text-[10px] font-bold active:scale-90 transition-all">
+            <span class="material-symbols-outlined" style="font-size:13px">add</span>Recarregar
+          </button>
+        </div>
+        <div class="font-black text-2xl leading-none mb-1" id="fin-indriver-saldo">R$ 0,00</div>
+        <div class="text-[10px] font-semibold mb-2" id="fin-indriver-status">✓ disponível</div>
+        <div class="text-outline text-[9px]" id="fin-indriver-detalhe"></div>
+      </div>
+
+      <!-- Timeline unificada -->
+      <div id="fin-list" class="space-y-3"></div>
+
     </div>
   </div>
 
@@ -623,16 +665,20 @@
         <div id="f-taxa-row" class="hidden items-center justify-between px-1">
           <div class="flex items-center gap-1.5">
             <span class="material-symbols-outlined text-outline" style="font-size:13px">percent</span>
-            <span class="text-outline text-[10px]">Taxa da plataforma</span>
+            <span class="text-outline text-[10px]" id="f-taxa-label">Taxa da plataforma</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-red-400 text-[11px] font-bold" id="f-taxa-valor">—</span>
             <span class="text-outline text-[10px]" id="f-taxa-pct"></span>
           </div>
+        <!-- Nota InDriver saldo -->
+        <div id="f-indriver-saldo-note" class="hidden items-center gap-1.5 px-1">
+          <span class="material-symbols-outlined text-emerald-400/70" style="font-size:11px">account_balance</span>
+          <span class="text-emerald-400/70 text-[9px]">A taxa InDriver será descontada do seu saldo pré-carregado</span>
         </div>
       </div>
 
-      <!-- Valores — modo InDriver/Particular (valor único, pago direto) -->
+      <!-- Valores — modo Particular (valor único, pago direto) -->
       <div id="f-valores-direto" class="hidden bg-surface-container-low rounded-2xl p-3 space-y-2">
         <div class="flex items-center gap-2 mb-1">
           <span class="material-symbols-outlined text-emerald-400" style="font-size:14px;font-variation-settings:'FILL' 1">payments</span>
@@ -646,7 +692,7 @@
               class="w-full bg-surface-container-high border border-outline-variant rounded-xl pl-8 pr-3 py-3 text-white text-sm font-bold focus:outline-none focus:border-emerald-500 transition-colors">
           </div>
         </div>
-        <p class="text-outline text-[9px] px-1">A taxa da plataforma é descontada do seu saldo InDriver automaticamente.</p>
+        <p class="text-outline text-[9px] px-1">Valor combinado diretamente com o passageiro.</p>
       </div>
 
       <!-- Gorjeta -->
@@ -731,6 +777,82 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- MODAL GASTO -->
+<div id="gasto-modal" class="fixed inset-0 z-[100] flex-col justify-end hidden">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeGastoModal()"></div>
+  <div class="glass-strong w-full rounded-t-3xl p-5 relative z-10 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-white text-base font-bold">Lançar Gasto</h2>
+      <button onclick="closeGastoModal()" class="w-8 h-8 flex items-center justify-center text-outline hover:text-white active:scale-90 transition-all rounded-xl bg-white/5">
+        <span class="material-symbols-outlined" style="font-size:18px">close</span>
+      </button>
+    </div>
+
+    <!-- Categorias -->
+    <div class="mb-4">
+      <label class="text-outline text-[10px] uppercase font-bold mb-2 block">Categoria</label>
+      <input type="hidden" id="g-categoria" value="gasolina">
+      <div class="grid grid-cols-5 gap-2">
+        <button type="button" data-cat="gasolina" onclick="setGastoCat('gasolina',this)"
+          class="gasto-cat-btn flex flex-col items-center gap-1 p-2.5 rounded-xl border border-blue-500 bg-blue-500/10 text-blue-400 text-[9px] font-bold transition-all active:scale-95">
+          <span class="text-base">⛽</span>Gasolina
+        </button>
+        <button type="button" data-cat="alimentacao" onclick="setGastoCat('alimentacao',this)"
+          class="gasto-cat-btn flex flex-col items-center gap-1 p-2.5 rounded-xl border border-outline-variant bg-surface-container-high text-outline text-[9px] font-bold transition-all active:scale-95">
+          <span class="text-base">🍔</span>Alimentação
+        </button>
+        <button type="button" data-cat="recarga_indriver" onclick="setGastoCat('recarga_indriver',this)"
+          class="gasto-cat-btn flex flex-col items-center gap-1 p-2.5 rounded-xl border border-outline-variant bg-surface-container-high text-outline text-[9px] font-bold transition-all active:scale-95">
+          <span class="text-base">💚</span>Recarga
+        </button>
+        <button type="button" data-cat="manutencao" onclick="setGastoCat('manutencao',this)"
+          class="gasto-cat-btn flex flex-col items-center gap-1 p-2.5 rounded-xl border border-outline-variant bg-surface-container-high text-outline text-[9px] font-bold transition-all active:scale-95">
+          <span class="text-base">🔧</span>Manutenção
+        </button>
+        <button type="button" data-cat="outros" onclick="setGastoCat('outros',this)"
+          class="gasto-cat-btn flex flex-col items-center gap-1 p-2.5 rounded-xl border border-outline-variant bg-surface-container-high text-outline text-[9px] font-bold transition-all active:scale-95">
+          <span class="text-base">💸</span>Outros
+        </button>
+      </div>
+    </div>
+
+    <!-- Data -->
+    <div class="flex items-center gap-3 bg-surface-container-low rounded-xl p-3 mb-4">
+      <span class="material-symbols-outlined text-blue-400 flex-shrink-0" style="font-size:18px;font-variation-settings:'FILL' 1">calendar_today</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-outline text-[9px] uppercase font-bold mb-0.5">Data</div>
+        <input type="date" id="g-data"
+          class="bg-transparent text-white text-sm font-semibold w-full focus:outline-none"
+          style="color-scheme:dark">
+      </div>
+    </div>
+
+    <!-- Valor -->
+    <div class="mb-4">
+      <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Valor (R$)</label>
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-outline font-bold pointer-events-none">R$</span>
+        <input type="number" id="g-valor" step="0.01" placeholder="0,00"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl pl-8 pr-3 py-3.5 text-white text-sm font-bold focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+    </div>
+
+    <!-- Descrição -->
+    <div class="mb-5">
+      <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Descrição <span class="normal-case font-normal">(opcional)</span></label>
+      <input type="text" id="g-descricao" placeholder="Ex: Posto Shell, R. das Flores"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+    </div>
+
+    <div id="gasto-error" class="hidden text-red-400 text-[10px] text-center font-bold mb-3">Informe um valor válido</div>
+
+    <button id="btn-salvar-gasto" type="button" onclick="salvarGasto()"
+      class="w-full bg-blue-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-blue-500/20">
+      <span class="material-symbols-outlined" style="font-size:20px">check_circle</span> SALVAR GASTO
+    </button>
+  </div>
+</div>
 
 <!-- Scripts -->
 <script src="src/js/state.js"></script>
