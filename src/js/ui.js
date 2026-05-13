@@ -25,10 +25,10 @@ window.showTab = function(tabId) {
     }
   });
 
-  // FAB visibility
+  // FAB — só na aba de corridas
   const fab = document.getElementById('fab-add');
   if (fab) {
-    if (tabId === 'dash' || tabId === 'corridas') {
+    if (tabId === 'corridas') {
       fab.classList.remove('hidden');
     } else {
       fab.classList.add('hidden');
@@ -43,25 +43,6 @@ window.showTab = function(tabId) {
   if (tabId === 'veiculo') loadVeiculoUI();
   if (tabId === 'carreira') renderCarreira();
   if (tabId === 'admin') renderAdmin();
-};
-
-window.openModal = function() {
-  const m = document.getElementById('insert-modal');
-  if (m) {
-    m.classList.remove('hidden');
-    m.classList.add('flex');
-    // Set default date/time
-    document.getElementById('f-data').value = utils.getTodayISO();
-    document.getElementById('f-hora').value = utils.getNowTime();
-  }
-};
-
-window.closeModal = function() {
-  const m = document.getElementById('insert-modal');
-  if (m) {
-    m.classList.add('hidden');
-    m.classList.remove('flex');
-  }
 };
 
 window.openSettings = function() {
