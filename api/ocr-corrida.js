@@ -20,62 +20,39 @@ module.exports = async function handler(req, res) {
   const OPENAI_KEY = process.env.OPENAI_API_KEY;
   if (!OPENAI_KEY) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
 
-  const prompt = `Você está analisando um print de tela de um app de corrida brasileiro (Uber, 99 ou InDriver).
-Extraia as informações e retorne APENAS um JSON válido, sem markdown, sem texto extra.
+  const prompt = `Print de app de corrida brasileiro. Retorne APENAS JSON válido, sem markdown.
 
-Formato esperado:
-{
-  "plataforma": "Uber" | "99" | "InDriver" | null,
-  "data": "YYYY-MM-DD" | null,
-  "km": number | null,
-  "bruto": number | null,
-  "liquido": number | null,
-  "pagamento": "App" | "Pix" | "Dinheiro" | null,
-  "tipo": "normal" | "cancel",
-  "confianca": "alta" | "media" | "baixa"
-}
+{"plataforma":"Uber"|"99"|"InDriver"|null,"data":"YYYY-MM-DD"|null,"km":number|null,"bruto":number|null,"liquido":number|null,"pagamento":"App"|"Pix"|"Dinheiro"|null,"tipo":"normal"|"cancel","confianca":"alta"|"media"|"baixa"}
 
-Regras por plataforma:
+IDENTIFICAÇÃO (olhe o design e textos):
+- InDriver: seções "Meus ganhos", "Eu recebi", "Paguei", ícone coração verde ♥, "Total recebido", "Total pago"
+- 99: texto "Recebido pela 99", seções "Seus ganhos"/"Você ganhou" e "Pago pelo passageiro"
+- Uber: texto "Uber", seções "Detalhes do ganho", design minimalista preto/branco
 
-99 (app amarelo, texto "Recebido pela 99" ou "99" visível):
-- A tela tem DUAS seções separadas de valor — leia com atenção:
-  * Seção "Pago pelo passageiro" ou "Pago por esta corrida" → esse Total é o BRUTO
-  * Seção "Seus ganhos" ou "Você ganhou" → esse Total é o LÍQUIDO
-- NÃO use o valor destacado no topo ("Você ganhou R$X") como bruto — ele é o líquido
-- "Online" ou "Cartão" ou "Pagamento online" → pagamento: "App"
-- "Pix" → pagamento: "Pix"
-- "Dinheiro" → pagamento: "Dinheiro"
+VALORES POR PLATAFORMA:
+
+InDriver ("Meus ganhos" + "Eu recebi" + "Paguei"):
+- bruto = valor em "Total recebido" (seção "Eu recebi") — o que o passageiro pagou
+- liquido = mesmo valor que bruto (pagamento direto ao motorista)
+- "Pagamento on-line" ou "Online" → pagamento: "App"
+- "Pix" → "Pix", "Dinheiro" → "Dinheiro"
+
+99 ("Recebido pela 99"):
+- bruto = Total da seção "Pago pelo passageiro"
+- liquido = Total da seção "Seus ganhos" ou valor de "Você ganhou" no topo
+- NÃO use "Você ganhou" como bruto — é o líquido
+- "Online"/"Cartão" → "App", "Pix" → "Pix", "Dinheiro" → "Dinheiro"
 
 Uber:
-- O valor principal mostrado JÁ É o líquido (a Uber desconta antes de exibir)
-- bruto: null (não é mostrado — exceto se houver campo "Valor da viagem" separado)
-- "Cartão" → pagamento: "App"
-- "Pix" → pagamento: "Pix"
+- liquido = valor principal mostrado (Uber já desconta antes)
+- bruto = null
+- "Cartão" → "App", "Pix" → "Pix"
 
-InDriver:
-- Valor único mostrado = liquido (bruto = liquido, sem intermediação pelo app)
-- A taxa InDriver é descontada do saldo pré-carregado
-- "InDriver Pay", "pagamento online" → pagamento: "App"
-- "Pix" ou "Dinheiro" → conforme mostrado
+Cancelamento: "Cancelamento"/"Taxa de deslocamento" → tipo:"cancel", liquido=taxa, bruto=taxa
+Distância: número decimal em km ("3,2 km" → 3.2)
+Data: formato BR → YYYY-MM-DD. Só hora sem data → null
 
-Cancelamento:
-- Se aparecer "Cancelamento", "Viagem cancelada", "Taxa de deslocamento" → tipo: "cancel"
-- liquido = taxa cobrada ao passageiro, bruto = mesmo valor
-- Caso contrário → tipo: "normal"
-
-Distância:
-- Extrair valor numérico em km (ex: "3,2 km" → 3.2, "5.1km" → 5.1)
-
-Data:
-- Converter formato brasileiro (ex: "12/05/2025" → "2025-05-12")
-- Se mostrar só hora sem data, usar null
-
-Confiança:
-- "alta": todos os campos principais identificados com certeza
-- "media": plataforma identificada mas algum valor pode estar incerto
-- "baixa": imagem não é de corrida ou dados muito incompletos
-
-Retorne APENAS o JSON, nada mais.`;
+Retorne APENAS o JSON.`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -94,7 +71,7 @@ Retorne APENAS o JSON, nada mais.`;
               type: 'image_url',
               image_url: {
                 url: `data:${mime_type};base64,${image_base64}`,
-                detail: 'high',
+                detail: 'low',
               }
             },
             { type: 'text', text: prompt }
