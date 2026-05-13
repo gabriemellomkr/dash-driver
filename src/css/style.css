@@ -83,14 +83,24 @@ main {
 }
 
 /* Filter chips scrollable */
-.chips-row { 
-  overflow-x: auto; 
-  -webkit-overflow-scrolling: touch; 
-  scrollbar-width: none; 
+.chips-row {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
-.chips-row::-webkit-scrollbar { 
-  display: none; 
+.chips-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* No scrollbar utility */
+.no-scrollbar {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Status badges */
