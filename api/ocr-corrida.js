@@ -1,6 +1,6 @@
 /**
  * DashDriver — OCR de Corrida
- * Recebe imagem base64 e extrai dados da corrida via Claude Vision.
+ * Recebe imagem base64 e extrai dados da corrida via GPT-4o-mini Vision.
  *
  * POST /api/ocr-corrida
  * Body: { image_base64: string, mime_type: string }
@@ -17,8 +17,8 @@ module.exports = async function handler(req, res) {
   const { image_base64, mime_type = 'image/jpeg' } = req.body || {};
   if (!image_base64) return res.status(400).json({ error: 'image_base64 required' });
 
-  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+  const OPENAI_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_KEY) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
 
   const prompt = `Você está analisando um print de tela de um app de corrida brasileiro (Uber, 99 ou InDriver).
 Extraia as informações e retorne APENAS um JSON válido, sem markdown, sem texto extra.
@@ -45,7 +45,7 @@ Regras por plataforma:
 - "Dinheiro" → pagamento: "Dinheiro"
 
 Uber:
-- O valor principal mostrado JÁ É o líquido (a uber desconta antes de mostrar)
+- O valor principal mostrado JÁ É o líquido (a Uber desconta antes de exibir)
 - bruto: null (não é mostrado — exceto se houver campo "Valor da viagem" separado)
 - "Cartão" → pagamento: "App"
 - "Pix" → pagamento: "Pix"
@@ -53,7 +53,7 @@ Uber:
 InDriver:
 - Valor único mostrado = liquido (bruto = liquido, sem intermediação pelo app)
 - A taxa InDriver é descontada do saldo pré-carregado
-- "InDriver Pay", "pagamento online" → pagamento: "App" (mesmo assim é direto)
+- "InDriver Pay", "pagamento online" → pagamento: "App"
 - "Pix" ou "Dinheiro" → conforme mostrado
 
 Cancelamento:
@@ -76,22 +76,24 @@ Confiança:
 Retorne APENAS o JSON, nada mais.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${OPENAI_KEY}`,
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'gpt-4o-mini',
         max_tokens: 512,
         messages: [{
           role: 'user',
           content: [
             {
-              type: 'image',
-              source: { type: 'base64', media_type: mime_type, data: image_base64 }
+              type: 'image_url',
+              image_url: {
+                url: `data:${mime_type};base64,${image_base64}`,
+                detail: 'high',
+              }
             },
             { type: 'text', text: prompt }
           ]
@@ -101,12 +103,12 @@ Retorne APENAS o JSON, nada mais.`;
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Anthropic API error:', errText);
+      console.error('OpenAI API error:', errText);
       return res.status(502).json({ error: 'Vision API error', detail: errText.slice(0, 300) });
     }
 
     const apiData = await response.json();
-    const text = apiData.content?.[0]?.text || '';
+    const text = apiData.choices?.[0]?.message?.content || '';
 
     // Extrai o JSON da resposta
     const jsonMatch = text.match(/\{[\s\S]*\}/);
