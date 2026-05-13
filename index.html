@@ -534,7 +534,18 @@
 <div id="insert-modal" class="fixed inset-0 z-[100] flex-col justify-end hidden">
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div>
   <div class="glass-strong w-full rounded-t-3xl p-5 relative z-10 max-h-[90vh] overflow-y-auto">
-    <h2 class="text-white text-base font-bold mb-4" id="modal-title">Lançar Corrida</h2>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-white text-base font-bold" id="modal-title">Lançar Corrida</h2>
+      <button id="btn-ocr" type="button" onclick="triggerOCR()"
+        title="Importar do print"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-outline text-[10px] font-bold hover:border-blue-500/50 hover:text-blue-400 active:scale-95 transition-all">
+        <span class="material-symbols-outlined" style="font-size:14px">photo_camera</span>
+        IMPORTAR PRINT
+      </button>
+    </div>
+    <!-- Input oculto para seleção de imagem (OCR) -->
+    <input type="file" id="ocr-input" accept="image/*" capture="environment"
+      class="hidden" onchange="handleOCRImage(this)">
 
     <form id="form-corrida" class="p-4 space-y-4">
 
@@ -576,33 +587,75 @@
         <input type="hidden" id="f-tipo-reg" value="normal">
       </div>
 
-      <!-- Grid de Valores e KM -->
-      <div class="grid grid-cols-2 gap-3">
-        <div id="field-km">
-          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Distância (km)</label>
-          <div class="relative">
-            <input type="number" id="f-km" step="0.1" placeholder="0.0" oninput="calcQuickStats()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
-            <span class="absolute right-3 top-3.5 text-[10px] text-outline font-bold">KM</span>
+      <!-- Distância -->
+      <div id="field-km">
+        <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Distância <span class="normal-case font-normal">(opcional)</span></label>
+        <div class="relative">
+          <input type="number" id="f-km" step="0.1" placeholder="0.0" oninput="calcQuickStats()"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl px-3 py-3 pr-10 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          <span class="absolute right-3 top-3.5 text-[10px] text-outline font-bold">KM</span>
+        </div>
+      </div>
+
+      <!-- Valores — modo Uber/99 (split bruto/líquido) -->
+      <div id="f-valores-split" class="bg-surface-container-low rounded-2xl p-3 space-y-3">
+        <div class="grid grid-cols-2 gap-2">
+          <!-- Bruto -->
+          <div>
+            <label class="text-outline text-[9px] uppercase font-bold mb-1.5 block">Passageiro pagou</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-outline font-bold pointer-events-none">R$</span>
+              <input type="number" id="f-bruto" step="0.01" placeholder="0,00" oninput="calcQuickStats()"
+                class="w-full bg-surface-container-high border border-outline-variant rounded-xl pl-8 pr-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+            </div>
+          </div>
+          <!-- Líquido -->
+          <div>
+            <label class="text-outline text-[9px] uppercase font-bold mb-1.5 block">Você recebe</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-outline font-bold pointer-events-none">R$</span>
+              <input type="number" id="f-liquido" step="0.01" placeholder="0,00" oninput="calcQuickStats()"
+                class="w-full bg-surface-container-high border border-outline-variant rounded-xl pl-8 pr-3 py-3 text-white text-sm font-bold focus:outline-none focus:border-blue-500 transition-colors">
+            </div>
           </div>
         </div>
-        <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Valor Líquido</label>
-          <div class="relative">
-            <input type="number" id="f-liquido" step="0.01" placeholder="0,00" oninput="calcQuickStats()" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm font-bold focus:outline-none focus:border-blue-500 transition-colors">
-            <span class="absolute left-3 top-3.5 text-[10px] text-outline font-bold">R$</span>
+        <!-- Taxa calculada automaticamente -->
+        <div id="f-taxa-row" class="hidden items-center justify-between px-1">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-outline" style="font-size:13px">percent</span>
+            <span class="text-outline text-[10px]">Taxa da plataforma</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-red-400 text-[11px] font-bold" id="f-taxa-valor">—</span>
+            <span class="text-outline text-[10px]" id="f-taxa-pct"></span>
           </div>
         </div>
       </div>
 
-      <!-- Campos Secundários (Bruto e Gorjeta) -->
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Valor Bruto (Opcional)</label>
-          <input type="number" id="f-bruto" step="0.01" placeholder="Quanto o passageiro pagou" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-xs focus:outline-none focus:border-blue-500">
+      <!-- Valores — modo InDriver/Particular (valor único, pago direto) -->
+      <div id="f-valores-direto" class="hidden bg-surface-container-low rounded-2xl p-3 space-y-2">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="material-symbols-outlined text-emerald-400" style="font-size:14px;font-variation-settings:'FILL' 1">payments</span>
+          <span class="text-white text-[11px] font-semibold">Passageiro paga direto pra você</span>
         </div>
         <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Gorjeta</label>
-          <input type="number" id="f-gorjeta" step="0.01" placeholder="R$ 0,00" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-xs focus:outline-none focus:border-blue-500">
+          <label class="text-outline text-[9px] uppercase font-bold mb-1.5 block">Valor combinado</label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-outline font-bold pointer-events-none">R$</span>
+            <input type="number" id="f-liquido-direto" step="0.01" placeholder="0,00" oninput="calcQuickStatsDireto()"
+              class="w-full bg-surface-container-high border border-outline-variant rounded-xl pl-8 pr-3 py-3 text-white text-sm font-bold focus:outline-none focus:border-emerald-500 transition-colors">
+          </div>
+        </div>
+        <p class="text-outline text-[9px] px-1">A taxa da plataforma é descontada do seu saldo InDriver automaticamente.</p>
+      </div>
+
+      <!-- Gorjeta -->
+      <div>
+        <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Gorjeta <span class="normal-case font-normal">(opcional)</span></label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-outline font-bold pointer-events-none">R$</span>
+          <input type="number" id="f-gorjeta" step="0.01" placeholder="0,00"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl pl-8 pr-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
         </div>
       </div>
 
@@ -693,6 +746,7 @@
 <script src="src/js/career.js"></script>
 <script src="src/js/vehicle.js"></script>
 <script src="src/js/editor.js"></script>
+<script src="src/js/ocr.js"></script>
 <script src="src/js/notifications.js"></script>
 <script src="src/js/admin.js"></script>
 <script src="src/js/main.js"></script>
