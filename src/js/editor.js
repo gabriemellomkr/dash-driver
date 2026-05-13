@@ -80,11 +80,30 @@ window.setTipoReg = function(tipo) {
 };
 
 window.calcQuickStats = function() {
-  const km  = parseFloat(document.getElementById('f-km').value) || 0;
-  const liq = parseFloat(document.getElementById('f-liquido').value) || 0;
-  const badge    = document.getElementById('f-stats-badge');
-  const label    = document.getElementById('f-stats-label');
-  const rpkmVal  = document.getElementById('f-stats-rpkm');
+  const km    = parseFloat(document.getElementById('f-km').value) || 0;
+  const bruto = parseFloat(document.getElementById('f-bruto').value) || 0;
+  const liq   = parseFloat(document.getElementById('f-liquido').value) || 0;
+
+  // ── Taxa da plataforma ────────────────────────────
+  const taxaRow = document.getElementById('f-taxa-row');
+  if (taxaRow) {
+    if (bruto > 0 && liq > 0 && bruto >= liq) {
+      const taxa    = bruto - liq;
+      const taxaPct = (taxa / bruto) * 100;
+      document.getElementById('f-taxa-valor').textContent = `- R$ ${taxa.toFixed(2).replace('.', ',')}`;
+      document.getElementById('f-taxa-pct').textContent   = `(${taxaPct.toFixed(1)}%)`;
+      taxaRow.classList.remove('hidden');
+      taxaRow.classList.add('flex');
+    } else {
+      taxaRow.classList.add('hidden');
+      taxaRow.classList.remove('flex');
+    }
+  }
+
+  // ── Badge R$/km ───────────────────────────────────
+  const badge   = document.getElementById('f-stats-badge');
+  const label   = document.getElementById('f-stats-label');
+  const rpkmVal = document.getElementById('f-stats-rpkm');
 
   if (km > 0 && liq > 0) {
     badge.classList.remove('hidden');
