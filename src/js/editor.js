@@ -35,7 +35,8 @@ window.openModal = function() {
 };
 
 // Plataformas que pagamento é direto (sem intermediação do app)
-const PLAT_DIRETO = ['InDriver', 'Particular'];
+// InDriver: passageiro paga direto ao motorista, mas taxa é debitada do saldo — usa split
+const PLAT_DIRETO = ['Particular'];
 
 window.setPlat = function(plat, btn) {
   document.getElementById('f-plataforma').value = plat;
@@ -59,6 +60,19 @@ window.setPlat = function(plat, btn) {
       diretoEl.classList.add('hidden');
     }
   }
+
+  // Label da taxa muda conforme plataforma
+  const taxaLabel = document.getElementById('f-taxa-label');
+  if (taxaLabel) {
+    taxaLabel.textContent = plat === 'InDriver' ? 'Taxa do saldo InDriver' : 'Taxa da plataforma';
+  }
+
+  // Nota InDriver embaixo do split
+  const indriverNote = document.getElementById('f-indriver-saldo-note');
+  if (indriverNote) {
+    indriverNote.classList.toggle('hidden', plat !== 'InDriver');
+  }
+
   calcQuickStats();
 };
 

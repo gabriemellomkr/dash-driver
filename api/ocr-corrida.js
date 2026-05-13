@@ -33,7 +33,7 @@ VALORES POR PLATAFORMA:
 
 InDriver ("Meus ganhos" + "Eu recebi" + "Paguei"):
 - bruto = valor em "Total recebido" (seção "Eu recebi") — o que o passageiro pagou
-- liquido = mesmo valor que bruto (pagamento direto ao motorista)
+- liquido = valor em "Meus ganhos" (o que o motorista efetivamente recebeu, já descontada a taxa do saldo)
 - "Pagamento on-line" ou "Online" → pagamento: "App"
 - "Pix" → "Pix", "Dinheiro" → "Dinheiro"
 

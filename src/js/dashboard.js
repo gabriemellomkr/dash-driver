@@ -117,9 +117,21 @@ function renderMeta(prefix, atual, meta, cor) {
 
 /* ─── SALDO INDRIVER ──────────────────────────────── */
 function updateIndriverSaldo() {
-  const saldo    = APP_STATE.indriverSaldo ?? 0;
-  const maxSaldo = APP_STATE.indriverSaldoMax || Math.max(saldo, 50);
-  const pct      = Math.min(100, (saldo/maxSaldo)*100);
+  // Calcula saldo real: soma das recargas menos taxas das corridas InDriver
+  const recargas = APP_STATE.despesas
+    .filter(d => d.categoria === 'recarga_indriver')
+    .reduce((s, d) => s + (d.valor || 0), 0);
+  const taxas = APP_STATE.corridas
+    .filter(c => c.plat === 'InDriver' && c.bruto > c.liquido)
+    .reduce((s, c) => s + (c.bruto - c.liquido), 0);
+  const saldo = recargas - taxas;
+
+  // Sincroniza com APP_STATE para outros usos
+  APP_STATE.indriverSaldo    = saldo;
+  APP_STATE.indriverSaldoMax = Math.max(recargas, APP_STATE.indriverSaldoMax || 50);
+
+  const maxSaldo = APP_STATE.indriverSaldoMax;
+  const pct      = maxSaldo > 0 ? Math.min(100, (saldo / maxSaldo) * 100) : 100;
   const baixo    = saldo < 10;
 
   const el = document.getElementById('d-indriver-saldo');
@@ -127,12 +139,10 @@ function updateIndriverSaldo() {
   el.textContent = utils.formatBRL(saldo);
   el.style.color = baixo ? '#f87171' : '#34d399';
 
-  document.getElementById('d-indriver-status').textContent = baixo ? '⚠ Saldo baixo!' : 'disponível';
-  document.getElementById('d-indriver-bar').style.width = pct+'%';
-  document.getElementById('d-indriver-bar').style.background = baixo ? '#f87171' : '#34d399';
-  document.getElementById('d-indriver-hint').textContent = baixo
-    ? '⚠ Recarregue antes de aceitar corridas InDriver'
-    : 'Desconto automático a cada corrida InDriver';
+  const elStatus = document.getElementById('d-indriver-status');
+  if (elStatus) { elStatus.textContent = baixo ? '⚠ Saldo baixo!' : 'disponível'; }
+  const elBar = document.getElementById('d-indriver-bar');
+  if (elBar) { elBar.style.width = pct+'%'; elBar.style.background = baixo ? '#f87171' : '#34d399'; }
 }
 
 /* ─── RADAR DE TAXAS ──────────────────────────────── */
@@ -333,32 +343,15 @@ window.applyCustomPeriod = function(force) {
 
 /* ─── MODAL DE DESPESA RÁPIDA ─────────────────── */
 window.openDespesaModal = function() {
-  // Redireciona para a aba de finanças com o modal de despesa aberto
   if (typeof showTab === 'function') showTab('financeiro');
   setTimeout(() => {
-    if (typeof openNovaDespesa === 'function') openNovaDespesa();
+    if (typeof openGastoModal === 'function') openGastoModal();
   }, 150);
 };
 
 /* ─── RECARGA INDRIVER ────────────────────────────── */
+// Redireciona para o modal de gasto com categoria pré-selecionada
 window.openIndriverRecarga = function() {
-  const val = prompt('Valor da recarga InDriver (R$):');
-  if (!val || isNaN(parseFloat(val))) return;
-  const valor = parseFloat(val);
-
-  // Atualiza saldo local
-  APP_STATE.indriverSaldo = (APP_STATE.indriverSaldo || 0) + valor;
-  APP_STATE.indriverSaldoMax = Math.max(APP_STATE.indriverSaldo, APP_STATE.indriverSaldoMax || 0);
-
-  // Lança como despesa no Supabase
-  supabase.from('dashdriver_despesas').insert([{
-    user_id: APP_STATE.user?.id,
-    categoria: 'Recarga InDriver',
-    valor,
-    data: new Date().toISOString().split('T')[0]
-  }]).then(({ error }) => {
-    if (error) { utils.toast('Erro ao salvar recarga', 'error'); return; }
-    data.loadDespesas().then(() => renderDashboard());
-    utils.toast(`✓ Recarga de ${utils.formatBRL(valor)} registrada`, 'success');
-  });
+  if (typeof openGastoModal === 'function') openGastoModal('recarga_indriver');
+  if (typeof showTab === 'function') showTab('financeiro');
 };
