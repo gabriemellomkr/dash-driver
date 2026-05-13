@@ -20,16 +20,22 @@ window.openModal = function() {
   const fData = document.getElementById('f-data');
   if (fData) fData.value = todayStr();
 
-  // Reset UI
+  // Reset UI — Uber é o padrão (modo split)
   const firstPlatBtn = document.querySelector('.plat-btn');
   if (firstPlatBtn) setPlat('Uber', firstPlatBtn);
   const firstPagBtn = document.querySelector('.pag-btn');
   if (firstPagBtn) setPag('App', firstPagBtn);
+  // Garante que o campo direto está limpo
+  const liqDireto = document.getElementById('f-liquido-direto');
+  if (liqDireto) liqDireto.value = '';
   setTipoReg('normal');
 
   document.getElementById('f-stats-badge').classList.add('hidden');
   document.getElementById('form-error').classList.add('hidden');
 };
+
+// Plataformas que pagamento é direto (sem intermediação do app)
+const PLAT_DIRETO = ['InDriver', 'Particular'];
 
 window.setPlat = function(plat, btn) {
   document.getElementById('f-plataforma').value = plat;
@@ -39,7 +45,42 @@ window.setPlat = function(plat, btn) {
   });
   btn.classList.remove('border-outline-variant', 'bg-surface-container-high', 'text-outline');
   btn.classList.add('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+
+  // Alterna o layout de valores conforme a plataforma
+  const isDireto = PLAT_DIRETO.includes(plat);
+  const splitEl  = document.getElementById('f-valores-split');
+  const diretoEl = document.getElementById('f-valores-direto');
+  if (splitEl && diretoEl) {
+    if (isDireto) {
+      splitEl.classList.add('hidden');
+      diretoEl.classList.remove('hidden');
+    } else {
+      splitEl.classList.remove('hidden');
+      diretoEl.classList.add('hidden');
+    }
+  }
   calcQuickStats();
+};
+
+// Stats para modo InDriver/Particular (valor único)
+window.calcQuickStatsDireto = function() {
+  const km  = parseFloat(document.getElementById('f-km').value) || 0;
+  const liq = parseFloat(document.getElementById('f-liquido-direto').value) || 0;
+  const badge   = document.getElementById('f-stats-badge');
+  const label   = document.getElementById('f-stats-label');
+  const rpkmVal = document.getElementById('f-stats-rpkm');
+
+  if (km > 0 && liq > 0) {
+    badge.classList.remove('hidden');
+    const rpkm = liq / km;
+    rpkmVal.textContent = `R$ ${rpkm.toFixed(2).replace('.', ',')}`;
+    if (rpkm >= 2.5)      { label.textContent = '💎 EXCELENTE'; label.className = 'text-xs font-bold text-blue-400'; }
+    else if (rpkm >= 2.0) { label.textContent = '✅ BOA';       label.className = 'text-xs font-bold text-green-400'; }
+    else if (rpkm >= 1.5) { label.textContent = '⚠️ REGULAR';  label.className = 'text-xs font-bold text-yellow-500'; }
+    else                  { label.textContent = '❌ RUIM';      label.className = 'text-xs font-bold text-red-400'; }
+  } else {
+    badge.classList.add('hidden');
+  }
 };
 
 window.setPag = function(pag, btn) {
@@ -152,10 +193,17 @@ window.editarCorrida = function(id) {
   const pagBtn = Array.from(document.querySelectorAll('.pag-btn')).find(b => b.innerText.includes(c.pag));
   if (pagBtn) setPag(c.pag, pagBtn);
 
-  document.getElementById('f-km').value      = c.km || '';
-  document.getElementById('f-bruto').value   = c.bruto || '';
-  document.getElementById('f-liquido').value = c.liquido || '';
+  document.getElementById('f-km').value     = c.km || '';
   document.getElementById('f-gorjeta').value = c.outras || '';
+
+  // Preenche os campos corretos conforme a plataforma
+  if (PLAT_DIRETO.includes(c.plat)) {
+    const liqDireto = document.getElementById('f-liquido-direto');
+    if (liqDireto) liqDireto.value = c.liquido || '';
+  } else {
+    document.getElementById('f-bruto').value   = c.bruto || '';
+    document.getElementById('f-liquido').value = c.liquido || '';
+  }
 
   setTipoReg(c.km === 0 ? 'cancel' : 'normal');
   calcQuickStats();
@@ -177,9 +225,16 @@ window.salvarCorrida = async function() {
   const pagamento  = document.getElementById('f-pagamento').value;
   const tipoReg    = document.getElementById('f-tipo-reg').value;
   const km         = parseFloat(document.getElementById('f-km').value) || 0;
-  const liquido    = parseFloat(document.getElementById('f-liquido').value);
-  const bruto      = parseFloat(document.getElementById('f-bruto').value) || liquido;
   const outras     = parseFloat(document.getElementById('f-gorjeta').value) || 0;
+
+  // Modo direto (InDriver/Particular): passageiro paga o valor total direto ao motorista
+  const isDireto = PLAT_DIRETO.includes(plataforma);
+  const liquido  = isDireto
+    ? parseFloat(document.getElementById('f-liquido-direto').value)
+    : parseFloat(document.getElementById('f-liquido').value);
+  const bruto    = isDireto
+    ? liquido  // bruto = líquido pois não há desconto no pagamento
+    : (parseFloat(document.getElementById('f-bruto').value) || liquido);
 
   // Data selecionada ou hoje como fallback
   const dataInput  = document.getElementById('f-data')?.value || todayStr();

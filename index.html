@@ -586,8 +586,8 @@
         </div>
       </div>
 
-      <!-- Passageiro pagou → Taxa → Você recebe -->
-      <div class="bg-surface-container-low rounded-2xl p-3 space-y-3">
+      <!-- Valores — modo Uber/99 (split bruto/líquido) -->
+      <div id="f-valores-split" class="bg-surface-container-low rounded-2xl p-3 space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <!-- Bruto -->
           <div>
@@ -608,9 +608,8 @@
             </div>
           </div>
         </div>
-
         <!-- Taxa calculada automaticamente -->
-        <div id="f-taxa-row" class="hidden flex items-center justify-between px-1">
+        <div id="f-taxa-row" class="hidden items-center justify-between px-1">
           <div class="flex items-center gap-1.5">
             <span class="material-symbols-outlined text-outline" style="font-size:13px">percent</span>
             <span class="text-outline text-[10px]">Taxa da plataforma</span>
@@ -620,6 +619,23 @@
             <span class="text-outline text-[10px]" id="f-taxa-pct"></span>
           </div>
         </div>
+      </div>
+
+      <!-- Valores — modo InDriver/Particular (valor único, pago direto) -->
+      <div id="f-valores-direto" class="hidden bg-surface-container-low rounded-2xl p-3 space-y-2">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="material-symbols-outlined text-emerald-400" style="font-size:14px;font-variation-settings:'FILL' 1">payments</span>
+          <span class="text-white text-[11px] font-semibold">Passageiro paga direto pra você</span>
+        </div>
+        <div>
+          <label class="text-outline text-[9px] uppercase font-bold mb-1.5 block">Valor combinado</label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-outline font-bold pointer-events-none">R$</span>
+            <input type="number" id="f-liquido-direto" step="0.01" placeholder="0,00" oninput="calcQuickStatsDireto()"
+              class="w-full bg-surface-container-high border border-outline-variant rounded-xl pl-8 pr-3 py-3 text-white text-sm font-bold focus:outline-none focus:border-emerald-500 transition-colors">
+          </div>
+        </div>
+        <p class="text-outline text-[9px] px-1">A taxa da plataforma é descontada do seu saldo InDriver automaticamente.</p>
       </div>
 
       <!-- Gorjeta -->
