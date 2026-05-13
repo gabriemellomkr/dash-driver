@@ -2,11 +2,6 @@
 
 let editingId = null;
 
-function nowTimeStr() {
-  const n = new Date();
-  return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
-}
-
 function todayStr() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: CONFIG_DATA.timezone || 'America/Sao_Paulo' });
 }
@@ -17,15 +12,21 @@ window.openModal = function() {
   const modal = document.getElementById('insert-modal');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
-  
+
   const form = document.getElementById('form-corrida');
   if (form) form.reset();
-  
-  // Reset UI custom elements
-  setPlat('Uber', document.querySelector('.plat-btn'));
-  setPag('App', document.querySelector('.pag-btn'));
+
+  // Data padrão = hoje
+  const fData = document.getElementById('f-data');
+  if (fData) fData.value = todayStr();
+
+  // Reset UI
+  const firstPlatBtn = document.querySelector('.plat-btn');
+  if (firstPlatBtn) setPlat('Uber', firstPlatBtn);
+  const firstPagBtn = document.querySelector('.pag-btn');
+  if (firstPagBtn) setPag('App', firstPagBtn);
   setTipoReg('normal');
-  
+
   document.getElementById('f-stats-badge').classList.add('hidden');
   document.getElementById('form-error').classList.add('hidden');
 };
@@ -79,17 +80,17 @@ window.setTipoReg = function(tipo) {
 };
 
 window.calcQuickStats = function() {
-  const km = parseFloat(document.getElementById('f-km').value) || 0;
+  const km  = parseFloat(document.getElementById('f-km').value) || 0;
   const liq = parseFloat(document.getElementById('f-liquido').value) || 0;
-  const badge = document.getElementById('f-stats-badge');
-  const label = document.getElementById('f-stats-label');
-  const rpkmVal = document.getElementById('f-stats-rpkm');
+  const badge    = document.getElementById('f-stats-badge');
+  const label    = document.getElementById('f-stats-label');
+  const rpkmVal  = document.getElementById('f-stats-rpkm');
 
   if (km > 0 && liq > 0) {
     badge.classList.remove('hidden');
     const rpkm = liq / km;
     rpkmVal.textContent = `R$ ${rpkm.toFixed(2).replace('.', ',')}`;
-    
+
     if (rpkm >= 2.5) {
       label.textContent = '💎 EXCELENTE';
       label.className = 'text-xs font-bold text-blue-400';
@@ -116,24 +117,27 @@ window.editarCorrida = function(id) {
   const modal = document.getElementById('insert-modal');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
-  
-  // Reset e preenchimento
+
   const form = document.getElementById('form-corrida');
   if (form) form.reset();
 
-  // Mapear chips de plataforma
-  const platBtn = Array.from(document.querySelectorAll('.plat-btn')).find(b => b.innerText.includes(c.plataforma));
-  if (platBtn) setPlat(c.plataforma, platBtn);
+  // Data da corrida (extrai só YYYY-MM-DD do ISO)
+  const fData = document.getElementById('f-data');
+  if (fData) fData.value = (c.data || '').split('T')[0] || todayStr();
 
-  // Mapear chips de pagamento
-  const pagBtn = Array.from(document.querySelectorAll('.pag-btn')).find(b => b.innerText.includes(c.pagamento));
-  if (pagBtn) setPag(c.pagamento, pagBtn);
+  // Plataforma
+  const platBtn = Array.from(document.querySelectorAll('.plat-btn')).find(b => b.innerText.includes(c.plat));
+  if (platBtn) setPlat(c.plat, platBtn);
 
-  document.getElementById('f-km').value      = c.km;
-  document.getElementById('f-bruto').value   = c.bruto;
-  document.getElementById('f-liquido').value = c.liquido;
-  document.getElementById('f-gorjeta').value = c.gorjeta || '';
-  
+  // Pagamento
+  const pagBtn = Array.from(document.querySelectorAll('.pag-btn')).find(b => b.innerText.includes(c.pag));
+  if (pagBtn) setPag(c.pag, pagBtn);
+
+  document.getElementById('f-km').value      = c.km || '';
+  document.getElementById('f-bruto').value   = c.bruto || '';
+  document.getElementById('f-liquido').value = c.liquido || '';
+  document.getElementById('f-gorjeta').value = c.outras || '';
+
   setTipoReg(c.km === 0 ? 'cancel' : 'normal');
   calcQuickStats();
   document.getElementById('form-error').classList.add('hidden');
@@ -155,13 +159,17 @@ window.salvarCorrida = async function() {
   const tipoReg    = document.getElementById('f-tipo-reg').value;
   const km         = parseFloat(document.getElementById('f-km').value) || 0;
   const liquido    = parseFloat(document.getElementById('f-liquido').value);
-  const bruto      = parseFloat(document.getElementById('f-bruto').value) || liquido; // Se não informar bruto, assume líquido
-  const gorjeta    = parseFloat(document.getElementById('f-gorjeta').value) || 0;
+  const bruto      = parseFloat(document.getElementById('f-bruto').value) || liquido;
+  const outras     = parseFloat(document.getElementById('f-gorjeta').value) || 0;
 
-  // Validação básica
-  if (isNaN(liquido) || (tipoReg === 'normal' && km <= 0)) {
+  // Data selecionada ou hoje como fallback
+  const dataInput  = document.getElementById('f-data')?.value || todayStr();
+  const dataISO    = `${dataInput}T00:00:00`;
+
+  // Validação: apenas valor líquido é obrigatório
+  if (isNaN(liquido) || liquido <= 0) {
     errEl.classList.remove('hidden');
-    errEl.textContent = 'Preencha os valores corretamente.';
+    errEl.textContent = 'Informe o valor líquido da corrida.';
     return;
   }
 
@@ -170,17 +178,17 @@ window.salvarCorrida = async function() {
   const originalText = btn.innerHTML;
   btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size:20px">sync</span> PROCESSANDO...';
 
-  const payload = { 
-    plataforma, 
-    pagamento, 
-    km, 
-    bruto, 
-    liquido, 
-    gorjeta,
-    data: new Date().toISOString(), // Ajustável se quisermos campo de data de volta, mas para rapidez o hoje é default
-    user_id: APP_STATE.user?.id 
+  const payload = {
+    plataforma,
+    pagamento,
+    km,
+    bruto,
+    liquido,
+    outras,
+    data: dataISO,
+    user_id: APP_STATE.user?.id
   };
-  
+
   let error;
   if (editingId) {
     ({ error } = await supabase.from('dashdriver_corridas').update(payload).eq('id', editingId));

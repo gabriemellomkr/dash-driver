@@ -345,26 +345,63 @@
 
   <!-- CORRIDAS -->
   <div class="page" id="page-corridas">
-    <div class="p-4 space-y-4">
-      
-      <!-- Header Corridas -->
-      <div class="flex items-center justify-between mb-2">
+    <div class="p-3 sm:p-5 space-y-3">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between">
         <h2 class="text-white text-lg font-black tracking-tight">Corridas</h2>
-        <button onclick="openModal()" class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white active:scale-95 transition-all shadow-lg shadow-blue-500/20">
-          <span class="material-symbols-outlined" style="font-size:18px">add</span>
+        <button onclick="openModal()" class="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white active:scale-95 transition-all shadow-lg shadow-blue-500/20">
+          <span class="material-symbols-outlined" style="font-size:20px">add</span>
         </button>
       </div>
 
-      <div class="chips-row">
-        <div class="flex gap-2 pb-1 overflow-x-auto no-scrollbar">
-          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('today',this)">Hoje</button>
-          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('yesterday',this)">Ontem</button>
-          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('week',this)">Semana</button>
-          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-outline-variant text-outline" onclick="setHistPeriod('month',this)">Mês</button>
-          <button class="hist-period-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-500 bg-blue-500/10 text-blue-400" onclick="setHistPeriod('all',this)">Tudo</button>
+      <!-- Mini Stats -->
+      <div class="grid grid-cols-3 gap-2">
+        <div class="glass rounded-xl p-2.5 text-center">
+          <div class="text-outline font-bold uppercase mb-0.5" style="font-size:8px">Corridas</div>
+          <div class="text-white font-black text-sm" id="hist-stat-count">—</div>
+        </div>
+        <div class="glass rounded-xl p-2.5 text-center">
+          <div class="text-outline font-bold uppercase mb-0.5" style="font-size:8px">Receita</div>
+          <div class="text-green-400 font-black text-sm" id="hist-stat-receita">—</div>
+        </div>
+        <div class="glass rounded-xl p-2.5 text-center">
+          <div class="text-outline font-bold uppercase mb-0.5" style="font-size:8px">Km Total</div>
+          <div class="text-blue-400 font-black text-sm" id="hist-stat-km">—</div>
         </div>
       </div>
-      <div class="glass rounded-2xl p-4" id="hist-card"><div id="hist-list"></div></div>
+
+      <!-- Filtro de período -->
+      <div class="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+        <button class="hist-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setHistPeriod('today',this)">Hoje</button>
+        <button class="hist-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setHistPeriod('yesterday',this)">Ontem</button>
+        <button class="hist-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setHistPeriod('week',this)">Semana</button>
+        <button class="hist-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setHistPeriod('month',this)">Mês</button>
+        <button class="hist-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-blue-500 bg-blue-500/10 text-blue-400 transition-all" onclick="setHistPeriod('all',this)">Tudo</button>
+      </div>
+
+      <!-- Filtro de plataforma -->
+      <div class="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+        <button class="hist-plat-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-blue-500 bg-blue-500/10 text-blue-400 transition-all" onclick="setHistPlat('all',this)">Todas</button>
+        <button class="hist-plat-chip flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setHistPlat('Uber',this)">
+          <span class="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0"></span>Uber
+        </button>
+        <button class="hist-plat-chip flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setHistPlat('99',this)">
+          <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 flex-shrink-0"></span>99
+        </button>
+        <button class="hist-plat-chip flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setHistPlat('InDriver',this)">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>InDriver
+        </button>
+        <button class="hist-plat-chip flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setHistPlat('Particular',this)">
+          <span class="w-1.5 h-1.5 rounded-full bg-purple-400 flex-shrink-0"></span>Particular
+        </button>
+      </div>
+
+      <!-- Lista de corridas -->
+      <div class="glass rounded-2xl overflow-hidden" id="hist-card">
+        <div id="hist-list"></div>
+      </div>
+
     </div>
   </div>
 
@@ -503,7 +540,18 @@
     <h2 class="text-white text-base font-bold mb-4" id="modal-title">Lançar Corrida</h2>
 
     <form id="form-corrida" class="p-4 space-y-4">
-      
+
+      <!-- Data da Corrida -->
+      <div class="flex items-center gap-3 bg-surface-container-low rounded-xl p-3">
+        <span class="material-symbols-outlined text-blue-400 flex-shrink-0" style="font-size:18px;font-variation-settings:'FILL' 1">calendar_today</span>
+        <div class="flex-1 min-w-0">
+          <div class="text-outline text-[9px] uppercase font-bold mb-0.5">Data da corrida</div>
+          <input type="date" id="f-data"
+            class="bg-transparent text-white text-sm font-semibold w-full focus:outline-none"
+            style="color-scheme:dark">
+        </div>
+      </div>
+
       <!-- Seletor de Plataforma -->
       <div>
         <label class="text-outline text-[10px] uppercase font-bold mb-2 block">Plataforma</label>
