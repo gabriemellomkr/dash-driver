@@ -1,8 +1,8 @@
-const CACHE = 'dashdriver-v5';
-const ASSETS = ['/', '/manifest.json', '/icon.svg'];
+const CACHE = 'dashdriver-v6';
+const ASSETS = ['/manifest.json', '/icon.svg'];
 
-// Arquivos JS/CSS — sempre network-first para garantir fixes chegam ao usuário
-const NETWORK_FIRST = ['/src/js/', '/src/css/'];
+// HTML, JS e CSS — sempre network-first para garantir fixes chegam imediatamente
+const NETWORK_FIRST = ['/src/js/', '/src/css/', '/index.html', '/'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
