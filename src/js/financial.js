@@ -109,8 +109,59 @@ window.renderFinanceiro = function() {
     }
   }
 
+  renderFinBreakdown(gastos);
   renderFinTimeline(corridas, gastos);
 };
+
+// ─── Breakdown por categoria ──────────────────────────
+function renderFinBreakdown(gastos) {
+  const el = document.getElementById('fin-breakdown');
+  if (!el) return;
+
+  if (gastos.length === 0) { el.innerHTML = ''; return; }
+
+  // Agrupa por categoria
+  const totais = {};
+  gastos.forEach(g => {
+    const cat = g.categoria || 'outros';
+    totais[cat] = (totais[cat] || 0) + (g.valor || 0);
+  });
+
+  const totalGeral = Object.values(totais).reduce((s, v) => s + v, 0);
+  if (totalGeral === 0) { el.innerHTML = ''; return; }
+
+  const sorted = Object.entries(totais).sort((a, b) => b[1] - a[1]);
+
+  el.innerHTML = `
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-center gap-1.5 mb-3">
+        <span class="material-symbols-outlined text-outline" style="font-size:14px">pie_chart</span>
+        <span class="text-white text-[11px] font-semibold">Gastos por categoria</span>
+      </div>
+      <div class="space-y-2.5">
+        ${sorted.map(([cat, total]) => {
+          const cfg = gastoCfg(cat);
+          const pct = (total / totalGeral) * 100;
+          return `
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[13px]">${cfg.emoji}</span>
+                  <span class="text-on-surface-variant text-[11px]">${cfg.label}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-outline text-[10px]">${pct.toFixed(0)}%</span>
+                  <span class="text-white text-[11px] font-bold">${utils.formatBRL(total)}</span>
+                </div>
+              </div>
+              <div class="w-full h-1.5 bg-white/10 rounded-full">
+                <div class="h-1.5 rounded-full transition-all" style="width:${pct}%;background:${cfg.cor}"></div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
 
 // ─── Timeline unificada ───────────────────────────────
 function renderFinTimeline(corridas, gastos) {
@@ -224,10 +275,11 @@ window.openGastoModal = function(catPreset) {
   modal.classList.remove('hidden');
   modal.classList.add('flex');
 
-  document.getElementById('g-valor').value     = '';
-  document.getElementById('g-descricao').value = '';
-  document.getElementById('g-data').value      = new Date().toLocaleDateString('sv-SE');
+  document.getElementById('g-valor').value = '';
+  document.getElementById('g-data').value  = new Date().toLocaleDateString('sv-SE');
   document.getElementById('gasto-error').classList.add('hidden');
+  const lEl = document.getElementById('g-litros'); if (lEl) lEl.value = '';
+  const dEl = document.getElementById('g-descricao'); if (dEl) dEl.value = '';
 
   const cat = catPreset || 'gasolina';
   document.getElementById('g-categoria').value = cat;
@@ -240,12 +292,20 @@ window.openGastoModal = function(catPreset) {
     b.classList.toggle('bg-surface-container-high', !sel);
     b.classList.toggle('text-outline',              !sel);
   });
+  _toggleGastoFields(cat);
 };
 
 window.closeGastoModal = function() {
   const modal = document.getElementById('gasto-modal');
   if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
 };
+
+function _toggleGastoFields(cat) {
+  const litrosField = document.getElementById('g-litros-field');
+  const descField   = document.getElementById('g-descricao-field');
+  if (litrosField) litrosField.classList.toggle('hidden', cat !== 'gasolina');
+  if (descField)   descField.classList.toggle('hidden',   cat === 'gasolina');
+}
 
 window.setGastoCat = function(cat, btn) {
   document.getElementById('g-categoria').value = cat;
@@ -255,13 +315,13 @@ window.setGastoCat = function(cat, btn) {
   });
   btn.classList.add('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
   btn.classList.remove('border-outline-variant', 'bg-surface-container-high', 'text-outline');
+  _toggleGastoFields(cat);
 };
 
 window.salvarGasto = async function() {
   const errEl     = document.getElementById('gasto-error');
   const categoria = document.getElementById('g-categoria').value;
   const valor     = parseFloat(document.getElementById('g-valor').value);
-  const descricao = document.getElementById('g-descricao').value || '';
   const dataVal   = document.getElementById('g-data').value || new Date().toLocaleDateString('sv-SE');
   errEl.classList.add('hidden');
 
@@ -271,9 +331,19 @@ window.salvarGasto = async function() {
   btn.disabled = true;
   btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size:20px">sync</span> SALVANDO...';
 
-  const { error } = await supabase.from('dashdriver_outras_despesas').insert([{
-    categoria, valor, descricao, data: dataVal, user_id: APP_STATE.user?.id
-  }]);
+  let error;
+  if (categoria === 'gasolina') {
+    // Gasolina → tabela de abastecimentos (lida pelo card Gasolina do dashboard)
+    const litros = parseFloat(document.getElementById('g-litros')?.value) || 0;
+    ({ error } = await supabase.from('dashdriver_abastecimentos').insert([{
+      valor, litros, data: dataVal, user_id: APP_STATE.user?.id
+    }]));
+  } else {
+    const descricao = document.getElementById('g-descricao')?.value || '';
+    ({ error } = await supabase.from('dashdriver_outras_despesas').insert([{
+      categoria, valor, descricao, data: dataVal, user_id: APP_STATE.user?.id
+    }]));
+  }
 
   btn.disabled = false;
   btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:20px">check_circle</span> SALVAR GASTO';
@@ -281,7 +351,8 @@ window.salvarGasto = async function() {
   if (error) { utils.toast('Erro ao salvar: ' + (error.message || ''), 'error'); return; }
 
   closeGastoModal();
-  await data.loadOutrasDespesas();
+  // Recarrega a tabela certa
+  await (categoria === 'gasolina' ? data.loadAbastecimentos() : data.loadOutrasDespesas());
   renderFinanceiro();
   if (typeof renderDashboard === 'function') renderDashboard();
   utils.toast('✓ ' + gastoCfg(categoria).label + ' registrado!', 'success');

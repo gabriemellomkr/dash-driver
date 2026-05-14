@@ -45,12 +45,29 @@ function getEndDate() {
   return '9999-12-31';
 }
 
+/* ─── HELPER: receita real por corrida ───────────────
+   InDriver: passageiro paga bruto direto ao motorista.
+   A taxa sai do saldo pré-carregado — não é desconto da receita.
+   Uber/99: motorista recebe só o líquido após fee da plataforma. */
+function receitaCorrida(c) {
+  if (c.plat === 'InDriver' && c.bruto > 0) return c.bruto;
+  return c.liquido || 0;
+}
+
+function somaReceita(corridas) {
+  return corridas.reduce((s, c) => s + receitaCorrida(c), 0);
+}
+
 /* ─── KPIs ────────────────────────────────────────── */
 function updateKPIs(list) {
   const n       = list.length;
   const km      = list.reduce((s,c) => s + (c.km||0), 0);
-  const receita = list.reduce((s,c) => s + (c.liquido||0), 0);
-  const bruto   = list.reduce((s,c) => s + (c.bruto||0), 0);
+  const receita = somaReceita(list);
+  // Taxas de plataforma pagas (apenas Uber/99 — InDriver é saldo separado)
+  const taxasPlat = list.reduce((s,c) => {
+    if (c.plat === 'InDriver') return s;
+    return s + Math.max(0, (c.bruto||0) - (c.liquido||0));
+  }, 0);
 
   const start = getStartDate(), end = getEndDate();
   const gas  = APP_STATE.abastecimentos.filter(a => (a.data||'') >= start && (a.data||'') <= end).reduce((s,a) => s+(a.valor||0), 0);
@@ -62,7 +79,9 @@ function updateKPIs(list) {
   document.getElementById('d-corridas').textContent = n;
   document.getElementById('d-km').textContent       = km.toFixed(1);
   document.getElementById('d-receita').textContent  = utils.formatBRL(receita);
-  document.getElementById('d-receita-sub').textContent = `Bruto: ${utils.formatBRL(bruto)}`;
+  // Sub-linha: mostra taxas Uber/99 somente se existirem; InDriver não tem taxa aqui
+  const elSub = document.getElementById('d-receita-sub');
+  if (elSub) elSub.textContent = taxasPlat > 0 ? `Taxas Uber/99: -${utils.formatBRL(taxasPlat)}` : '';
   document.getElementById('d-lucro').textContent    = utils.formatBRL(lucro);
   document.getElementById('d-lucro').style.color    = lucro >= 0 ? '#4ade80' : '#f87171';
   document.getElementById('d-rpkm').textContent     = rpkm.toFixed(2).replace('.', ',');
@@ -76,21 +95,18 @@ function updateMetas(list) {
   const today = new Date().toLocaleDateString('sv-SE');
 
   // Receita total do dia de hoje
-  const recDia  = APP_STATE.corridas
-    .filter(c => (c.data||'').split('T')[0] === today)
-    .reduce((s,c) => s+(c.liquido||0), 0);
+  const recDia  = somaReceita(APP_STATE.corridas
+    .filter(c => (c.data||'').split('T')[0] === today));
 
   // Receita da semana
   const inicioSemana = (() => { const d=new Date(); d.setDate(d.getDate()-d.getDay()); return d.toLocaleDateString('sv-SE'); })();
-  const recSemana = APP_STATE.corridas
-    .filter(c => (c.data||'').split('T')[0] >= inicioSemana)
-    .reduce((s,c) => s+(c.liquido||0), 0);
+  const recSemana = somaReceita(APP_STATE.corridas
+    .filter(c => (c.data||'').split('T')[0] >= inicioSemana));
 
   // Receita do mês
   const inicioMes = today.slice(0,8)+'01';
-  const recMes = APP_STATE.corridas
-    .filter(c => (c.data||'').split('T')[0] >= inicioMes)
-    .reduce((s,c) => s+(c.liquido||0), 0);
+  const recMes = somaReceita(APP_STATE.corridas
+    .filter(c => (c.data||'').split('T')[0] >= inicioMes));
 
   const mD = CONFIG_DATA.metaDiaria  || 0;
   const mS = CONFIG_DATA.metaSemanal || 0;
@@ -204,8 +220,8 @@ function updateJornada() {
   const hHoje   = sumH(sessHoje);
   const hPeriod = sumH(sessions);
 
-  // R$/hora com dados do período
-  const receitaPeriod = getPeriodData().reduce((s,c) => s+(c.liquido||0), 0);
+  // R$/hora com dados do período (usa bruto pra InDriver)
+  const receitaPeriod = somaReceita(getPeriodData());
   const rph = hPeriod > 0 ? receitaPeriod / hPeriod : 0;
 
   document.getElementById('d-jornada-hoje').textContent   = hHoje.toFixed(1)+'h';
@@ -237,7 +253,7 @@ function updateUltimasCorridas(list) {
         <div class="text-white text-xs font-semibold">${c.plat}</div>
         <div class="text-outline text-[10px]">${utils.formatDate(c.data)} · ${c.km.toFixed(1)}km</div>
       </div>
-      <div class="text-green-400 text-xs font-bold">${utils.formatBRL(c.liquido)}</div>
+      <div class="text-green-400 text-xs font-bold">${utils.formatBRL(receitaCorrida(c))}</div>
     </div>
   `).join('');
 }
@@ -246,7 +262,7 @@ function updateUltimasCorridas(list) {
 function updateCharts(list) {
   // Plataforma
   const platMap = {};
-  list.forEach(c => { platMap[c.plat] = (platMap[c.plat]||0) + c.liquido; });
+  list.forEach(c => { platMap[c.plat] = (platMap[c.plat]||0) + receitaCorrida(c); });
   const platLabels = Object.keys(platMap);
   const platVals   = Object.values(platMap);
   const platCores  = platLabels.map(p => ({Uber:'#3b82f6','99':'#f59e0b',InDriver:'#10b981',Outros:'#8b5cf6'}[p]||'#8b90a0'));
@@ -255,7 +271,7 @@ function updateCharts(list) {
 
   // Pagamento
   const pagMap = {};
-  list.forEach(c => { const k = c.pag||'Outro'; pagMap[k] = (pagMap[k]||0) + c.liquido; });
+  list.forEach(c => { const k = c.pag||'Outro'; pagMap[k] = (pagMap[k]||0) + receitaCorrida(c); });
   const pagLabels = Object.keys(pagMap);
   const pagVals   = Object.values(pagMap);
   const pagCores  = ['#3b82f6','#4ade80','#f59e0b','#a855f7','#f87171'];
