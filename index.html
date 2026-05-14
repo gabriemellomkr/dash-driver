@@ -176,7 +176,7 @@
         </div>
         <!-- Footer: Gasolina | Outros Gastos -->
         <div class="grid grid-cols-2 pt-3 border-t border-white/5">
-          <div class="flex items-center gap-2 pr-3 cursor-pointer active:opacity-70 transition-opacity" onclick="openFuelModal()">
+          <div class="flex items-center gap-2 pr-3 cursor-pointer active:opacity-70 transition-opacity" onclick="showTab('financeiro');openGastoModal('gasolina')">
             <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(251,146,60,0.12)">
               <span class="material-symbols-outlined text-orange-400" style="font-size:14px">local_gas_station</span>
             </div>
@@ -185,7 +185,7 @@
               <div class="text-white font-bold text-xs" id="d-gas">R$ 0,00</div>
             </div>
           </div>
-          <div class="flex items-center gap-2 pl-3 border-l border-white/5 cursor-pointer active:opacity-70 transition-opacity" onclick="openDespesaModal()">
+          <div class="flex items-center gap-2 pl-3 border-l border-white/5 cursor-pointer active:opacity-70 transition-opacity" onclick="openDespesaModal();showTab('financeiro')">
             <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(168,85,247,0.12)">
               <span class="material-symbols-outlined text-purple-400" style="font-size:14px">receipt_long</span>
             </div>
@@ -778,6 +778,57 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- MODAL JORNADA -->
+<div id="jornada-modal" class="fixed inset-0 z-[100] flex-col justify-end hidden">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeJornadaModal()"></div>
+  <div class="glass-strong w-full rounded-t-3xl p-5 relative z-10 max-h-[85vh] overflow-y-auto">
+    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-4"></div>
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-blue-400" style="font-size:18px;font-variation-settings:'FILL' 1">schedule</span>
+        <h2 class="text-white text-base font-bold">Jornada de trabalho</h2>
+      </div>
+      <button onclick="closeJornadaModal()" class="w-8 h-8 flex items-center justify-center text-outline hover:text-white active:scale-90 transition-all rounded-xl bg-white/5">
+        <span class="material-symbols-outlined" style="font-size:18px">close</span>
+      </button>
+    </div>
+
+    <!-- Formulário de sessão -->
+    <div class="glass rounded-2xl p-4 mb-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-outline text-[10px] font-bold uppercase tracking-wider" id="j-form-title">Nova sessão</span>
+        <button id="j-cancel-btn" onclick="cancelEditSessao()" class="hidden text-outline text-[10px] active:opacity-60 transition-opacity">Cancelar</button>
+      </div>
+      <div>
+        <label class="text-outline text-[9px] uppercase font-bold mb-1.5 block">Data</label>
+        <input type="date" id="j-data"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+          style="color-scheme:dark">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-[9px] uppercase font-bold mb-1.5 block">Início</label>
+          <input type="time" id="j-inicio"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div>
+          <label class="text-outline text-[9px] uppercase font-bold mb-1.5 block">Fim</label>
+          <input type="time" id="j-fim"
+            class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+      <div id="j-error" class="hidden text-red-400 text-[10px] text-center font-bold">Preencha data, início e fim.</div>
+      <button onclick="salvarSessao()" id="j-save-btn"
+        class="w-full bg-blue-500 text-white font-black py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-blue-500/20">
+        <span class="material-symbols-outlined" style="font-size:18px">add</span> Adicionar sessão
+      </button>
+    </div>
+
+    <!-- Histórico -->
+    <div id="jornada-list" class="space-y-2"></div>
+  </div>
+</div>
+
 <!-- MODAL GASTO -->
 <div id="gasto-modal" class="fixed inset-0 z-[100] flex-col justify-end hidden">
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeGastoModal()"></div>
@@ -869,6 +920,7 @@
 <script src="src/js/vehicle.js"></script>
 <script src="src/js/editor.js"></script>
 <script src="src/js/ocr.js"></script>
+<script src="src/js/jornada.js"></script>
 <script src="src/js/notifications.js"></script>
 <script src="src/js/admin.js"></script>
 <script src="src/js/main.js"></script>
