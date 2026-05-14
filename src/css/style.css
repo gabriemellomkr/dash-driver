@@ -64,12 +64,7 @@ main {
   overflow-x: hidden;
 }
 
-/* Bottom sheet — visibilidade controlada pelo Tailwind (hidden/flex) */
-#insert-modal.flex,
-#gasto-modal.flex,
-#jornada-modal.flex {
-  display: flex;
-}
+/* Modais — visibilidade controlada via style.display em JS */
 
 /* Filter chips scrollable */
 .chips-row {
