@@ -1,5 +1,8 @@
-const CACHE = 'dashdriver-v3';
-const ASSETS = ['/', '/corridas.html', '/manifest.json', '/icon.svg'];
+const CACHE = 'dashdriver-v5';
+const ASSETS = ['/', '/manifest.json', '/icon.svg'];
+
+// Arquivos JS/CSS — sempre network-first para garantir fixes chegam ao usuário
+const NETWORK_FIRST = ['/src/js/', '/src/css/'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -16,7 +19,7 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Supabase, APIs e /api/*: sempre network first
+  // Supabase, APIs e /api/*: sempre network first (sem cache)
   if (
     e.request.url.includes('supabase') ||
     e.request.url.includes('nucleocriativo') ||
@@ -25,18 +28,36 @@ self.addEventListener('fetch', e => {
   ) {
     return;
   }
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      const network = fetch(e.request).then(res => {
+
+  const url = new URL(e.request.url);
+  const isNetworkFirst = NETWORK_FIRST.some(p => url.pathname.startsWith(p));
+
+  if (isNetworkFirst) {
+    // JS/CSS: network-first — garante que fixes chegam imediatamente
+    e.respondWith(
+      fetch(e.request).then(res => {
         if (res.ok) {
           const clone = res.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
-      });
-      return cached || network;
-    })
-  );
+      }).catch(() => caches.match(e.request))
+    );
+  } else {
+    // Outros assets: stale-while-revalidate
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        const network = fetch(e.request).then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
+          return res;
+        });
+        return cached || network;
+      })
+    );
+  }
 });
 
 // ── Push Notifications ────────────────────────────
