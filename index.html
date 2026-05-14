@@ -422,6 +422,17 @@
         <button class="fin-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinPeriod('all',this)">Tudo</button>
       </div>
 
+      <!-- Filtro de categoria -->
+      <div class="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+        <button class="fin-cat-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-blue-500 bg-blue-500/10 text-blue-400 transition-all" onclick="setFinCat('all',this)">Tudo</button>
+        <button class="fin-cat-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinCat('corrida',this)">🏍️ Corridas</button>
+        <button class="fin-cat-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinCat('gasolina',this)">⛽ Gasolina</button>
+        <button class="fin-cat-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinCat('alimentacao',this)">🍔 Alimentação</button>
+        <button class="fin-cat-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinCat('recarga_indriver',this)">💚 Recarga</button>
+        <button class="fin-cat-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinCat('manutencao',this)">🔧 Manutenção</button>
+        <button class="fin-cat-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinCat('outros',this)">💸 Outros</button>
+      </div>
+
       <!-- Cards de resumo -->
       <div class="grid grid-cols-3 gap-2">
         <div class="glass rounded-2xl p-3 text-center">
@@ -866,7 +877,7 @@
         </button>
         <button type="button" data-cat="recarga_indriver" onclick="setGastoCat('recarga_indriver',this)"
           class="gasto-cat-btn flex flex-col items-center gap-1 p-2.5 rounded-xl border border-outline-variant bg-surface-container-high text-outline text-[9px] font-bold transition-all active:scale-95">
-          <span class="text-base">💚</span>Recarga
+          <span class="text-base">💚</span>Recarga InDriver
         </button>
         <button type="button" data-cat="manutencao" onclick="setGastoCat('manutencao',this)"
           class="gasto-cat-btn flex flex-col items-center gap-1 p-2.5 rounded-xl border border-outline-variant bg-surface-container-high text-outline text-[9px] font-bold transition-all active:scale-95">
