@@ -10,8 +10,7 @@ window.openModal = function() {
   editingId = null;
   document.getElementById('modal-title').textContent = 'Lançar Corrida';
   const modal = document.getElementById('insert-modal');
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+  modal.style.display = 'flex';
 
   const form = document.getElementById('form-corrida');
   if (form) form.reset();
@@ -189,8 +188,7 @@ window.editarCorrida = function(id) {
   editingId = id;
   document.getElementById('modal-title').textContent = 'Editar Corrida';
   const modal = document.getElementById('insert-modal');
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+  modal.style.display = 'flex';
 
   const form = document.getElementById('form-corrida');
   if (form) form.reset();
@@ -226,8 +224,7 @@ window.editarCorrida = function(id) {
 
 window.closeModal = function() {
   const modal = document.getElementById('insert-modal');
-  modal.classList.add('hidden');
-  modal.classList.remove('flex');
+  modal.style.display = 'none';
   editingId = null;
 };
 

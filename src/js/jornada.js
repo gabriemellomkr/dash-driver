@@ -5,8 +5,7 @@ let editingJornadaId = null;
 window.openJornadaModal = function() {
   const modal = document.getElementById('jornada-modal');
   if (!modal) return;
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+  modal.style.display = 'flex';
 
   editingJornadaId = null;
   document.getElementById('j-data').value   = new Date().toLocaleDateString('sv-SE');
@@ -20,7 +19,7 @@ window.openJornadaModal = function() {
 
 window.closeJornadaModal = function() {
   const modal = document.getElementById('jornada-modal');
-  if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+  if (modal) modal.style.display = 'none';
   editingJornadaId = null;
 };
 
