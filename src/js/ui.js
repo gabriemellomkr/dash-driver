@@ -48,8 +48,7 @@ window.showTab = function(tabId) {
 window.openSettings = function() {
   const m = document.getElementById('settings-modal');
   if (m) {
-    m.classList.remove('hidden');
-    m.classList.add('flex');
+    m.style.display = 'flex';
     loadSettingsUI();
   }
 };
@@ -57,7 +56,6 @@ window.openSettings = function() {
 window.closeSettings = function() {
   const m = document.getElementById('settings-modal');
   if (m) {
-    m.classList.add('hidden');
-    m.classList.remove('flex');
+    m.style.display = 'none';
   }
 };

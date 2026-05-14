@@ -272,8 +272,7 @@ window.setFinPeriod = function(p, el) {
 window.openGastoModal = function(catPreset) {
   const modal = document.getElementById('gasto-modal');
   if (!modal) return;
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+  modal.style.display = 'flex';
 
   document.getElementById('g-valor').value = '';
   document.getElementById('g-data').value  = new Date().toLocaleDateString('sv-SE');
@@ -297,7 +296,7 @@ window.openGastoModal = function(catPreset) {
 
 window.closeGastoModal = function() {
   const modal = document.getElementById('gasto-modal');
-  if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+  if (modal) modal.style.display = 'none';
 };
 
 function _toggleGastoFields(cat) {
