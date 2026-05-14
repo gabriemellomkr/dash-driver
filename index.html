@@ -454,6 +454,9 @@
         <div class="text-outline text-[9px]" id="fin-indriver-detalhe"></div>
       </div>
 
+      <!-- Breakdown por categoria -->
+      <div id="fin-breakdown"></div>
+
       <!-- Timeline unificada -->
       <div id="fin-list" class="space-y-3"></div>
 
@@ -889,10 +892,20 @@
       </div>
     </div>
 
-    <!-- Descrição -->
-    <div class="mb-5">
+    <!-- Litros (só para gasolina) -->
+    <div id="g-litros-field" class="hidden mb-5">
+      <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Litros <span class="normal-case font-normal">(opcional)</span></label>
+      <div class="relative">
+        <input type="number" id="g-litros" step="0.01" placeholder="0,00"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl px-3 py-3 pr-10 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        <span class="absolute right-3 top-3.5 text-[10px] text-outline font-bold">L</span>
+      </div>
+    </div>
+
+    <!-- Descrição (oculta para gasolina) -->
+    <div id="g-descricao-field" class="mb-5">
       <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Descrição <span class="normal-case font-normal">(opcional)</span></label>
-      <input type="text" id="g-descricao" placeholder="Ex: Posto Shell, R. das Flores"
+      <input type="text" id="g-descricao" placeholder="Ex: Farmácia, iFood..."
         class="w-full bg-surface-container-high border border-outline-variant rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
     </div>
 
