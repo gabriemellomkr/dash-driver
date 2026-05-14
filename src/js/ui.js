@@ -25,13 +25,17 @@ window.showTab = function(tabId) {
     }
   });
 
-  // FAB — só na aba de corridas
+  // FAB — contexto-aware: corridas → openModal, financeiro → openGastoModal
   const fab = document.getElementById('fab-add');
   if (fab) {
     if (tabId === 'corridas') {
-      fab.classList.remove('hidden');
+      fab.style.display = 'flex';
+      fab.onclick = () => openModal();
+    } else if (tabId === 'financeiro') {
+      fab.style.display = 'flex';
+      fab.onclick = () => openGastoModal();
     } else {
-      fab.classList.add('hidden');
+      fab.style.display = 'none';
     }
   }
 
