@@ -481,57 +481,97 @@
     </button>
   </div>
 
-  <!-- ANALISE -->
-  <div class="page" id="page-analise">
-    <div class="p-4 space-y-3">
-       <div id="an-heatmap" class="glass rounded-2xl p-4"></div>
-       <div id="an-horas" class="glass rounded-2xl p-4"></div>
-       <div id="an-diasemana" class="glass rounded-2xl p-4"></div>
-    </div>
-  </div>
+  <!-- CARTEIRA -->
+  <div class="page" id="page-carteira">
+    <div class="p-4 space-y-4">
 
-  <!-- VEICULO -->
-  <div class="page" id="page-veiculo">
-    <div class="p-4 space-y-3">
-      <!-- Dados básicos -->
-      <div class="glass rounded-2xl p-4">
-        <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-blue-400" style="font-size:16px">directions_car</span><h3 class="text-white text-sm font-semibold">Dados do Veículo</h3></div>
-        <div class="space-y-2">
-          <input type="text" id="v-modelo" placeholder="Modelo (ex: Honda CG 160)" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="v-placa" placeholder="Placa" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-            <input type="text" id="v-renavan" placeholder="RENAVAM" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <h2 class="text-white font-black text-base">Minha Carteira</h2>
+        <button onclick="openSettings()" class="flex items-center gap-1.5 text-outline text-[11px] active:opacity-70 transition-opacity">
+          <span class="material-symbols-outlined" style="font-size:14px">edit</span>
+          Editar dados
+        </button>
+      </div>
+
+      <!-- CNH Card — visual, like a real document -->
+      <div class="rounded-3xl p-5 relative overflow-hidden" style="background:linear-gradient(135deg,#1b3a6e 0%,#0d1f3c 100%);border:1px solid rgba(255,255,255,.1)">
+        <!-- BR flag stripe -->
+        <div class="absolute top-0 left-0 right-0 h-1" style="background:linear-gradient(90deg,#009c3b 33%,#ffdf00 33%,#ffdf00 66%,#002776 66%)"></div>
+        <div class="flex items-start justify-between mb-4 mt-1">
+          <div>
+            <div class="text-[8px] font-bold tracking-widest uppercase" style="color:rgba(255,255,255,.45)">🇧🇷 República Federativa do Brasil</div>
+            <div class="text-white font-black text-[11px] tracking-wider uppercase mt-0.5">Carteira Nacional de Habilitação</div>
+          </div>
+          <div class="rounded-xl px-3 py-1.5 text-center" style="background:rgba(255,255,255,.12)">
+            <div class="text-white font-black text-xl leading-none" id="carteira-cnh-cat">—</div>
+            <div class="text-[8px] font-bold uppercase" style="color:rgba(255,255,255,.45)">Cat.</div>
+          </div>
+        </div>
+        <div class="mb-4">
+          <div class="text-white font-black text-base tracking-wide" id="carteira-cnh-nome">—</div>
+          <div class="text-[11px] font-mono mt-0.5" style="color:rgba(255,255,255,.55)" id="carteira-cnh-num">Nº —</div>
+        </div>
+        <div>
+          <div class="text-[8px] uppercase tracking-widest font-bold mb-1.5" style="color:rgba(255,255,255,.4)">Validade</div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-white font-bold text-sm" id="carteira-cnh-venc-fmt">—</div>
+            <div id="carteira-cnh-badge" class="text-[10px] font-black px-2.5 py-1 rounded-full" style="background:rgba(74,222,128,.15);color:#4ade80">—</div>
+          </div>
+          <div class="h-1.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,.1)">
+            <div id="carteira-cnh-bar" class="h-full rounded-full transition-all" style="width:0%;background:#4ade80"></div>
           </div>
         </div>
       </div>
 
-      <!-- CNH -->
+      <!-- CRLV / Veículo block -->
       <div class="glass rounded-2xl p-4">
-        <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-yellow-400" style="font-size:16px">badge</span><h3 class="text-white text-sm font-semibold">CNH</h3></div>
-        <div class="grid grid-cols-2 gap-2">
-          <input type="text" id="v-cnh-num" placeholder="Número da CNH" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-          <input type="date" id="v-cnh-venc" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-blue-400" style="font-size:15px;font-variation-settings:'FILL' 1">directions_car</span>
+          <span class="text-[9px] uppercase font-black tracking-wider text-outline">CRLV — Veículo</span>
         </div>
-        <div id="cnh-status" class="mt-2 space-y-1"></div>
+        <div class="text-white font-black text-base mb-3" id="carteira-veiculo-modelo">—</div>
+        <div class="flex items-center gap-3">
+          <div class="rounded-xl px-3 py-2" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2)">
+            <div class="text-[8px] text-blue-400 font-bold uppercase mb-0.5">Placa</div>
+            <div class="text-white font-black text-sm font-mono tracking-widest" id="carteira-veiculo-placa">—</div>
+          </div>
+          <div class="flex-1">
+            <div class="text-[8px] text-outline font-bold uppercase mb-0.5">RENAVAM</div>
+            <div class="text-white text-[11px] font-mono" id="carteira-veiculo-renavan">—</div>
+          </div>
+        </div>
       </div>
 
-      <!-- Documentos -->
-      <div class="glass rounded-2xl p-4">
-        <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-green-400" style="font-size:16px">description</span><h3 class="text-white text-sm font-semibold">Documentos do Veículo</h3></div>
-        <div class="space-y-2">
-          <div><label class="text-outline text-[9px] uppercase font-bold mb-1 block">Vencimento IPVA</label>
-          <input type="date" id="v-ipva" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500"></div>
-          <div><label class="text-outline text-[9px] uppercase font-bold mb-1 block">Vencimento Seguro</label>
-          <input type="date" id="v-seguro" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500"></div>
-          <div><label class="text-outline text-[9px] uppercase font-bold mb-1 block">Vencimento Licenciamento</label>
-          <input type="date" id="v-licenc" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500"></div>
+      <!-- Documentos grid -->
+      <div>
+        <div class="text-[9px] uppercase font-black tracking-wider text-outline mb-2">Vencimentos</div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="glass rounded-2xl p-3 text-center">
+            <div class="text-lg mb-1">📋</div>
+            <div class="text-[9px] text-outline font-bold uppercase mb-1.5">IPVA</div>
+            <div id="carteira-ipva-dias" class="font-black text-[11px] text-green-400">—</div>
+          </div>
+          <div class="glass rounded-2xl p-3 text-center">
+            <div class="text-lg mb-1">🛡️</div>
+            <div class="text-[9px] text-outline font-bold uppercase mb-1.5">Seguro</div>
+            <div id="carteira-seguro-dias" class="font-black text-[11px] text-green-400">—</div>
+          </div>
+          <div class="glass rounded-2xl p-3 text-center">
+            <div class="text-lg mb-1">📄</div>
+            <div class="text-[9px] text-outline font-bold uppercase mb-1.5">Licenc.</div>
+            <div id="carteira-licenc-dias" class="font-black text-[11px] text-green-400">—</div>
+          </div>
         </div>
-        <div id="docs-status" class="mt-3 space-y-1"></div>
       </div>
 
-      <button onclick="salvarVeiculo()" class="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
-        <span class="material-symbols-outlined" style="font-size:18px">save</span> Salvar Veículo
-      </button>
+      <!-- Empty state (shown when no data) -->
+      <div id="carteira-empty" class="flex-col items-center justify-center py-8 opacity-50 text-center" style="display:none">
+        <span class="material-symbols-outlined mb-2" style="font-size:40px">wallet</span>
+        <p class="text-sm font-medium">Nenhum dado cadastrado</p>
+        <p class="text-[11px] mt-1 text-outline">Toque em "Editar dados" para configurar</p>
+      </div>
+
     </div>
   </div>
 
@@ -582,8 +622,7 @@
     <button onclick="showTab('dash')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-blue-400">dashboard</span><span class="text-[8px]">Dash</span></button>
     <button onclick="showTab('corridas')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined">motorcycle</span><span class="text-[8px]">Corridas</span></button>
     <button onclick="showTab('financeiro')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined">payments</span><span class="text-[8px]">Finanças</span></button>
-    <button onclick="showTab('analise')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-outline">insights</span><span class="text-[8px]">Análise</span></button>
-    <button onclick="showTab('veiculo')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-outline">directions_car</span><span class="text-[8px]">Veículo</span></button>
+    <button onclick="showTab('carteira')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-outline">wallet</span><span class="text-[8px]">Carteira</span></button>
     <button onclick="showTab('carreira')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-outline">military_tech</span><span class="text-[8px]">Carreira</span></button>
     <button id="nav-admin" onclick="showTab('admin')" style="display:none" class="flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-blue-400">shield_person</span><span class="text-[8px] text-blue-400">Admin</span></button>
   </div>
@@ -791,6 +830,60 @@
         <div>
           <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Km Revisão</label>
           <input type="number" id="cfg-rev-km" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+      <!-- Divisor -->
+      <div class="h-px my-1" style="background:rgba(255,255,255,.08)"></div>
+      <div class="text-[9px] uppercase font-black tracking-wider text-outline mb-1">Veículo &amp; Documentos</div>
+      <div>
+        <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Modelo do Veículo</label>
+        <input type="text" id="cfg-v-modelo" placeholder="Ex: Honda CG 160 Titan" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Placa</label>
+          <input type="text" id="cfg-v-placa" placeholder="ABC-1234" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">RENAVAM</label>
+          <input type="text" id="cfg-v-renavan" placeholder="12345678901" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Nº CNH</label>
+          <input type="text" id="cfg-v-cnh-num" placeholder="12345678910" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Categoria</label>
+          <select id="cfg-v-cnh-cat" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+            <option value="">—</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="AB">AB</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="E">E</option>
+            <option value="ACC">ACC</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Vencimento CNH</label>
+        <input type="date" id="cfg-v-cnh-venc" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors" style="color-scheme:dark">
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Venc. IPVA</label>
+          <input type="date" id="cfg-v-ipva" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors" style="color-scheme:dark">
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Venc. Seguro</label>
+          <input type="date" id="cfg-v-seguro" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors" style="color-scheme:dark">
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Venc. Licenc.</label>
+          <input type="date" id="cfg-v-licenc" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors" style="color-scheme:dark">
         </div>
       </div>
     </div>

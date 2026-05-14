@@ -7,6 +7,19 @@ window.loadSettingsUI = function() {
   document.getElementById('cfg-meta-d').value    = CONFIG_DATA.metaDiaria || 0;
   document.getElementById('cfg-rev-custo').value = CONFIG_DATA.custoRevisao || 0;
   document.getElementById('cfg-rev-km').value    = CONFIG_DATA.kmRevisao || 0;
+
+  // Vehicle data
+  const _v = JSON.parse(localStorage.getItem('dd_veiculo') || '{}');
+  const cfgV = (id, val) => { const e = document.getElementById(id); if(e) e.value = val || ''; };
+  cfgV('cfg-v-modelo',   _v.modelo);
+  cfgV('cfg-v-placa',    _v.placa);
+  cfgV('cfg-v-renavan',  _v.renavan);
+  cfgV('cfg-v-cnh-num',  _v.cnhNum);
+  cfgV('cfg-v-cnh-cat',  _v.cnhCat);
+  cfgV('cfg-v-cnh-venc', _v.cnhVenc);
+  cfgV('cfg-v-ipva',     _v.ipva);
+  cfgV('cfg-v-seguro',   _v.seguro);
+  cfgV('cfg-v-licenc',   _v.licenc);
 };
 
 window.saveSettings = async function() {
@@ -55,6 +68,22 @@ window.saveSettings = async function() {
   } else {
     utils.toast("Configurações salvas localmente", "success");
   }
+
+  // Save vehicle data
+  const gV = (id) => { const e = document.getElementById(id); return e ? e.value : ''; };
+  const vData = {
+    modelo:  gV('cfg-v-modelo'),
+    placa:   gV('cfg-v-placa').toUpperCase(),
+    renavan: gV('cfg-v-renavan'),
+    cnhNum:  gV('cfg-v-cnh-num'),
+    cnhCat:  gV('cfg-v-cnh-cat'),
+    cnhVenc: gV('cfg-v-cnh-venc'),
+    ipva:    gV('cfg-v-ipva'),
+    seguro:  gV('cfg-v-seguro'),
+    licenc:  gV('cfg-v-licenc'),
+  };
+  localStorage.setItem('dd_veiculo', JSON.stringify(vData));
+  if (typeof renderCarteira === 'function') renderCarteira();
 
   if (typeof closeSettings === 'function') closeSettings();
   if (typeof renderDashboard === 'function') renderDashboard();
