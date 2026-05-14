@@ -755,8 +755,8 @@
 
 <!-- FAB flutuante -->
 <button id="fab-add" onclick="openModal()"
-  class="fixed z-50 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-white active:scale-90 transition-transform border-4 border-background"
-  style="bottom: calc(72px + max(8px, env(safe-area-inset-bottom))); right: 20px; box-shadow:0 0 24px rgba(59,130,246,.45)">
+  class="fixed z-50 w-14 h-14 bg-blue-500 rounded-full items-center justify-center text-white active:scale-90 transition-transform border-4 border-background"
+  style="display:none; bottom: calc(72px + max(8px, env(safe-area-inset-bottom))); right: 20px; box-shadow:0 0 24px rgba(59,130,246,.45)">
   <span class="material-symbols-outlined" style="font-size:26px">add</span>
 </button>
 
@@ -1736,6 +1736,20 @@ function showTab(id) {
     if (icon)  icon.style.color  = active ? '#60a5fa' : '#8b90a0';
     if (label) label.style.color = active ? '#60a5fa' : '#8b90a0';
   });
+
+  // FAB contexto-aware: corridas → openModal, financeiro → openDespesaModal
+  const fab = document.getElementById('fab-add');
+  if (fab) {
+    if (id === 'corridas') {
+      fab.style.display = 'flex';
+      fab.onclick = () => openModal();
+    } else if (id === 'financeiro') {
+      fab.style.display = 'flex';
+      fab.onclick = () => openDespesaModal();
+    } else {
+      fab.style.display = 'none';
+    }
+  }
 
   if (id === 'dash')       updateDash();
   if (id === 'corridas')   renderHistorico();
