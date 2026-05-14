@@ -1,6 +1,7 @@
 /* DashDriver — Aba Finanças */
 
-let finPeriod = 'month';
+let finPeriod    = 'month';
+let finCatFilter = 'all';
 let pendingDeleteGastoId   = null;
 let pendingDeleteGastoTipo = null; // 'despesa' | 'abastecimento'
 
@@ -110,7 +111,20 @@ window.renderFinanceiro = function() {
   }
 
   renderFinBreakdown(gastos);
-  renderFinTimeline(corridas, gastos);
+
+  // Aplica filtro de categoria na timeline
+  let corridasFiltradas, gastosFiltrados;
+  if (finCatFilter === 'all') {
+    corridasFiltradas = corridas;
+    gastosFiltrados   = gastos;
+  } else if (finCatFilter === 'corrida') {
+    corridasFiltradas = corridas;
+    gastosFiltrados   = [];
+  } else {
+    corridasFiltradas = [];
+    gastosFiltrados   = gastos.filter(g => g.categoria === finCatFilter);
+  }
+  renderFinTimeline(corridasFiltradas, gastosFiltrados);
 };
 
 // ─── Breakdown por categoria ──────────────────────────
@@ -260,6 +274,19 @@ window.setFinPeriod = function(p, el) {
   finPeriod = p;
   pendingDeleteGastoId = null;
   document.querySelectorAll('.fin-period-chip').forEach(c => {
+    c.classList.remove('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+    c.classList.add('border-outline-variant', 'text-outline');
+  });
+  el.classList.add('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
+  el.classList.remove('border-outline-variant', 'text-outline');
+  renderFinanceiro();
+};
+
+// ─── Filtro de categoria ──────────────────────────────
+window.setFinCat = function(cat, el) {
+  finCatFilter = cat;
+  pendingDeleteGastoId = null;
+  document.querySelectorAll('.fin-cat-chip').forEach(c => {
     c.classList.remove('border-blue-500', 'bg-blue-500/10', 'text-blue-400');
     c.classList.add('border-outline-variant', 'text-outline');
   });
