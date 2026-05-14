@@ -461,6 +461,13 @@
       <div id="fin-list" class="space-y-3"></div>
 
     </div>
+
+    <!-- FAB dedicado da aba Finanças — auto-oculto via display:none do pai (.page) -->
+    <button onclick="openGastoModal()"
+      class="fixed z-50 w-14 h-14 bg-blue-500 rounded-full items-center justify-center text-white active:scale-90 transition-transform border-4 border-background"
+      style="display:flex; bottom: calc(72px + max(8px, env(safe-area-inset-bottom))); right: 20px; box-shadow:0 0 24px rgba(59,130,246,.45)">
+      <span class="material-symbols-outlined" style="font-size:26px">add</span>
+    </button>
   </div>
 
   <!-- ANALISE -->
