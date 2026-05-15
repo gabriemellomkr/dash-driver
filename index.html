@@ -578,12 +578,54 @@
 
   <!-- CARREIRA -->
   <div class="page" id="page-carreira">
-    <div class="p-4 space-y-3">
-      <div class="glass rounded-2xl p-6 text-center" id="carreira-level-card">
-        <div class="text-5xl mb-2" id="carreira-level-icon">🆕</div>
-        <h2 class="text-white text-xl font-black mb-1" id="carreira-level-name">Iniciante</h2>
-        <div class="w-full h-2 bg-white/10 rounded-full mt-4"><div id="carreira-progress-bar" class="h-2 bg-blue-500 rounded-full w-0"></div></div>
+    <div class="p-4 space-y-4">
+
+      <!-- Level Card -->
+      <div class="rounded-3xl p-5 relative overflow-hidden" id="carreira-level-card" style="background:linear-gradient(135deg,#1a2a4a 0%,#0d1520 100%);border:1px solid rgba(255,255,255,.08)">
+        <div class="absolute -top-6 -right-6 text-[96px] opacity-10 select-none" id="carreira-level-bg-icon">🆕</div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="text-5xl" id="carreira-level-icon">🆕</div>
+            <div>
+              <div class="text-[9px] uppercase font-black tracking-widest text-outline mb-0.5">Nível atual</div>
+              <div class="text-white font-black text-xl leading-tight" id="carreira-level-name">Novato</div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="text-[10px] font-bold text-outline" id="carreira-xp-label">0 XP</div>
+            <div class="text-[10px] font-bold text-outline" id="carreira-xp-next">próximo: 500 XP</div>
+          </div>
+          <div class="h-2 rounded-full overflow-hidden" style="background:rgba(255,255,255,.1)">
+            <div id="carreira-progress-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:linear-gradient(90deg,#3b82f6,#60a5fa)"></div>
+          </div>
+        </div>
       </div>
+
+      <!-- Stats rápidos -->
+      <div class="grid grid-cols-3 gap-2">
+        <div class="glass rounded-2xl p-3 text-center">
+          <div class="text-xl mb-1">🏍️</div>
+          <div class="text-white font-black text-base" id="carreira-stat-corridas">0</div>
+          <div class="text-outline text-[9px] mt-0.5">corridas</div>
+        </div>
+        <div class="glass rounded-2xl p-3 text-center">
+          <div class="text-xl mb-1">📍</div>
+          <div class="text-white font-black text-base" id="carreira-stat-km">0</div>
+          <div class="text-outline text-[9px] mt-0.5">km rodados</div>
+        </div>
+        <div class="glass rounded-2xl p-3 text-center">
+          <div class="text-xl mb-1">💰</div>
+          <div class="text-white font-black text-base" id="carreira-stat-fat">R$ 0</div>
+          <div class="text-outline text-[9px] mt-0.5">faturado</div>
+        </div>
+      </div>
+
+      <!-- Conquistas -->
+      <div>
+        <div class="text-[9px] uppercase font-black tracking-wider text-outline mb-2">Conquistas</div>
+        <div id="carreira-badges" class="grid grid-cols-2 gap-2"></div>
+      </div>
+
     </div>
   </div>
 
