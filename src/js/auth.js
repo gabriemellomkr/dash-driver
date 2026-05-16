@@ -16,12 +16,6 @@ window.checkSession = async function() {
 async function handleAuthSuccess(user) {
   APP_STATE.user = user;
   document.getElementById('login-screen').style.display = 'none';
-  
-  // Verificação de Super Admin
-  const adminTab = document.getElementById('nav-admin');
-  if (user.id === '3f85827d-119d-404d-be08-630a0d487f6c' || user.email?.includes('gabriel')) {
-    if (adminTab) adminTab.style.display = 'flex';
-  }
 
   // Carregar dados e atualizar interface
   const success = await data.loadAll();

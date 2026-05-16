@@ -38,6 +38,7 @@ window.showTab = function(tabId) {
   if (tabId === 'carteira') renderCarteira();
   if (tabId === 'carreira') renderCarreira();
   if (tabId === 'admin') renderAdmin();
+  if (tabId === 'perfil') renderPerfil();
 };
 
 window.openSettings = function() {
