@@ -97,9 +97,6 @@
       <span class="material-symbols-outlined" style="font-size:20px">notifications</span>
       <span id="notif-badge" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
     </button>
-    <button onclick="openSettings()" class="p-2 text-outline hover:text-blue-400 transition-colors active:scale-90">
-      <span class="material-symbols-outlined" style="font-size:20px">account_circle</span>
-    </button>
   </div>
 </header>
 
@@ -656,6 +653,62 @@
       </div>
     </div>
   </div>
+
+  <!-- PERFIL -->
+  <div class="page" id="page-perfil">
+    <div class="p-4 space-y-4">
+
+      <!-- Avatar + info -->
+      <div class="glass rounded-3xl p-6 flex flex-col items-center gap-3">
+        <div id="perfil-avatar" class="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-black text-white"
+             style="background: linear-gradient(135deg, #3b82f6, #8b5cf6)">?</div>
+        <div class="text-center">
+          <div id="perfil-nome" class="text-white font-black text-base">—</div>
+          <div id="perfil-email" class="text-outline text-xs mt-0.5">—</div>
+        </div>
+      </div>
+
+      <!-- Ações -->
+      <div class="glass rounded-2xl divide-y divide-white/5">
+        <button onclick="openSettings()" class="w-full flex items-center gap-3 p-4 text-left active:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-blue-400" style="font-size:20px;font-variation-settings:'FILL' 1">tune</span>
+          <div class="flex-1">
+            <div class="text-white text-sm font-semibold">Configurações</div>
+            <div class="text-outline text-[10px]">Veículo, finanças e preferências</div>
+          </div>
+          <span class="material-symbols-outlined text-outline" style="font-size:16px">chevron_right</span>
+        </button>
+        <button onclick="openNotifications()" class="w-full flex items-center gap-3 p-4 text-left active:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-yellow-400" style="font-size:20px;font-variation-settings:'FILL' 1">notifications</span>
+          <div class="flex-1">
+            <div class="text-white text-sm font-semibold">Notificações</div>
+            <div class="text-outline text-[10px]">Alertas e lembretes</div>
+          </div>
+          <span class="material-symbols-outlined text-outline" style="font-size:16px">chevron_right</span>
+        </button>
+      </div>
+
+      <!-- Info do app -->
+      <div class="glass rounded-2xl p-4 space-y-2">
+        <div class="text-[9px] uppercase font-black tracking-wider text-outline mb-3">Sobre o app</div>
+        <div class="flex justify-between items-center">
+          <span class="text-outline text-xs">Versão</span>
+          <span class="text-white text-xs font-semibold">1.0.0</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-outline text-xs">Plataforma</span>
+          <span class="text-white text-xs font-semibold">DashDriver PWA</span>
+        </div>
+      </div>
+
+      <!-- Logout -->
+      <button onclick="doLogout()" class="w-full glass rounded-2xl p-4 flex items-center justify-center gap-2 text-red-400 active:bg-red-500/10 transition-colors">
+        <span class="material-symbols-outlined" style="font-size:18px">logout</span>
+        <span class="text-sm font-semibold">Sair da conta</span>
+      </button>
+
+    </div>
+  </div>
 </main>
 
 
@@ -666,7 +719,7 @@
     <button onclick="showTab('financeiro')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined">payments</span><span class="text-[8px]">Finanças</span></button>
     <button onclick="showTab('carteira')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-outline">wallet</span><span class="text-[8px]">Carteira</span></button>
     <button onclick="showTab('carreira')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-outline">military_tech</span><span class="text-[8px]">Carreira</span></button>
-    <button id="nav-admin" onclick="showTab('admin')" style="display:none" class="flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-blue-400">shield_person</span><span class="text-[8px] text-blue-400">Admin</span></button>
+    <button onclick="showTab('perfil')" class="flex flex-col items-center gap-1 flex-1"><span class="material-symbols-outlined text-outline">account_circle</span><span class="text-[8px]">Perfil</span></button>
   </div>
 </nav>
 
@@ -1089,6 +1142,7 @@
 <script src="src/js/ocr.js"></script>
 <script src="src/js/jornada.js"></script>
 <script src="src/js/notifications.js"></script>
+<script src="src/js/profile.js"></script>
 <script src="src/js/admin.js"></script>
 <script src="src/js/main.js"></script>
 
