@@ -23,7 +23,7 @@ window.loadSettingsUI = function() {
   document.getElementById('cfg-rev-km').value    = CONFIG_DATA.kmRevisao || 0;
   const pkEl = document.getElementById('cfg-preco-km');
   if (pkEl) pkEl.value = CONFIG_DATA.precoKm || '';
-  atualizaCustoKm();
+  setTimeout(atualizaCustoKm, 0);
 
   // Vehicle data
   const _v = JSON.parse(localStorage.getItem('dd_veiculo') || '{}');
@@ -39,57 +39,20 @@ window.loadSettingsUI = function() {
   cfgV('cfg-v-licenc',   _v.licenc);
 };
 
-window.saveSettings = async function() {
-  const nome = document.getElementById('cfg-nome').value;
-  const preco = parseFloat(document.getElementById('cfg-preco').value) || 0;
-  const consumo = parseFloat(document.getElementById('cfg-consumo').value) || 0;
-  const metaD = parseFloat(document.getElementById('cfg-meta-d').value) || 0;
+window.saveSettings = function() {
+  const nome     = document.getElementById('cfg-nome').value;
+  const preco    = parseFloat(document.getElementById('cfg-preco').value)     || 0;
+  const consumo  = parseFloat(document.getElementById('cfg-consumo').value)   || 0;
+  const metaD    = parseFloat(document.getElementById('cfg-meta-d').value)    || 0;
   const revCusto = parseFloat(document.getElementById('cfg-rev-custo').value) || 0;
-  const revKm = parseFloat(document.getElementById('cfg-rev-km').value) || 0;
+  const revKm    = parseFloat(document.getElementById('cfg-rev-km').value)    || 0;
+  const precoKm  = parseFloat(document.getElementById('cfg-preco-km')?.value) || 0;
 
-  const precoKm = parseFloat(document.getElementById('cfg-preco-km')?.value) || 0;
-
-  const newConfig = {
-    nome,
-    precoLitro: preco,
-    consumo,
-    metaDiaria: metaD,
-    custoRevisao: revCusto,
-    kmRevisao: revKm,
-    precoKm,
-  };
-
-  // Atualiza estado local
-  Object.assign(CONFIG_DATA, newConfig);
+  // 1. Salva local imediatamente
+  Object.assign(CONFIG_DATA, { nome, precoLitro: preco, consumo, metaDiaria: metaD,
+    custoRevisao: revCusto, kmRevisao: revKm, precoKm });
   localStorage.setItem('dash_config', JSON.stringify(CONFIG_DATA));
 
-  // Salva no Supabase se houver usuário
-  if (APP_STATE.user) {
-    try {
-      const { error } = await supabase
-        .from('dashdriver_config')
-        .upsert({
-          user_id: APP_STATE.user.id,
-          nome: nome,
-          preco_litro: preco,
-          consumo: consumo,
-          meta_diaria: metaD,
-          custo_revisao: revCusto,
-          km_revisao: revKm,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
-
-      if (error) throw error;
-      utils.toast("Configurações salvas!", "success");
-    } catch (e) {
-      console.error("Erro ao salvar config no Supabase:", e);
-      utils.toast("Salvo localmente (erro no servidor)", "warning");
-    }
-  } else {
-    utils.toast("Configurações salvas localmente", "success");
-  }
-
-  // Save vehicle data
   const gV = (id) => { const e = document.getElementById(id); return e ? e.value : ''; };
   const vData = {
     modelo:  gV('cfg-v-modelo'),
@@ -103,10 +66,30 @@ window.saveSettings = async function() {
     licenc:  gV('cfg-v-licenc'),
   };
   localStorage.setItem('dd_veiculo', JSON.stringify(vData));
-  if (typeof renderCarteira === 'function') renderCarteira();
 
+  // 2. Fecha modal e dá feedback imediato
   if (typeof closeSettings === 'function') closeSettings();
-  if (typeof renderDashboard === 'function') renderDashboard();
+  utils.toast('Configurações salvas!', 'success');
+  if (typeof renderCarteira   === 'function') renderCarteira();
+  if (typeof renderDashboard  === 'function') renderDashboard();
+
+  // 3. Sincroniza com Supabase em background (fire-and-forget)
+  if (APP_STATE.user) {
+    supabase.from('dashdriver_config').upsert({
+      user_id:      APP_STATE.user.id,
+      nome,
+      preco_litro:  preco,
+      consumo,
+      meta_diaria:  metaD,
+      custo_revisao: revCusto,
+      km_revisao:   revKm,
+      preco_km:     precoKm,
+      updated_at:   new Date().toISOString()
+    }, { onConflict: 'user_id' })
+    .then(({ error }) => {
+      if (error) console.error('Supabase config:', error);
+    });
+  }
 };
 
 // Alias para compatibilidade com ui.js
