@@ -1,5 +1,19 @@
 /* DashDriver Settings Logic */
 
+window.atualizaCustoKm = function() {
+  const preco   = parseFloat(document.getElementById('cfg-preco')?.value) || 0;
+  const consumo = parseFloat(document.getElementById('cfg-consumo')?.value) || 0;
+  const revCusto = parseFloat(document.getElementById('cfg-rev-custo')?.value) || 0;
+  const revKm    = parseFloat(document.getElementById('cfg-rev-km')?.value) || 0;
+  const el = document.getElementById('cfg-custo-km-display');
+  if (!el) return;
+  if (consumo <= 0) { el.textContent = 'R$ —'; return; }
+  const custoGas = preco / consumo;
+  const custoRev = revKm > 0 ? revCusto / revKm : 0;
+  const total = custoGas + custoRev;
+  el.textContent = 'R$ ' + total.toFixed(2).replace('.', ',') + '/km';
+};
+
 window.loadSettingsUI = function() {
   document.getElementById('cfg-nome').value      = CONFIG_DATA.nome || "Motorista";
   document.getElementById('cfg-preco').value     = CONFIG_DATA.precoLitro || 0;
@@ -7,6 +21,9 @@ window.loadSettingsUI = function() {
   document.getElementById('cfg-meta-d').value    = CONFIG_DATA.metaDiaria || 0;
   document.getElementById('cfg-rev-custo').value = CONFIG_DATA.custoRevisao || 0;
   document.getElementById('cfg-rev-km').value    = CONFIG_DATA.kmRevisao || 0;
+  const pkEl = document.getElementById('cfg-preco-km');
+  if (pkEl) pkEl.value = CONFIG_DATA.precoKm || '';
+  atualizaCustoKm();
 
   // Vehicle data
   const _v = JSON.parse(localStorage.getItem('dd_veiculo') || '{}');
@@ -30,13 +47,16 @@ window.saveSettings = async function() {
   const revCusto = parseFloat(document.getElementById('cfg-rev-custo').value) || 0;
   const revKm = parseFloat(document.getElementById('cfg-rev-km').value) || 0;
 
+  const precoKm = parseFloat(document.getElementById('cfg-preco-km')?.value) || 0;
+
   const newConfig = {
     nome,
     precoLitro: preco,
     consumo,
     metaDiaria: metaD,
     custoRevisao: revCusto,
-    kmRevisao: revKm
+    kmRevisao: revKm,
+    precoKm,
   };
 
   // Atualiza estado local
