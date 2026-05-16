@@ -42,6 +42,7 @@ window.data = {
       custoRevisao: data.custo_revisao || 0,
       kmRevisao:    data.km_revisao    || 0,
       precoKm:      data.preco_km      || 0,
+      timezone:     data.timezone      || CONFIG_DATA.timezone,
     });
 
     // Veículo: salva no localStorage como cache local
