@@ -32,8 +32,8 @@ window.utils = {
     const t = document.getElementById('toast');
     if (!t) return;
     t.textContent = msg;
-    t.className = `toast toast-active ${type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`;
-    setTimeout(() => t.classList.remove('toast-active'), 3000);
+    t.className = `toast show ${type === 'error' ? 'bg-red-500' : type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'}`;
+    setTimeout(() => t.classList.remove('show'), 3000);
   }
 };
 

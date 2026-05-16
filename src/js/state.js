@@ -11,8 +11,9 @@ window.CONFIG_DATA = {
   custoRevisao: 0,
   kmRevisao: 0,
   metaDiaria:  0,
-  metaSemanal: 0,  // alias: metaSemana
-  metaMensal:  0,  // alias: metaMes
+  metaSemanal: 0,
+  metaMensal:  0,
+  precoKm: 0,
   timezone: "America/Sao_Paulo",
   pushEnabled: false,
   pushSubscription: null

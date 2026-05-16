@@ -183,14 +183,26 @@ function renderFinTimeline(corridas, gastos) {
   if (!el) return;
 
   const todos = [
-    ...corridas.map(c => ({
-      id: c.id, tipo: 'corrida',
-      data: (c.data || '').split('T')[0],
-      label: c.plat,
-      sub: `${c.km > 0 ? c.km.toFixed(1) + ' km' : 'km —'} · ${c.pag || ''}`,
-      valor: (c.plat === 'InDriver' && c.bruto > 0) ? c.bruto : (c.liquido || 0),
-      positivo: true, emoji: '🏍️'
-    })),
+    ...corridas.map(c => {
+      const liquido = (c.plat === 'InDriver' && c.bruto > 0) ? c.bruto : (c.liquido || 0);
+      const meta = CONFIG_DATA.precoKm || 0;
+      let qualidade = null;
+      if (meta > 0 && c.km > 0) {
+        const rKm = liquido / c.km;
+        if (rKm >= meta * 1.2)      qualidade = { label: 'Ótima',   cor: '#4ade80' };
+        else if (rKm >= meta)        qualidade = { label: 'Boa',     cor: '#60a5fa' };
+        else if (rKm >= meta * 0.8)  qualidade = { label: 'Regular', cor: '#fbbf24' };
+        else                         qualidade = { label: 'Ruim',    cor: '#f87171' };
+      }
+      return {
+        id: c.id, tipo: 'corrida',
+        data: (c.data || '').split('T')[0],
+        label: c.plat,
+        sub: `${c.km > 0 ? c.km.toFixed(1) + ' km' : 'km —'} · ${c.pag || ''}`,
+        valor: liquido,
+        positivo: true, emoji: '🏍️', qualidade,
+      };
+    }),
     ...gastos.map(g => ({
       id: g.id, tipo: g.tipo,
       data: (g.data || '').split('T')[0],
@@ -234,7 +246,10 @@ function renderFinTimeline(corridas, gastos) {
         <div class="flex items-center gap-3 px-4 py-3.5 border-b border-white/5 last:border-0">
           <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/5 text-base">${item.emoji}</div>
           <div class="flex-1 min-w-0">
-            <div class="text-white text-[13px] font-bold">${item.label}</div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-white text-[13px] font-bold">${item.label}</span>
+              ${item.qualidade ? `<span class="text-[9px] font-black px-1.5 py-0.5 rounded-full" style="background:${item.qualidade.cor}22;color:${item.qualidade.cor}">${item.qualidade.label}</span>` : ''}
+            </div>
             ${item.sub ? `<div class="text-outline text-[10px]">${item.sub}</div>` : ''}
           </div>
           ${isPendingDel ? `
