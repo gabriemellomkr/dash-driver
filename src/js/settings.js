@@ -76,15 +76,16 @@ window.saveSettings = function() {
   // 3. Sincroniza com Supabase em background (fire-and-forget)
   if (APP_STATE.user) {
     supabase.from('dashdriver_config').upsert({
-      user_id:      APP_STATE.user.id,
+      user_id:       APP_STATE.user.id,
       nome,
-      preco_litro:  preco,
+      preco_litro:   preco,
       consumo,
-      meta_diaria:  metaD,
+      meta_diaria:   metaD,
       custo_revisao: revCusto,
-      km_revisao:   revKm,
-      preco_km:     precoKm,
-      updated_at:   new Date().toISOString()
+      km_revisao:    revKm,
+      preco_km:      precoKm,
+      veiculo:       vData,
+      updated_at:    new Date().toISOString()
     }, { onConflict: 'user_id' })
     .then(({ error }) => {
       if (error) console.error('Supabase config:', error);

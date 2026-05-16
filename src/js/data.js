@@ -7,6 +7,7 @@ window.data = {
   async loadAll() {
     try {
       await Promise.all([
+        this.loadConfig(),
         this.loadCorridas(),
         this.loadAbastecimentos(),
         this.loadOutrasDespesas(),
@@ -20,6 +21,36 @@ window.data = {
       console.error("Erro ao carregar dados:", e);
       return false;
     }
+  },
+
+  async loadConfig() {
+    if (!APP_STATE.user) return;
+    const { data, error } = await supabase
+      .from('dashdriver_config')
+      .select('*')
+      .eq('user_id', APP_STATE.user.id)
+      .maybeSingle();
+
+    if (error) { console.warn('loadConfig:', error.message); return; }
+    if (!data) return;
+
+    Object.assign(CONFIG_DATA, {
+      nome:         data.nome          || CONFIG_DATA.nome,
+      precoLitro:   data.preco_litro   || 0,
+      consumo:      data.consumo       || 0,
+      metaDiaria:   data.meta_diaria   || 0,
+      custoRevisao: data.custo_revisao || 0,
+      kmRevisao:    data.km_revisao    || 0,
+      precoKm:      data.preco_km      || 0,
+    });
+
+    // Veículo: salva no localStorage como cache local
+    if (data.veiculo && Object.keys(data.veiculo).length > 0) {
+      localStorage.setItem('dd_veiculo', JSON.stringify(data.veiculo));
+    }
+
+    // Atualiza cache local
+    localStorage.setItem('dash_config', JSON.stringify(CONFIG_DATA));
   },
 
   async loadCorridas() {
