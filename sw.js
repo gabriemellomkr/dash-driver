@@ -1,4 +1,4 @@
-const CACHE = 'dashdriver-v6';
+const CACHE = 'dashdriver-v7';
 const ASSETS = ['/manifest.json', '/icon.svg'];
 
 // HTML, JS e CSS — sempre network-first para garantir fixes chegam imediatamente
