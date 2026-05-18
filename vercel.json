@@ -1,6 +1,11 @@
 {
   "outputDirectory": ".",
   "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "admin.dashdriver.com.br" }],
+      "destination": "/admin.html"
+    },
     { "source": "/", "destination": "/corridas.html" }
   ],
   "crons": [
