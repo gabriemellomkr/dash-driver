@@ -266,13 +266,30 @@ async function doLogin() {
   }
 
   adminToken = data.session.access_token;
-  const r = await fetch('/api/admin/auth-check', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: data.user.id, email: data.user.email }),
-  });
-  const { admin } = await r.json();
-  if (!admin) {
+  let adminOk = false;
+  try {
+    const r = await fetch('/api/admin/auth-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: data.user.id, email: data.user.email }),
+    });
+    const payload = await r.json();
+    adminOk = payload.admin === true;
+    if (!adminOk && payload.error) {
+      errEl.textContent = 'Erro do servidor: ' + payload.error;
+      errEl.classList.remove('hidden');
+      await sb.auth.signOut();
+      btn.textContent = 'ENTRAR'; btn.disabled = false;
+      return;
+    }
+  } catch(e) {
+    errEl.textContent = 'Erro ao verificar permissão: ' + e.message;
+    errEl.classList.remove('hidden');
+    await sb.auth.signOut();
+    btn.textContent = 'ENTRAR'; btn.disabled = false;
+    return;
+  }
+  if (!adminOk) {
     await sb.auth.signOut();
     errEl.textContent = 'Acesso negado — você não é administrador';
     errEl.classList.remove('hidden');
