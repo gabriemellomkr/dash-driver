@@ -1,11 +1,14 @@
 {
   "outputDirectory": ".",
-  "rewrites": [
+  "redirects": [
     {
       "source": "/",
       "has": [{ "type": "host", "value": "admin.dashdriver.com.br" }],
-      "destination": "/admin.html"
-    },
+      "destination": "/admin.html",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
     { "source": "/", "destination": "/corridas.html" }
   ],
   "crons": [
