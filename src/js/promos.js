@@ -129,8 +129,23 @@ window.renderPromosDashboard = function() {
   // also show promos that start in the future
   const futuras = (APP_STATE.promos || []).filter(p => p.ativa && p.inicio > hoje);
 
-  if (ativas.length === 0 && futuras.length === 0) { el.style.display = 'none'; return; }
   el.style.display = 'block';
+
+  if (ativas.length === 0 && futuras.length === 0) {
+    el.innerHTML = `<div class="glass rounded-2xl p-3 sm:p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-orange-400" style="font-size:13px;font-variation-settings:'FILL' 1">local_offer</span>
+          <span class="text-white text-xs font-semibold">Promoções</span>
+        </div>
+      </div>
+      <button onclick="openPromoModal()" class="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-white/20 text-outline hover:text-orange-400 hover:border-orange-400/40 transition-all active:scale-95">
+        <span class="material-symbols-outlined" style="font-size:16px">add</span>
+        <span class="text-xs font-semibold">Cadastrar promoção do app</span>
+      </button>
+    </div>`;
+    return;
+  }
 
   const PLAT_COLOR = { Uber:'#000', '99':'#f97316', InDriver:'#0ea5e9', Particular:'#a855f7' };
 
