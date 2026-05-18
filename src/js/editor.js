@@ -294,4 +294,7 @@ window.salvarCorrida = async function() {
   renderDashboard();
   renderHistorico();
   utils.toast(editingId ? '✓ Alterado com sucesso!' : '✓ Corrida registrada!', 'success');
+  // Verifica metas e badges após cada corrida
+  if (typeof checkGoals  === 'function') checkGoals();
+  if (typeof checkBadges === 'function') checkBadges();
 };

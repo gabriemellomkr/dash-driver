@@ -25,6 +25,8 @@ window.loadSettingsUI = function() {
   set('cfg-preco',    CONFIG_DATA.precoLitro  || '');
   set('cfg-consumo',  CONFIG_DATA.consumo     || '');
   set('cfg-meta-d',   CONFIG_DATA.metaDiaria  || '');
+  set('cfg-meta-s',   CONFIG_DATA.metaSemanal || '');
+  set('cfg-meta-m',   CONFIG_DATA.metaMensal  || '');
   set('cfg-rev-custo',CONFIG_DATA.custoRevisao|| '');
   set('cfg-rev-km',   CONFIG_DATA.kmRevisao   || '');
   set('cfg-preco-km', CONFIG_DATA.precoKm     || '');
@@ -55,13 +57,16 @@ window.saveSettings = function() {
     const preco    = parseNum('cfg-preco');
     const consumo  = parseNum('cfg-consumo');
     const metaD    = parseNum('cfg-meta-d');
+    const metaS    = parseNum('cfg-meta-s');
+    const metaM    = parseNum('cfg-meta-m');
     const revCusto = parseNum('cfg-rev-custo');
     const revKm    = parseNum('cfg-rev-km');
     const precoKm  = parseNum('cfg-preco-km');
     const timezone = document.getElementById('cfg-timezone')?.value || 'America/Sao_Paulo';
 
     // 1. Atualiza estado local imediatamente
-    Object.assign(CONFIG_DATA, { nome, precoLitro: preco, consumo, metaDiaria: metaD,
+    Object.assign(CONFIG_DATA, { nome, precoLitro: preco, consumo,
+      metaDiaria: metaD, metaSemanal: metaS, metaMensal: metaM,
       custoRevisao: revCusto, kmRevisao: revKm, precoKm, timezone });
     localStorage.setItem('dash_config', JSON.stringify(CONFIG_DATA));
 
@@ -93,6 +98,8 @@ window.saveSettings = function() {
         preco_litro:   preco,
         consumo,
         meta_diaria:   metaD,
+        meta_semanal:  metaS,
+        meta_mensal:   metaM,
         custo_revisao: revCusto,
         km_revisao:    revKm,
         preco_km:      precoKm,

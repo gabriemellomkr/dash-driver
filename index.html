@@ -92,7 +92,7 @@
   <div class="flex gap-1">
     <button onclick="openNotifications()" class="p-2 text-outline hover:text-blue-400 transition-colors active:scale-90 relative">
       <span class="material-symbols-outlined" style="font-size:20px">notifications</span>
-      <span id="notif-badge" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+      <span id="notif-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 rounded-full text-white text-[9px] font-black flex items-center justify-center px-1"></span>
     </button>
   </div>
 </header>
@@ -938,11 +938,21 @@
         <input type="text" inputmode="decimal" id="cfg-preco-km" placeholder="Ex: 2,50" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
         <div class="text-outline text-[10px] mt-1.5">Corridas abaixo disso serão marcadas como ruins</div>
       </div>
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-3 gap-3">
         <div>
           <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Meta Diária (R$)</label>
           <input type="text" inputmode="decimal" id="cfg-meta-d" placeholder="100" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
         </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Meta Semanal (R$)</label>
+          <input type="text" inputmode="decimal" id="cfg-meta-s" placeholder="600" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Meta Mensal (R$)</label>
+          <input type="text" inputmode="decimal" id="cfg-meta-m" placeholder="2500" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Fuso Horário</label>
           <select id="cfg-timezone" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
@@ -1016,6 +1026,23 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- NOTIFICAÇÕES MODAL -->
+<div id="notif-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeNotifications()"></div>
+  <div class="glass-strong w-full rounded-t-3xl relative z-10 flex flex-col" style="max-height:80vh">
+    <div class="flex items-center justify-between p-5 pb-3 border-b border-white/5">
+      <h2 class="text-white text-base font-bold">Notificações</h2>
+      <div class="flex items-center gap-2">
+        <button onclick="marcarTodasLidas()" class="text-outline text-[11px] font-semibold hover:text-white transition-colors active:scale-95">Limpar tudo</button>
+        <button onclick="closeNotifications()" class="w-8 h-8 flex items-center justify-center text-outline hover:text-white active:scale-90 transition-all rounded-xl bg-white/5">
+          <span class="material-symbols-outlined" style="font-size:18px">close</span>
+        </button>
+      </div>
+    </div>
+    <div id="notif-list" class="overflow-y-auto flex-1 px-5 py-2"></div>
+  </div>
+</div>
 
 <!-- MODAL JORNADA -->
 <div id="jornada-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
