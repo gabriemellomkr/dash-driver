@@ -185,7 +185,7 @@ window.closeNotifications = function() {
 };
 
 window.marcarTodasLidas = function() {
-  _saveNotifs(_getNotifs().map(n => ({ ...n, lida: true })));
+  _saveNotifs([]);
   updateNotifBadge();
   _renderNotifList();
 };
