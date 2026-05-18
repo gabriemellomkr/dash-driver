@@ -1,5 +1,13 @@
 {
   "outputDirectory": ".",
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "admin.dashdriver.com.br" }],
+      "destination": "/admin.html",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/",
