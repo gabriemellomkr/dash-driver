@@ -39,6 +39,8 @@ window.data = {
       precoLitro:   data.preco_litro   || 0,
       consumo:      data.consumo       || 0,
       metaDiaria:   data.meta_diaria   || 0,
+      metaSemanal:  data.meta_semanal  || 0,
+      metaMensal:   data.meta_mensal   || 0,
       custoRevisao: data.custo_revisao || 0,
       kmRevisao:    data.km_revisao    || 0,
       precoKm:      data.preco_km      || 0,
