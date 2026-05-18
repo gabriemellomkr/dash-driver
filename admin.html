@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DashDriver Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <style>
+    /* Same CSS variables as main app */
+    :root {
+      --surface: #0f1117;
+      --surface-container: #1a1d27;
+      --surface-container-high: #22263a;
+      --outline-variant: rgba(255,255,255,0.12);
+      --outline: rgba(255,255,255,0.4);
+    }
+    body { background: var(--surface); color: white; font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+    .glass-strong { background: rgba(255,255,255,0.07); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.12); }
+    .sidebar { width: 220px; min-height: 100vh; background: rgba(255,255,255,0.03); border-right: 1px solid rgba(255,255,255,0.06); }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px; cursor: pointer; transition: all 0.15s; color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; }
+    .nav-item:hover { background: rgba(255,255,255,0.06); color: white; }
+    .nav-item.active { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+    .badge-trial { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .badge-basic { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .badge-premium { background: rgba(168,85,247,0.15); color: #c084fc; }
+    .badge-expired { background: rgba(239,68,68,0.15); color: #f87171; }
+    #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    #admin-app { display: none; }
+    .table-row { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.1s; }
+    .table-row:hover { background: rgba(255,255,255,0.03); }
+    .stat-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; }
+    /* Sections */
+    .section { display: none; }
+    .section.active { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="glass rounded-3xl p-8 w-full max-w-sm mx-4">
+    <div class="flex items-center gap-3 mb-8">
+      <div class="w-10 h-10 bg-blue-500 rounded-2xl flex items-center justify-center">
+        <span class="material-symbols-outlined text-white" style="font-size:20px">admin_panel_settings</span>
+      </div>
+      <div>
+        <h1 class="text-white font-black text-lg">DashDriver</h1>
+        <p class="text-xs" style="color:rgba(255,255,255,0.4)">Painel Admin</p>
+      </div>
+    </div>
+    <div id="login-error" class="hidden mb-4 p-3 rounded-xl bg-red-500/10 text-red-400 text-xs font-semibold"></div>
+    <input id="login-email" type="email" placeholder="E-mail admin" class="w-full p-3 rounded-xl mb-3 text-white text-sm focus:outline-none focus:border-blue-500 border border-white/10" style="background:rgba(255,255,255,0.06)">
+    <input id="login-pass" type="password" placeholder="Senha" class="w-full p-3 rounded-xl mb-5 text-white text-sm focus:outline-none focus:border-blue-500 border border-white/10" style="background:rgba(255,255,255,0.06)">
+    <button id="login-btn" onclick="doLogin()" class="w-full py-3 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white font-black text-sm tracking-wider transition-all active:scale-[.98]">ENTRAR</button>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="admin-app" class="flex min-h-screen">
+  <!-- Sidebar -->
+  <aside class="sidebar flex-shrink-0 flex flex-col p-4 gap-1">
+    <div class="flex items-center gap-2.5 px-2 py-3 mb-4">
+      <div class="w-8 h-8 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+        <span class="material-symbols-outlined text-white" style="font-size:16px">admin_panel_settings</span>
+      </div>
+      <div>
+        <div class="text-white font-black text-sm">DashDriver</div>
+        <div class="text-[10px]" style="color:rgba(255,255,255,0.35)">Admin Panel</div>
+      </div>
+    </div>
+    <div class="nav-item active" onclick="showSection('dashboard')" id="nav-dashboard">
+      <span class="material-symbols-outlined" style="font-size:18px">dashboard</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showSection('usuarios')" id="nav-usuarios">
+      <span class="material-symbols-outlined" style="font-size:18px">group</span> Usuários
+      <span id="badge-usuarios" class="ml-auto text-xs font-bold text-blue-400"></span>
+    </div>
+    <div class="nav-item" onclick="showSection('suporte')" id="nav-suporte">
+      <span class="material-symbols-outlined" style="font-size:18px">support_agent</span> Suporte
+      <span id="badge-suporte" class="ml-auto text-xs font-bold text-red-400"></span>
+    </div>
+    <div class="nav-item" onclick="showSection('notificacoes')" id="nav-notificacoes">
+      <span class="material-symbols-outlined" style="font-size:18px">campaign</span> Notificações
+    </div>
+    <div class="mt-auto pt-4 border-t border-white/5">
+      <div class="px-2 mb-2">
+        <div class="text-white text-xs font-bold" id="admin-email-display"></div>
+        <div class="text-[10px]" style="color:rgba(255,255,255,0.35)">Administrador</div>
+      </div>
+      <div class="nav-item text-red-400 hover:text-red-300" onclick="doLogout()">
+        <span class="material-symbols-outlined" style="font-size:18px">logout</span> Sair
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 p-6 overflow-y-auto">
+
+    <!-- DASHBOARD -->
+    <section id="section-dashboard" class="section active">
+      <h2 class="text-white font-black text-xl mb-6">Dashboard</h2>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8" id="stats-grid">
+        <div class="stat-card"><div class="text-3xl font-black text-white mb-1" id="stat-users">—</div><div class="text-xs text-white/40 font-semibold">Usuários</div></div>
+        <div class="stat-card"><div class="text-3xl font-black text-white mb-1" id="stat-corridas">—</div><div class="text-xs text-white/40 font-semibold">Corridas registradas</div></div>
+        <div class="stat-card"><div class="text-3xl font-black text-white mb-1" id="stat-tokens">—</div><div class="text-xs text-white/40 font-semibold">Tokens OCR usados</div></div>
+        <div class="stat-card"><div class="text-3xl font-black text-red-400 mb-1" id="stat-tickets">—</div><div class="text-xs text-white/40 font-semibold">Tickets abertos</div></div>
+      </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card"><div class="text-2xl font-black text-yellow-400 mb-1" id="stat-trial">—</div><div class="text-xs text-white/40 font-semibold">Trial</div></div>
+        <div class="stat-card"><div class="text-2xl font-black text-blue-400 mb-1" id="stat-basic">—</div><div class="text-xs text-white/40 font-semibold">Basic</div></div>
+        <div class="stat-card"><div class="text-2xl font-black text-purple-400 mb-1" id="stat-premium">—</div><div class="text-xs text-white/40 font-semibold">Premium</div></div>
+        <div class="stat-card"><div class="text-2xl font-black text-red-400 mb-1" id="stat-expired">—</div><div class="text-xs text-white/40 font-semibold">Expirados</div></div>
+      </div>
+    </section>
+
+    <!-- USUÁRIOS -->
+    <section id="section-usuarios" class="section">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-white font-black text-xl">Usuários</h2>
+        <input id="user-search" type="text" placeholder="Buscar por e-mail..." oninput="filterUsers()" class="px-4 py-2 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500" style="background:rgba(255,255,255,0.06);width:240px">
+      </div>
+      <div class="glass rounded-2xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-white/5">
+              <th class="text-left p-4 text-white/40 text-xs font-bold uppercase">Usuário</th>
+              <th class="text-left p-4 text-white/40 text-xs font-bold uppercase">Plano</th>
+              <th class="text-left p-4 text-white/40 text-xs font-bold uppercase">Corridas</th>
+              <th class="text-left p-4 text-white/40 text-xs font-bold uppercase">Tokens OCR</th>
+              <th class="text-left p-4 text-white/40 text-xs font-bold uppercase">Último acesso</th>
+              <th class="p-4"></th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body">
+            <tr><td colspan="6" class="p-8 text-center text-white/30 text-sm">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SUPORTE -->
+    <section id="section-suporte" class="section">
+      <h2 class="text-white font-black text-xl mb-6">Suporte</h2>
+      <div class="flex gap-2 mb-4">
+        <button onclick="filterTickets('open')" id="ticket-filter-open" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">Abertos</button>
+        <button onclick="filterTickets('in_progress')" id="ticket-filter-in_progress" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 text-white/40 border border-white/10">Em andamento</button>
+        <button onclick="filterTickets('resolved')" id="ticket-filter-resolved" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 text-white/40 border border-white/10">Resolvidos</button>
+        <button onclick="filterTickets('all')" id="ticket-filter-all" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 text-white/40 border border-white/10">Todos</button>
+      </div>
+      <div id="tickets-list" class="space-y-3">
+        <div class="glass rounded-2xl p-8 text-center text-white/30 text-sm">Carregando tickets...</div>
+      </div>
+    </section>
+
+    <!-- NOTIFICAÇÕES BROADCAST -->
+    <section id="section-notificacoes" class="section">
+      <h2 class="text-white font-black text-xl mb-6">Broadcast WhatsApp</h2>
+      <div class="glass rounded-2xl p-6 max-w-2xl">
+        <div class="mb-4">
+          <label class="text-white/40 text-xs font-bold uppercase mb-2 block">Filtrar por plano (opcional)</label>
+          <select id="broadcast-plano" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.06)">
+            <option value="">Todos os usuários com WhatsApp</option>
+            <option value="trial">Apenas Trial</option>
+            <option value="basic">Apenas Basic</option>
+            <option value="premium">Apenas Premium</option>
+            <option value="expired">Apenas Expirados</option>
+          </select>
+        </div>
+        <div class="mb-5">
+          <label class="text-white/40 text-xs font-bold uppercase mb-2 block">Mensagem</label>
+          <textarea id="broadcast-msg" rows="5" placeholder="Digite a mensagem que será enviada via WhatsApp..." class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500 resize-none" style="background:rgba(255,255,255,0.06)"></textarea>
+        </div>
+        <div id="broadcast-result" class="hidden mb-4 p-3 rounded-xl text-xs font-semibold"></div>
+        <button onclick="sendBroadcast()" class="w-full py-3 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white font-black text-sm tracking-wider transition-all active:scale-[.98]">ENVIAR BROADCAST</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODAL editar plano -->
+<div id="plan-modal" style="display:none" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="glass-strong rounded-3xl p-6 w-full max-w-sm mx-4">
+    <h3 class="text-white font-black mb-4">Editar Plano</h3>
+    <input type="hidden" id="edit-user-id">
+    <div class="mb-3">
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Plano</label>
+      <select id="edit-plano" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
+        <option value="trial">Trial</option>
+        <option value="basic">Basic</option>
+        <option value="premium">Premium</option>
+        <option value="expired">Expirado</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Trial expira em</label>
+      <input type="date" id="edit-trial-end" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
+    </div>
+    <div class="mb-5">
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Observação</label>
+      <input type="text" id="edit-obs" placeholder="Opcional" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
+    </div>
+    <div class="flex gap-2">
+      <button onclick="closePlanModal()" class="flex-1 py-3 rounded-2xl border border-white/10 text-white/50 font-bold text-sm hover:bg-white/5 transition-all">Cancelar</button>
+      <button onclick="savePlan()" class="flex-1 py-3 rounded-2xl bg-blue-500 text-white font-black text-sm transition-all hover:bg-blue-400">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL responder ticket -->
+<div id="ticket-modal" style="display:none" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="glass-strong rounded-3xl p-6 w-full max-w-md mx-4">
+    <h3 class="text-white font-black mb-1" id="ticket-modal-titulo"></h3>
+    <p class="text-white/50 text-xs mb-3" id="ticket-modal-user"></p>
+    <div class="p-3 rounded-xl mb-4 text-sm text-white/70" style="background:rgba(255,255,255,0.04)" id="ticket-modal-msg"></div>
+    <input type="hidden" id="ticket-modal-id">
+    <div class="mb-3">
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Status</label>
+      <select id="ticket-status" class="w-full p-3 rounded-xl text-white text-sm border border-white/10" style="background:rgba(255,255,255,0.08)">
+        <option value="in_progress">Em andamento</option>
+        <option value="resolved">Resolvido</option>
+      </select>
+    </div>
+    <div class="mb-5">
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Resposta</label>
+      <textarea id="ticket-resposta" rows="3" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 resize-none" style="background:rgba(255,255,255,0.08)"></textarea>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="closeTicketModal()" class="flex-1 py-3 rounded-2xl border border-white/10 text-white/50 font-bold text-sm">Cancelar</button>
+      <button onclick="saveTicket()" class="flex-1 py-3 rounded-2xl bg-blue-500 text-white font-black text-sm">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL  = 'https://db-dash.nucleocriativo.com.br';
+const SB_ANON = 'uSLPst+6To2N5BXF3VipCYxUYkzL133Oy0bscyopivY=';
+
+const { createClient } = supabase;
+const sb = createClient(SB_URL, SB_ANON);
+
+let adminToken = null;
+let allUsers   = [];
+let allTickets = [];
+let currentTicketFilter = 'open';
+
+// ── Auth ──────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('hidden');
+  btn.textContent = 'Entrando...'; btn.disabled = true;
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    errEl.textContent = 'E-mail ou senha inválidos';
+    errEl.classList.remove('hidden');
+    btn.textContent = 'ENTRAR'; btn.disabled = false;
+    return;
+  }
+
+  adminToken = data.session.access_token;
+  const r = await fetch('/api/admin/auth-check', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: data.user.id, email: data.user.email }),
+  });
+  const { admin } = await r.json();
+  if (!admin) {
+    await sb.auth.signOut();
+    errEl.textContent = 'Acesso negado — você não é administrador';
+    errEl.classList.remove('hidden');
+    btn.textContent = 'ENTRAR'; btn.disabled = false;
+    return;
+  }
+
+  document.getElementById('admin-email-display').textContent = data.user.email;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-app').style.display = 'flex';
+  btn.textContent = 'ENTRAR'; btn.disabled = false;
+  loadStats();
+  loadUsers();
+  loadTickets();
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+// ── Navigation ─────────────────────────────────────────
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+// ── Stats ──────────────────────────────────────────────
+async function loadStats() {
+  const r = await fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${adminToken}` } });
+  const d = await r.json();
+  if (!r.ok) return;
+  document.getElementById('stat-users').textContent    = d.total_users;
+  document.getElementById('stat-corridas').textContent = d.total_corridas;
+  document.getElementById('stat-tokens').textContent   = (d.total_tokens_in + d.total_tokens_out).toLocaleString('pt-BR');
+  document.getElementById('stat-tickets').textContent  = d.open_tickets;
+  document.getElementById('stat-trial').textContent    = d.plans.trial;
+  document.getElementById('stat-basic').textContent    = d.plans.basic;
+  document.getElementById('stat-premium').textContent  = d.plans.premium;
+  document.getElementById('stat-expired').textContent  = d.plans.expired;
+  if (d.open_tickets > 0) document.getElementById('badge-suporte').textContent = d.open_tickets;
+}
+
+// ── Users ──────────────────────────────────────────────
+async function loadUsers() {
+  const r = await fetch('/api/admin/users', { headers: { Authorization: `Bearer ${adminToken}` } });
+  const d = await r.json();
+  allUsers = d.users || [];
+  document.getElementById('badge-usuarios').textContent = allUsers.length || '';
+  renderUsers(allUsers);
+}
+
+function filterUsers() {
+  const q = document.getElementById('user-search').value.toLowerCase();
+  renderUsers(allUsers.filter(u => u.email.toLowerCase().includes(q)));
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById('users-table-body');
+  if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-white/30 text-sm">Nenhum usuário encontrado</td></tr>'; return; }
+  const planBadge = (p) => `<span class="badge badge-${p}">${p}</span>`;
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+  tbody.innerHTML = users.map(u => `
+    <tr class="table-row">
+      <td class="p-4">
+        <div class="text-white text-xs font-semibold">${u.email}</div>
+        <div class="text-white/30 text-[10px] mt-0.5">desde ${fmtDate(u.created_at)}</div>
+      </td>
+      <td class="p-4">${planBadge(u.plano)}</td>
+      <td class="p-4 text-white/60 text-xs font-bold">${u.corridas}</td>
+      <td class="p-4 text-white/60 text-xs font-bold">${(u.tokens_in + u.tokens_out).toLocaleString('pt-BR')}</td>
+      <td class="p-4 text-white/40 text-xs">${fmtDate(u.last_sign_in)}</td>
+      <td class="p-4">
+        <button onclick="openPlanModal('${u.id}','${u.plano}','${u.trial_ends_at||''}','${u.plan_id||''}')"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-blue-500/10 transition-all border border-blue-500/20">
+          Editar plano
+        </button>
+      </td>
+    </tr>`).join('');
+}
+
+// ── Plan modal ─────────────────────────────────────────
+function openPlanModal(userId, plano, trialEnd, planId) {
+  document.getElementById('edit-user-id').value = userId;
+  document.getElementById('edit-plano').value   = plano;
+  document.getElementById('edit-trial-end').value = trialEnd ? trialEnd.slice(0,10) : '';
+  document.getElementById('edit-obs').value = '';
+  document.getElementById('plan-modal').style.display = 'flex';
+}
+function closePlanModal() { document.getElementById('plan-modal').style.display = 'none'; }
+
+async function savePlan() {
+  const user_id      = document.getElementById('edit-user-id').value;
+  const plano        = document.getElementById('edit-plano').value;
+  const trial_ends_at = document.getElementById('edit-trial-end').value || null;
+  const obs          = document.getElementById('edit-obs').value;
+  const r = await fetch('/api/admin/update-plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ user_id, plano, trial_ends_at, obs }),
+  });
+  if (r.ok) { closePlanModal(); loadUsers(); loadStats(); }
+}
+
+// ── Tickets ────────────────────────────────────────────
+async function loadTickets() {
+  const r = await fetch('/api/admin/support', { headers: { Authorization: `Bearer ${adminToken}` } });
+  const d = await r.json();
+  allTickets = d.tickets || [];
+  filterTickets(currentTicketFilter);
+}
+
+function filterTickets(status) {
+  currentTicketFilter = status;
+  document.querySelectorAll('[id^="ticket-filter-"]').forEach(b => {
+    b.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 text-white/40 border border-white/10';
+  });
+  const active = document.getElementById('ticket-filter-' + status);
+  if (active) active.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30';
+
+  const list = status === 'all' ? allTickets : allTickets.filter(t => t.status === status);
+  const el = document.getElementById('tickets-list');
+  if (!list.length) { el.innerHTML = '<div class="glass rounded-2xl p-8 text-center text-white/30 text-sm">Nenhum ticket</div>'; return; }
+
+  const statusColors = { open: 'text-red-400', in_progress: 'text-yellow-400', resolved: 'text-green-400' };
+  const statusLabels = { open: 'Aberto', in_progress: 'Em andamento', resolved: 'Resolvido' };
+  el.innerHTML = list.map(t => `
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-white text-sm font-bold">${t.titulo}</span>
+            <span class="text-[10px] font-bold ${statusColors[t.status]}">${statusLabels[t.status]}</span>
+          </div>
+          <p class="text-white/50 text-xs mb-2">${t.mensagem}</p>
+          ${t.resposta ? `<div class="p-2 rounded-lg text-xs text-green-300 mt-2" style="background:rgba(74,222,128,0.06)">&#8617; ${t.resposta}</div>` : ''}
+          <div class="text-white/20 text-[10px] mt-2">${new Date(t.created_at).toLocaleString('pt-BR')}</div>
+        </div>
+        ${t.status !== 'resolved' ? `
+        <button onclick="openTicketModal('${t.id}','${t.titulo.replace(/'/g,"\\'")}','${t.mensagem.replace(/'/g,"\\'")}','${t.user_id}')"
+          class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-blue-500/10 border border-blue-500/20 transition-all">
+          Responder
+        </button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function openTicketModal(id, titulo, mensagem, userId) {
+  document.getElementById('ticket-modal-id').value = id;
+  document.getElementById('ticket-modal-titulo').textContent = titulo;
+  document.getElementById('ticket-modal-user').textContent = userId;
+  document.getElementById('ticket-modal-msg').textContent = mensagem;
+  document.getElementById('ticket-resposta').value = '';
+  document.getElementById('ticket-status').value = 'in_progress';
+  document.getElementById('ticket-modal').style.display = 'flex';
+}
+function closeTicketModal() { document.getElementById('ticket-modal').style.display = 'none'; }
+
+async function saveTicket() {
+  const id       = document.getElementById('ticket-modal-id').value;
+  const status   = document.getElementById('ticket-status').value;
+  const resposta = document.getElementById('ticket-resposta').value;
+  const r = await fetch('/api/admin/support', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ id, status, resposta }),
+  });
+  if (r.ok) { closeTicketModal(); loadTickets(); loadStats(); }
+}
+
+// ── Broadcast ──────────────────────────────────────────
+async function sendBroadcast() {
+  const message     = document.getElementById('broadcast-msg').value.trim();
+  const plano_filter = document.getElementById('broadcast-plano').value || null;
+  const resultEl    = document.getElementById('broadcast-result');
+  if (!message) { alert('Digite uma mensagem'); return; }
+
+  resultEl.classList.add('hidden');
+  const r = await fetch('/api/admin/broadcast', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ message, plano_filter }),
+  });
+  const d = await r.json();
+  resultEl.textContent = `Enviado: ${d.sent} ✓  |  Falhou: ${d.failed}  |  Total: ${d.total}`;
+  resultEl.className = 'mb-4 p-3 rounded-xl text-xs font-semibold ' + (d.failed > 0 ? 'bg-yellow-500/10 text-yellow-400' : 'bg-green-500/10 text-green-400');
+  resultEl.classList.remove('hidden');
+}
+
+// ── Enter key on login ─────────────────────────────────
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>
