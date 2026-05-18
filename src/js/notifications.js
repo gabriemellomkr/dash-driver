@@ -60,28 +60,39 @@ window.checkGoals = function() {
   const startSem = iniSem.toLocaleDateString('sv-SE', { timeZone: tz });
   const startMes = hoje.slice(0, 7);
 
-  const corridas = APP_STATE.corridas || [];
-  const soma = (fn) => corridas.filter(fn).reduce((s, c) =>
-    s + ((c.plat === 'InDriver' && c.bruto > 0) ? c.bruto : (c.liquido || 0)), 0);
+  // Lucro do período = receita − abastecimentos − despesas
+  function lucroPeriodo(startDate, endDate) {
+    const end = endDate || '9999-12-31';
+    const receita = (APP_STATE.corridas || [])
+      .filter(c => { const d = (c.data||'').slice(0,10); return d >= startDate && d <= end; })
+      .reduce((s,c) => s + ((c.plat === 'InDriver' && c.bruto > 0) ? c.bruto : (c.liquido||0)), 0);
+    const gas  = (APP_STATE.abastecimentos||[])
+      .filter(a => (a.data||'') >= startDate && (a.data||'') <= end)
+      .reduce((s,a) => s+(a.valor||0), 0);
+    const desp = (APP_STATE.despesas||[])
+      .filter(d => (d.data||'') >= startDate && (d.data||'') <= end)
+      .reduce((s,d) => s+(d.valor||0), 0);
+    return receita - gas - desp;
+  }
 
-  const ganhoHoje   = soma(c => (c.data || '').slice(0, 10) === hoje);
-  const ganhoSemana = soma(c => (c.data || '').slice(0, 10) >= startSem);
-  const ganhoMes    = soma(c => (c.data || '').slice(0, 7)  === startMes);
+  const lucroHoje   = lucroPeriodo(hoje, hoje);
+  const lucroSemana = lucroPeriodo(startSem);
+  const lucroMes    = lucroPeriodo(startMes);
 
   if (mD > 0) {
-    if (ganhoHoje >= mD)
+    if (lucroHoje >= mD)
       addNotif({ tipo: 'META_DIA_OK', icon: '🎯', titulo: 'Meta diária batida!',
-        desc: `Você faturou ${utils.formatBRL(ganhoHoje)} hoje. Meta: ${utils.formatBRL(mD)} ✅` });
-    else if (ganhoHoje >= mD * 0.8)
+        desc: `Seu lucro hoje foi ${utils.formatBRL(lucroHoje)}. Meta: ${utils.formatBRL(mD)} ✅` });
+    else if (lucroHoje >= mD * 0.8)
       addNotif({ tipo: 'META_DIA_QUASE', icon: '⚡', titulo: 'Quase lá!',
-        desc: `Faltam ${utils.formatBRL(mD - ganhoHoje)} para bater sua meta diária de ${utils.formatBRL(mD)}` });
+        desc: `Faltam ${utils.formatBRL(mD - lucroHoje)} para bater sua meta diária de ${utils.formatBRL(mD)}` });
   }
-  if (mS > 0 && ganhoSemana >= mS)
+  if (mS > 0 && lucroSemana >= mS)
     addNotif({ tipo: 'META_SEM_OK', icon: '🏆', titulo: 'Meta semanal batida!',
-      desc: `${utils.formatBRL(ganhoSemana)} esta semana. Meta: ${utils.formatBRL(mS)} 🎉` });
-  if (mM > 0 && ganhoMes >= mM)
+      desc: `${utils.formatBRL(lucroSemana)} de lucro esta semana. Meta: ${utils.formatBRL(mS)} 🎉` });
+  if (mM > 0 && lucroMes >= mM)
     addNotif({ tipo: 'META_MES_OK', icon: '👑', titulo: 'Meta mensal batida!',
-      desc: `${utils.formatBRL(ganhoMes)} este mês. Meta: ${utils.formatBRL(mM)} 🔥` });
+      desc: `${utils.formatBRL(lucroMes)} de lucro este mês. Meta: ${utils.formatBRL(mM)} 🔥` });
 };
 
 // ─── Verificar documentos ─────────────────────────────
