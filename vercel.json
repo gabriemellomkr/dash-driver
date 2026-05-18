@@ -7,8 +7,9 @@
     { "path": "/api/cron-resumo", "schedule": "0 0 * * *" }
   ],
   "functions": {
-    "api/ocr-corrida.js": {
-      "maxDuration": 30
-    }
+    "api/ocr-corrida.js": { "maxDuration": 30 },
+    "api/admin/users.js": { "maxDuration": 30 },
+    "api/admin/stats.js": { "maxDuration": 15 },
+    "api/admin/broadcast.js": { "maxDuration": 60 }
   }
 }
