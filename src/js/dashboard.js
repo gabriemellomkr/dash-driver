@@ -104,10 +104,10 @@ function updateMetas(list) {
       return d >= startDate && d <= end;
     }));
     const gas  = (APP_STATE.abastecimentos||[])
-      .filter(a => (a.data||'') >= startDate && (a.data||'') <= end)
+      .filter(a => { const d = (a.data||'').slice(0,10); return d >= startDate && d <= end; })
       .reduce((s,a) => s+(a.valor||0), 0);
     const desp = (APP_STATE.despesas||[])
-      .filter(d => (d.data||'') >= startDate && (d.data||'') <= end)
+      .filter(d => { const dd = (d.data||'').slice(0,10); return dd >= startDate && dd <= end; })
       .reduce((s,d) => s+(d.valor||0), 0);
     return receita - gas - desp;
   }

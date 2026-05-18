@@ -15,14 +15,21 @@ function _saveNotifs(list) {
 // ─── Camada 3: WhatsApp via Evolution API ─────────────
 async function _sendWhatsApp(text) {
   const tel = CONFIG_DATA.telefone;
-  if (!tel) return; // número não configurado
+  if (!tel) {
+    console.info('[DashDriver] WhatsApp não enviado: número não configurado em Configurações.');
+    return;
+  }
   try {
-    await fetch('/api/whatsapp', {
+    const r = await fetch('/api/whatsapp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ number: tel, text }),
     });
-  } catch(e) { console.warn('WhatsApp notify failed:', e); }
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      console.warn('[DashDriver] WhatsApp falhou:', err);
+    }
+  } catch(e) { console.warn('[DashDriver] WhatsApp erro de rede:', e); }
 }
 
 // ─── Tipos que disparam WhatsApp (metas + docs críticos) ─
@@ -92,10 +99,10 @@ window.checkGoals = function() {
       .filter(c => { const d = (c.data||'').slice(0,10); return d >= startDate && d <= end; })
       .reduce((s,c) => s + ((c.plat === 'InDriver' && c.bruto > 0) ? c.bruto : (c.liquido||0)), 0);
     const gas  = (APP_STATE.abastecimentos||[])
-      .filter(a => (a.data||'') >= startDate && (a.data||'') <= end)
+      .filter(a => { const d = (a.data||'').slice(0,10); return d >= startDate && d <= end; })
       .reduce((s,a) => s+(a.valor||0), 0);
     const desp = (APP_STATE.despesas||[])
-      .filter(d => (d.data||'') >= startDate && (d.data||'') <= end)
+      .filter(d => { const dd = (d.data||'').slice(0,10); return dd >= startDate && dd <= end; })
       .reduce((s,d) => s+(d.valor||0), 0);
     return receita - gas - desp;
   }
@@ -185,7 +192,7 @@ window.closeNotifications = function() {
 };
 
 window.marcarTodasLidas = function() {
-  _saveNotifs(_getNotifs().map(n => ({ ...n, lida: true })));
+  _saveNotifs([]);
   updateNotifBadge();
   _renderNotifList();
 };
