@@ -297,4 +297,5 @@ window.salvarCorrida = async function() {
   // Verifica metas e badges após cada corrida
   if (typeof checkGoals  === 'function') checkGoals();
   if (typeof checkBadges === 'function') checkBadges();
+  if (typeof checkPromos === 'function') checkPromos();
 };

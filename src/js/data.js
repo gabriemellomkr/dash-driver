@@ -125,9 +125,24 @@ window.data = {
   },
 
   async loadPromos() {
-    const { data, error } = await sb.get('dashdriver_promos', '?order=id.desc');
-    if (!error) {
-      APP_STATE.promos = data;
+    if (!APP_STATE.user) return;
+    const { data: rows, error } = await supabase
+      .from('dashdriver_promos')
+      .select('*')
+      .eq('user_id', APP_STATE.user.id)
+      .eq('ativa', true)
+      .order('data_fim', { ascending: true });
+    if (!error && rows) {
+      APP_STATE.promos = rows.map(r => ({
+        id:           r.id,
+        plat:         r.plataforma,
+        desc:         r.descricao,
+        inicio:       r.data_inicio,
+        fim:          r.data_fim,
+        metaCorridas: r.meta_corridas,
+        bonus:        r.bonus_valor,
+        ativa:        r.ativa,
+      }));
     }
   },
 

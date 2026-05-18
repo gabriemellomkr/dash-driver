@@ -32,11 +32,11 @@ async function _sendWhatsApp(text) {
   } catch(e) { console.warn('[DashDriver] WhatsApp erro de rede:', e); }
 }
 
-// ─── Tipos que disparam WhatsApp (metas + docs críticos) ─
-const WHATSAPP_TIPOS = [
+// ─── Prefixos que disparam WhatsApp (metas + docs + promos) ─
+const WHATSAPP_PREFIXES = [
   'META_DIA_OK', 'META_SEM_OK', 'META_MES_OK', 'META_DIA_QUASE',
-  'DOC_VENCIDO_CNH', 'DOC_VENCIDO_IPVA', 'DOC_VENCIDO_Seguro', 'DOC_VENCIDO_Licenciamento',
-  'DOC_7D_CNH', 'DOC_7D_IPVA', 'DOC_7D_Seguro', 'DOC_7D_Licenciamento',
+  'DOC_VENCIDO_', 'DOC_7D_',
+  'PROMO_INICIO_', 'PROMO_AMANHA_', 'PROMO_FIM_',
 ];
 
 // ─── Adicionar (dedup por tipo nas últimas 6h) ────────
@@ -57,7 +57,7 @@ function addNotif({ tipo, titulo, desc, icon }) {
   }
 
   // Camada 3: WhatsApp — apenas eventos importantes
-  if (WHATSAPP_TIPOS.includes(tipo)) {
+  if (WHATSAPP_PREFIXES.some(p => tipo.startsWith(p))) {
     _sendWhatsApp(`${icon} *${titulo}*\n${desc}`);
   }
 }
@@ -113,17 +113,17 @@ window.checkGoals = function() {
 
   if (mD > 0) {
     if (lucroHoje >= mD)
-      addNotif({ tipo: 'META_DIA_OK', icon: '🎯', titulo: 'Meta diária ativa!',
+      addNotif({ tipo: `META_DIA_OK_${hoje}`, icon: '🎯', titulo: 'Meta diária ativa!',
         desc: 'Sua meta diária está ativa. Continue assim, bora mais! 🚀' });
     else if (lucroHoje >= mD * 0.8)
-      addNotif({ tipo: 'META_DIA_QUASE', icon: '⚡', titulo: 'Quase lá!',
+      addNotif({ tipo: `META_DIA_QUASE_${hoje}`, icon: '⚡', titulo: 'Quase lá!',
         desc: 'Você está a menos de 20% de bater sua meta diária. Não para agora!' });
   }
   if (mS > 0 && lucroSemana >= mS)
-    addNotif({ tipo: 'META_SEM_OK', icon: '🏆', titulo: 'Meta semanal ativa!',
+    addNotif({ tipo: `META_SEM_OK_${startSem}`, icon: '🏆', titulo: 'Meta semanal ativa!',
       desc: 'Sua meta semanal está ativa. Semana incrível! 🎉' });
   if (mM > 0 && lucroMes >= mM)
-    addNotif({ tipo: 'META_MES_OK', icon: '👑', titulo: 'Meta mensal ativa!',
+    addNotif({ tipo: `META_MES_OK_${startMes}`, icon: '👑', titulo: 'Meta mensal ativa!',
       desc: 'Sua meta mensal está ativa. Mês arrasado! 🔥' });
 };
 
@@ -261,10 +261,31 @@ function _renderNotifList() {
     </div>`).join('');
 }
 
+// ─── Verificar promoções ──────────────────────────────
+window.checkPromos = function() {
+  const hoje = new Date().toLocaleDateString('sv-SE');
+  const amanha = (() => { const d = new Date(); d.setDate(d.getDate()+1); return d.toLocaleDateString('sv-SE'); })();
+  (APP_STATE.promos || []).filter(p => p.ativa).forEach(p => {
+    const platLabel = p.plat ? `[${p.plat}] ` : '';
+    if (p.inicio === hoje)
+      addNotif({ tipo: `PROMO_INICIO_${p.id}_${hoje}`, icon: '🎁',
+        titulo: `Promoção ${platLabel}começou!`,
+        desc: p.desc + (p.bonus ? ` — Bônus: ${utils.formatBRL(p.bonus)}` : '') });
+    if (p.fim === amanha)
+      addNotif({ tipo: `PROMO_AMANHA_${p.id}_${amanha}`, icon: '⏰',
+        titulo: `Amanhã é o último dia!`,
+        desc: `${platLabel}${p.desc}` });
+    if (p.fim === hoje)
+      addNotif({ tipo: `PROMO_FIM_${p.id}_${hoje}`, icon: '🔔',
+        titulo: `Último dia da promoção ${platLabel}`,
+        desc: `Hoje é o último dia: ${p.desc}` });
+  });
+};
+
 // ─── Init ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   updateNotifBadge();
   setTimeout(() => {
-    if (APP_STATE?.user) { checkDocuments(); checkGoals(); }
+    if (APP_STATE?.user) { checkDocuments(); checkGoals(); checkPromos(); }
   }, 2500);
 });
