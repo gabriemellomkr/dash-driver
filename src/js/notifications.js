@@ -195,6 +195,18 @@ window.testarWhatsApp = async function() {
   }
 };
 
+// ─── Reset de notificações de meta (chamado ao excluir corrida) ──
+// Remove as notificações META_DIA_OK e META_DIA_QUASE do dia atual
+// para que possam re-disparar se a meta for re-atingida
+window._resetMetaNotifs = function() {
+  const tz   = CONFIG_DATA.timezone || 'America/Sao_Paulo';
+  const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: tz });
+  const prefixos = [`META_DIA_OK_${hoje}`, `META_DIA_QUASE_${hoje}`];
+  const lista = _getNotifs().filter(n => !prefixos.some(p => n.tipo === p));
+  _saveNotifs(lista);
+  updateNotifBadge();
+};
+
 // ─── Pedir permissão browser push ─────────────────────
 window.requestNotifPermission = async function() {
   if (typeof Notification === 'undefined') return;

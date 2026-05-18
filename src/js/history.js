@@ -222,6 +222,9 @@ window.confirmarDelete = async function(id) {
     await data.loadCorridas();
     renderHistorico();
     if (typeof renderDashboard === 'function') renderDashboard();
+    // Limpa notificações de meta do dia para que possam re-disparar
+    // se a meta for re-atingida após a exclusão
+    _resetMetaNotifs();
   } else {
     utils.toast('Erro ao excluir', 'error');
   }
