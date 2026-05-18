@@ -35,6 +35,9 @@ window.loadSettingsUI = function() {
   const tzEl = document.getElementById('cfg-timezone');
   if (tzEl) tzEl.value = CONFIG_DATA.timezone || 'America/Sao_Paulo';
 
+  // WhatsApp
+  set('cfg-telefone', CONFIG_DATA.telefone || '');
+
   // Veículo — lê do cache local (populado pelo loadConfig do Supabase)
   const _v = JSON.parse(localStorage.getItem('dd_veiculo') || '{}');
   set('cfg-v-modelo',   _v.modelo);
@@ -63,11 +66,12 @@ window.saveSettings = function() {
     const revKm    = parseNum('cfg-rev-km');
     const precoKm  = parseNum('cfg-preco-km');
     const timezone = document.getElementById('cfg-timezone')?.value || 'America/Sao_Paulo';
+    const telefone = (document.getElementById('cfg-telefone')?.value || '').replace(/\D/g, '');
 
     // 1. Atualiza estado local imediatamente
     Object.assign(CONFIG_DATA, { nome, precoLitro: preco, consumo,
       metaDiaria: metaD, metaSemanal: metaS, metaMensal: metaM,
-      custoRevisao: revCusto, kmRevisao: revKm, precoKm, timezone });
+      custoRevisao: revCusto, kmRevisao: revKm, precoKm, timezone, telefone });
     localStorage.setItem('dash_config', JSON.stringify(CONFIG_DATA));
 
     const gV = id => document.getElementById(id)?.value || '';
@@ -104,6 +108,7 @@ window.saveSettings = function() {
         km_revisao:    revKm,
         preco_km:      precoKm,
         timezone,
+        telefone,
         veiculo:       vData,
         updated_at:    new Date().toISOString()
       }, { onConflict: 'user_id' })
