@@ -93,28 +93,32 @@ function updateKPIs(list) {
 /* ─── METAS (Diária / Semanal / Mensal) ───────────── */
 function updateMetas(list) {
   const today = new Date().toLocaleDateString('sv-SE');
-
-  // Receita total do dia de hoje
-  const recDia  = somaReceita(APP_STATE.corridas
-    .filter(c => (c.data||'').split('T')[0] === today));
-
-  // Receita da semana
   const inicioSemana = (() => { const d=new Date(); d.setDate(d.getDate()-d.getDay()); return d.toLocaleDateString('sv-SE'); })();
-  const recSemana = somaReceita(APP_STATE.corridas
-    .filter(c => (c.data||'').split('T')[0] >= inicioSemana));
-
-  // Receita do mês
   const inicioMes = today.slice(0,8)+'01';
-  const recMes = somaReceita(APP_STATE.corridas
-    .filter(c => (c.data||'').split('T')[0] >= inicioMes));
+
+  // Lucro do período = receita − abastecimentos − despesas
+  function lucroPeriodo(startDate, endDate) {
+    const end = endDate || '9999-12-31';
+    const receita = somaReceita(APP_STATE.corridas.filter(c => {
+      const d = (c.data||'').split('T')[0];
+      return d >= startDate && d <= end;
+    }));
+    const gas  = (APP_STATE.abastecimentos||[])
+      .filter(a => (a.data||'') >= startDate && (a.data||'') <= end)
+      .reduce((s,a) => s+(a.valor||0), 0);
+    const desp = (APP_STATE.despesas||[])
+      .filter(d => (d.data||'') >= startDate && (d.data||'') <= end)
+      .reduce((s,d) => s+(d.valor||0), 0);
+    return receita - gas - desp;
+  }
 
   const mD = CONFIG_DATA.metaDiaria  || 0;
   const mS = CONFIG_DATA.metaSemanal || 0;
   const mM = CONFIG_DATA.metaMensal  || 0;
 
-  renderMeta('meta-d', recDia,   mD, '#3b82f6');
-  renderMeta('meta-s', recSemana, mS, '#a855f7');
-  renderMeta('meta-m', recMes,   mM, '#f59e0b');
+  renderMeta('meta-d', lucroPeriodo(today, today),    mD, '#3b82f6');
+  renderMeta('meta-s', lucroPeriodo(inicioSemana),    mS, '#a855f7');
+  renderMeta('meta-m', lucroPeriodo(inicioMes),       mM, '#f59e0b');
 }
 
 function renderMeta(prefix, atual, meta, cor) {
