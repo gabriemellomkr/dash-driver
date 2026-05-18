@@ -113,18 +113,18 @@ window.checkGoals = function() {
 
   if (mD > 0) {
     if (lucroHoje >= mD)
-      addNotif({ tipo: 'META_DIA_OK', icon: '🎯', titulo: 'Meta diária batida!',
-        desc: `Seu lucro hoje foi ${utils.formatBRL(lucroHoje)}. Meta: ${utils.formatBRL(mD)} ✅` });
+      addNotif({ tipo: 'META_DIA_OK', icon: '🎯', titulo: 'Meta diária ativa!',
+        desc: 'Sua meta diária está ativa. Continue assim, bora mais! 🚀' });
     else if (lucroHoje >= mD * 0.8)
       addNotif({ tipo: 'META_DIA_QUASE', icon: '⚡', titulo: 'Quase lá!',
-        desc: `Faltam ${utils.formatBRL(mD - lucroHoje)} para bater sua meta diária de ${utils.formatBRL(mD)}` });
+        desc: 'Você está a menos de 20% de bater sua meta diária. Não para agora!' });
   }
   if (mS > 0 && lucroSemana >= mS)
-    addNotif({ tipo: 'META_SEM_OK', icon: '🏆', titulo: 'Meta semanal batida!',
-      desc: `${utils.formatBRL(lucroSemana)} de lucro esta semana. Meta: ${utils.formatBRL(mS)} 🎉` });
+    addNotif({ tipo: 'META_SEM_OK', icon: '🏆', titulo: 'Meta semanal ativa!',
+      desc: 'Sua meta semanal está ativa. Semana incrível! 🎉' });
   if (mM > 0 && lucroMes >= mM)
-    addNotif({ tipo: 'META_MES_OK', icon: '👑', titulo: 'Meta mensal batida!',
-      desc: `${utils.formatBRL(lucroMes)} de lucro este mês. Meta: ${utils.formatBRL(mM)} 🔥` });
+    addNotif({ tipo: 'META_MES_OK', icon: '👑', titulo: 'Meta mensal ativa!',
+      desc: 'Sua meta mensal está ativa. Mês arrasado! 🔥' });
 };
 
 // ─── Verificar documentos ─────────────────────────────
