@@ -10,6 +10,7 @@ window.renderDashboard = function() {
   const list = getPeriodData();
   updateKPIs(list);
   updateMetas(list);
+  if (typeof renderPromosDashboard === 'function') renderPromosDashboard();
   updateIndriverSaldo();
   updateTaxaRadar(list);
   updateJornada();

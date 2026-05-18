@@ -258,6 +258,9 @@
         </div>
       </div>
 
+      <!-- ══ PROMOÇÕES ══ -->
+      <div id="promos-dashboard" style="display:none"></div>
+
       <!-- ══ INDRIVER + TAXAS lado a lado ══ -->
       <div class="grid grid-cols-2 gap-3">
         <div class="glass rounded-2xl p-3 sm:p-4">
@@ -1052,6 +1055,64 @@
   </div>
 </div>
 
+<!-- MODAL PROMOÇÃO -->
+<div id="promo-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closePromoModal()"></div>
+  <div class="glass-strong w-full rounded-t-3xl relative z-10 flex flex-col" style="max-height:85vh">
+    <div class="flex items-center justify-between p-5 pb-3 border-b border-white/5">
+      <h2 id="promo-modal-title" class="text-white text-base font-bold">Nova Promoção</h2>
+      <button onclick="closePromoModal()" class="w-8 h-8 flex items-center justify-center text-outline hover:text-white rounded-xl bg-white/5">
+        <span class="material-symbols-outlined" style="font-size:18px">close</span>
+      </button>
+    </div>
+    <div class="overflow-y-auto flex-1 p-5 space-y-4">
+      <form id="form-promo" onsubmit="return false">
+        <!-- Plataforma -->
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-2 block">Plataforma</label>
+          <div class="grid grid-cols-4 gap-2" id="promo-plat-btns">
+            <button type="button" onclick="setPromoPlat('Uber',this)" class="plat-promo-btn py-2 rounded-xl border text-xs font-bold border-blue-500 bg-blue-500/10 text-blue-400">Uber</button>
+            <button type="button" onclick="setPromoPlat('99',this)" class="plat-promo-btn py-2 rounded-xl border text-xs font-bold border-outline-variant bg-surface-container-high text-outline">99</button>
+            <button type="button" onclick="setPromoPlat('InDriver',this)" class="plat-promo-btn py-2 rounded-xl border text-xs font-bold border-outline-variant bg-surface-container-high text-outline">InDriver</button>
+            <button type="button" onclick="setPromoPlat('Particular',this)" class="plat-promo-btn py-2 rounded-xl border text-xs font-bold border-outline-variant bg-surface-container-high text-outline">Particular</button>
+          </div>
+          <input type="hidden" id="f-promo-plat" value="Uber">
+        </div>
+        <!-- Descrição -->
+        <div>
+          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Descrição da Promoção</label>
+          <textarea id="f-promo-desc" rows="2" placeholder="Ex: Complete 20 corridas e ganhe R$50 de bônus" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors resize-none"></textarea>
+        </div>
+        <!-- Datas -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Início</label>
+            <input type="date" id="f-promo-inicio" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+          <div>
+            <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Fim</label>
+            <input type="date" id="f-promo-fim" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+        </div>
+        <!-- Meta + Bônus (opcionais) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Meta de corridas <span class="normal-case font-normal">(opcional)</span></label>
+            <input type="text" inputmode="numeric" id="f-promo-corridas" placeholder="Ex: 20" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+          <div>
+            <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">Bônus R$ <span class="normal-case font-normal">(opcional)</span></label>
+            <input type="text" inputmode="decimal" id="f-promo-bonus" placeholder="Ex: 50,00" class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="p-5 pt-3 border-t border-white/5">
+      <button id="btn-salvar-promo" onclick="salvarPromo()" class="w-full py-3.5 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white font-black text-sm tracking-wider transition-all active:scale-[.98]">SALVAR PROMOÇÃO</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL JORNADA -->
 <div id="jornada-modal" class="fixed inset-0 z-[100] flex-col justify-end" style="display:none">
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeJornadaModal()"></div>
@@ -1207,6 +1268,7 @@
 <script src="src/js/jornada.js"></script>
 <script src="src/js/settings.js"></script>
 <script src="src/js/notifications.js"></script>
+  <script src="src/js/promos.js"></script>
 <script src="src/js/profile.js"></script>
 <script src="src/js/admin.js"></script>
 <script src="src/js/main.js"></script>
