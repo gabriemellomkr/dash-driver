@@ -15,6 +15,7 @@ window.CONFIG_DATA = {
   metaMensal:  0,
   precoKm: 0,
   timezone: "America/Sao_Paulo",
+  telefone: "",
   pushEnabled: false,
   pushSubscription: null
 };

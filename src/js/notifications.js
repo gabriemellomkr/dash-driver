@@ -1,4 +1,4 @@
-/* DashDriver — Notificações (Camada 1: in-app + Camada 2: browser push) */
+/* DashDriver — Notificações (Camada 1: in-app + Camada 2: browser push + Camada 3: WhatsApp) */
 
 const NOTIF_KEY = 'dd_notifs';
 const NOTIF_MAX = 50;
@@ -11,6 +11,26 @@ function _getNotifs() {
 function _saveNotifs(list) {
   localStorage.setItem(NOTIF_KEY, JSON.stringify(list.slice(0, NOTIF_MAX)));
 }
+
+// ─── Camada 3: WhatsApp via Evolution API ─────────────
+async function _sendWhatsApp(text) {
+  const tel = CONFIG_DATA.telefone;
+  if (!tel) return; // número não configurado
+  try {
+    await fetch('/api/whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: tel, text }),
+    });
+  } catch(e) { console.warn('WhatsApp notify failed:', e); }
+}
+
+// ─── Tipos que disparam WhatsApp (metas + docs críticos) ─
+const WHATSAPP_TIPOS = [
+  'META_DIA_OK', 'META_SEM_OK', 'META_MES_OK', 'META_DIA_QUASE',
+  'DOC_VENCIDO_CNH', 'DOC_VENCIDO_IPVA', 'DOC_VENCIDO_Seguro', 'DOC_VENCIDO_Licenciamento',
+  'DOC_7D_CNH', 'DOC_7D_IPVA', 'DOC_7D_Seguro', 'DOC_7D_Licenciamento',
+];
 
 // ─── Adicionar (dedup por tipo nas últimas 6h) ────────
 function addNotif({ tipo, titulo, desc, icon }) {
@@ -27,6 +47,11 @@ function addNotif({ tipo, titulo, desc, icon }) {
     try {
       new Notification(titulo, { body: desc, icon: '/icon-192.png', badge: '/icon-192.png', tag: tipo });
     } catch(e) { /* SW pode não estar ativo */ }
+  }
+
+  // Camada 3: WhatsApp — apenas eventos importantes
+  if (WHATSAPP_TIPOS.includes(tipo)) {
+    _sendWhatsApp(`${icon} *${titulo}*\n${desc}`);
   }
 }
 
