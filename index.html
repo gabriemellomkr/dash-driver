@@ -968,7 +968,10 @@
         <div>
           <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">WhatsApp 📲</label>
           <input type="text" inputmode="tel" id="cfg-telefone" placeholder="55119999..." class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
-          <p class="text-outline text-[10px] mt-1">Com DDI (ex: 5511912345678)</p>
+          <div class="flex items-center justify-between mt-1">
+            <p class="text-outline text-[10px]">Com DDI (ex: 5511912345678)</p>
+            <button onclick="testarWhatsApp()" class="text-blue-400 text-[10px] font-bold hover:text-blue-300 active:scale-95 transition-all">Testar →</button>
+          </div>
         </div>
       </div>
       <!-- Divisor -->

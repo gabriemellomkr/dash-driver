@@ -169,6 +169,32 @@ window.checkBadges = function() {
   if (changed) localStorage.setItem('dd_badges_earned', JSON.stringify(earned));
 };
 
+// ─── Teste manual de WhatsApp ─────────────────────────
+window.testarWhatsApp = async function() {
+  const tel = CONFIG_DATA.telefone;
+  if (!tel) {
+    utils.toast('Configure seu número WhatsApp nas configurações primeiro', 'error');
+    return;
+  }
+  utils.toast('Enviando teste...', 'success');
+  try {
+    const r = await fetch('/api/whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: tel, text: '✅ *DashDriver*\nTeste de notificação — funcionando!' }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok) {
+      utils.toast('✅ WhatsApp enviado com sucesso!', 'success');
+    } else {
+      utils.toast('Erro: ' + (data.error || r.status), 'error');
+      console.error('[DashDriver] Teste WhatsApp falhou:', data);
+    }
+  } catch(e) {
+    utils.toast('Erro de rede: ' + e.message, 'error');
+  }
+};
+
 // ─── Pedir permissão browser push ─────────────────────
 window.requestNotifPermission = async function() {
   if (typeof Notification === 'undefined') return;
@@ -195,6 +221,7 @@ window.marcarTodasLidas = function() {
   _saveNotifs([]);
   updateNotifBadge();
   _renderNotifList();
+  utils.toast('Notificações apagadas', 'success');
 };
 
 function _timeAgo(ts) {
