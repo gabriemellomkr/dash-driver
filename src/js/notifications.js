@@ -113,18 +113,18 @@ window.checkGoals = function() {
 
   if (mD > 0) {
     if (lucroHoje >= mD)
-      addNotif({ tipo: `META_DIA_OK_${hoje}`, icon: '🎯', titulo: 'Meta diária ativa!',
-        desc: 'Sua meta diária está ativa. Continue assim, bora mais! 🚀' });
+      addNotif({ tipo: `META_DIA_OK_${hoje}`, icon: '🎯', titulo: 'Meta diária batida!',
+        desc: 'Você bateu sua meta do dia. Continue assim, bora mais! 🚀' });
     else if (lucroHoje >= mD * 0.8)
       addNotif({ tipo: `META_DIA_QUASE_${hoje}`, icon: '⚡', titulo: 'Quase lá!',
         desc: 'Você está a menos de 20% de bater sua meta diária. Não para agora!' });
   }
   if (mS > 0 && lucroSemana >= mS)
-    addNotif({ tipo: `META_SEM_OK_${startSem}`, icon: '🏆', titulo: 'Meta semanal ativa!',
-      desc: 'Sua meta semanal está ativa. Semana incrível! 🎉' });
+    addNotif({ tipo: `META_SEM_OK_${startSem}`, icon: '🏆', titulo: 'Meta semanal batida!',
+      desc: 'Você bateu sua meta da semana. Semana incrível! 🎉' });
   if (mM > 0 && lucroMes >= mM)
-    addNotif({ tipo: `META_MES_OK_${startMes}`, icon: '👑', titulo: 'Meta mensal ativa!',
-      desc: 'Sua meta mensal está ativa. Mês arrasado! 🔥' });
+    addNotif({ tipo: `META_MES_OK_${startMes}`, icon: '👑', titulo: 'Meta mensal batida!',
+      desc: 'Você bateu sua meta do mês. Mês arrasado! 🔥' });
 };
 
 // ─── Verificar documentos ─────────────────────────────
