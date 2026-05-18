@@ -4,10 +4,10 @@ const http  = require('http');
 const SB_URL             = process.env.SB_URL || '';
 const SB_SERVICE_ROLE_KEY = process.env.SB_SERVICE_ROLE_KEY || '';
 
-function request(url, options) {
+function request(url, opts) {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? https : http;
-    const req = lib.request(url, options, (res) => {
+    const req = lib.request(url, opts, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => resolve({ status: res.statusCode, body: data }));
@@ -19,9 +19,18 @@ function request(url, options) {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Debug endpoint
+  if (req.method === 'GET') {
+    const availableVars = Object.keys(process.env).filter(k =>
+      ['SB_URL','SB_KEY','SB_SERVICE_ROLE_KEY','EVOLUTION_URL','EVOLUTION_INSTANCE','EVOLUTION_KEY'].includes(k)
+    );
+    return res.status(200).json({ available_env_vars: availableVars, sb_url_length: (process.env.SB_URL||'').length });
+  }
+
   if (req.method !== 'POST') return res.status(405).end();
 
   const { user_id, email } = req.body || {};
