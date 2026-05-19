@@ -271,7 +271,7 @@ async function doLogin() {
     const r = await fetch('/api/admin/auth-check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: data.user.id, email: data.user.email }),
+      body: JSON.stringify({ user_id: data.user.id, email: data.user.email, access_token: data.session.access_token }),
     });
     const payload = await r.json();
     adminOk = payload.admin === true;

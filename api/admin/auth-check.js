@@ -1,20 +1,22 @@
 const https = require('https');
 const http  = require('http');
 
-// SB_URL: Supabase Dash Driver base URL
-// SB_SERVICE_ROLE_KEY: raw base64 key used by Kong's key-auth (apikey header)
-// SB_SERVICE_JWT: HS256 JWT signed with DashDriver JWT_SECRET — used by PostgREST (Bearer header)
+// Kong key-auth: raw base64 key that identifies the service_role consumer
 const SB_URL             = process.env.SB_URL || 'https://db-dash.nucleocriativo.com.br';
 const SB_SERVICE_ROLE_KEY = process.env.SB_SERVICE_ROLE_KEY || 'K3RHlT5OjBCAhtb3J0TtOkhgkexf3hcnN4eb7H05Yrs=';
-const SB_SERVICE_JWT      = process.env.SB_SERVICE_JWT ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' +
-  '.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MTUwOTAwMDAsImV4cCI6MzI1MDM2ODAwMDB9' +
-  '.SamepRuf8DmbrsrvBryafyXhYp9GFyntb_-yBMHkH3A';
 
-function request(url, options) {
+function httpGet(urlStr, headers) {
   return new Promise((resolve, reject) => {
-    const lib = url.startsWith('https') ? https : http;
-    const req = lib.request(url, options, (res) => {
+    const parsed = new URL(urlStr);
+    const lib    = parsed.protocol === 'https:' ? https : http;
+    const opts   = {
+      hostname: parsed.hostname,
+      port:     parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path:     parsed.pathname + parsed.search,
+      method:   'GET',
+      headers,
+    };
+    const req = lib.request(opts, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => resolve({ status: res.statusCode, body: data }));
@@ -31,20 +33,15 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { user_id, email } = req.body || {};
+  const { user_id, email, access_token } = req.body || {};
   if (!user_id || !email) return res.status(400).json({ admin: false, error: 'Missing user_id or email' });
+  if (!access_token) return res.status(400).json({ admin: false, error: 'Missing access_token' });
 
   try {
     const url = `${SB_URL}/rest/v1/dashdriver_admins?email=eq.${encodeURIComponent(email)}&select=id`;
-    const parsed = new URL(url);
-    const { status, body } = await request(url, {
-      hostname: parsed.hostname,
-      path: parsed.pathname + parsed.search,
-      method: 'GET',
-      headers: {
-        apikey: SB_SERVICE_ROLE_KEY,      // Kong key-auth validation
-        Authorization: `Bearer ${SB_SERVICE_JWT}`, // PostgREST JWT validation
-      },
+    const { status, body } = await httpGet(url, {
+      apikey:        SB_SERVICE_ROLE_KEY,      // Kong consumer key (key-auth plugin)
+      Authorization: `Bearer ${access_token}`, // User JWT → PostgREST applies RLS (auth.email()=email)
     });
     if (status !== 200) {
       return res.status(500).json({ admin: false, error: `Supabase error ${status}: ${body}` });
