@@ -1,53 +1,37 @@
-const SB_URL = process.env.SB_URL;
-const SB_SERVICE_ROLE_KEY = process.env.SB_SERVICE_ROLE_KEY;
-
-const adminCheck = async (req) => {
-  if (!req.headers.authorization) return false;
-  const token = req.headers.authorization.replace('Bearer ', '');
-  const r = await fetch(`${SB_URL}/auth/v1/user`, {
-    headers: { apikey: SB_SERVICE_ROLE_KEY, Authorization: `Bearer ${token}` }
-  });
-  if (!r.ok) return false;
-  const user = await r.json();
-  const ra = await fetch(`${SB_URL}/rest/v1/dashdriver_admins?email=eq.${encodeURIComponent(user.email)}&select=id`, {
-    headers: { apikey: SB_SERVICE_ROLE_KEY, Authorization: `Bearer ${SB_SERVICE_ROLE_KEY}` }
-  });
-  const admins = await ra.json();
-  return Array.isArray(admins) && admins.length > 0;
-};
+const pool = require('./_db');
+const { verifyAdmin } = require('./_auth');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (!SB_SERVICE_ROLE_KEY) return res.status(500).json({ error: 'Service role not configured' });
-  if (!await adminCheck(req)) return res.status(403).json({ error: 'Forbidden' });
+  if (!verifyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
 
-  if (req.method === 'GET') {
-    const r = await fetch(`${SB_URL}/rest/v1/dashdriver_support?select=*&order=created_at.desc`, {
-      headers: { apikey: SB_SERVICE_ROLE_KEY, Authorization: `Bearer ${SB_SERVICE_ROLE_KEY}` }
-    });
-    const tickets = await r.json();
-    return res.status(200).json({ tickets: Array.isArray(tickets) ? tickets : [] });
+  const client = await pool.connect();
+  try {
+    if (req.method === 'GET') {
+      const r = await client.query('SELECT * FROM public.dashdriver_support ORDER BY created_at DESC');
+      return res.status(200).json({ tickets: r.rows });
+    }
+
+    if (req.method === 'POST') {
+      const { id, status, resposta } = req.body || {};
+      if (!id) return res.status(400).json({ error: 'id required' });
+
+      const r = await client.query(
+        `UPDATE public.dashdriver_support
+         SET status = $1, resposta = $2, updated_at = now()
+         WHERE id = $3
+         RETURNING *`,
+        [status || 'resolved', resposta || '', id]
+      );
+      const ticket = r.rows[0] || null;
+      return res.status(200).json({ ok: true, ticket });
+    }
+
+    return res.status(405).end();
+  } finally {
+    client.release();
   }
-
-  if (req.method === 'POST') {
-    const { id, status, resposta } = req.body || {};
-    if (!id) return res.status(400).json({ error: 'id required' });
-    const r = await fetch(`${SB_URL}/rest/v1/dashdriver_support?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: {
-        apikey: SB_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SB_SERVICE_ROLE_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      },
-      body: JSON.stringify({ status: status || 'resolved', resposta: resposta || '', updated_at: new Date().toISOString() }),
-    });
-    const updated = await r.json();
-    return res.status(200).json({ ok: true, ticket: Array.isArray(updated) ? updated[0] : updated });
-  }
-
-  res.status(405).end();
 };

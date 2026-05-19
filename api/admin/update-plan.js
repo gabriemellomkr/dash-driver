@@ -1,20 +1,5 @@
-const SB_URL = process.env.SB_URL;
-const SB_SERVICE_ROLE_KEY = process.env.SB_SERVICE_ROLE_KEY;
-
-const adminCheck = async (req) => {
-  if (!req.headers.authorization) return false;
-  const token = req.headers.authorization.replace('Bearer ', '');
-  const r = await fetch(`${SB_URL}/auth/v1/user`, {
-    headers: { apikey: SB_SERVICE_ROLE_KEY, Authorization: `Bearer ${token}` }
-  });
-  if (!r.ok) return false;
-  const user = await r.json();
-  const ra = await fetch(`${SB_URL}/rest/v1/dashdriver_admins?email=eq.${encodeURIComponent(user.email)}&select=id`, {
-    headers: { apikey: SB_SERVICE_ROLE_KEY, Authorization: `Bearer ${SB_SERVICE_ROLE_KEY}` }
-  });
-  const admins = await ra.json();
-  return Array.isArray(admins) && admins.length > 0;
-};
+const pool = require('./_db');
+const { verifyAdmin } = require('./_auth');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,42 +7,27 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
-  if (!SB_SERVICE_ROLE_KEY) return res.status(500).json({ error: 'Service role not configured' });
-  if (!await adminCheck(req)) return res.status(403).json({ error: 'Forbidden' });
+  if (!verifyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
 
   const { user_id, plano, trial_ends_at, obs } = req.body || {};
   if (!user_id || !plano) return res.status(400).json({ error: 'user_id and plano required' });
 
-  const payload = { user_id, plano, obs: obs || null, updated_at: new Date().toISOString() };
-  if (trial_ends_at) payload.trial_ends_at = trial_ends_at;
-
-  const r = await fetch(`${SB_URL}/rest/v1/dashdriver_plans?user_id=eq.${user_id}`, {
-    method: 'PATCH',
-    headers: {
-      apikey: SB_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SB_SERVICE_ROLE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    },
-    body: JSON.stringify(payload),
-  });
-  const existing = await r.json();
-
-  if (!Array.isArray(existing) || existing.length === 0) {
-    // Insert
-    const ri = await fetch(`${SB_URL}/rest/v1/dashdriver_plans`, {
-      method: 'POST',
-      headers: {
-        apikey: SB_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SB_SERVICE_ROLE_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      },
-      body: JSON.stringify(payload),
-    });
-    const inserted = await ri.json();
-    return res.status(200).json({ ok: true, plan: Array.isArray(inserted) ? inserted[0] : inserted });
+  const client = await pool.connect();
+  try {
+    // Upsert: update if exists, insert if not
+    const r = await client.query(
+      `INSERT INTO public.dashdriver_plans (user_id, plano, trial_ends_at, obs, updated_at)
+       VALUES ($1, $2, $3, $4, now())
+       ON CONFLICT (user_id) DO UPDATE
+         SET plano         = EXCLUDED.plano,
+             trial_ends_at = EXCLUDED.trial_ends_at,
+             obs           = EXCLUDED.obs,
+             updated_at    = now()
+       RETURNING *`,
+      [user_id, plano, trial_ends_at || null, obs || null]
+    );
+    return res.status(200).json({ ok: true, plan: r.rows[0] });
+  } finally {
+    client.release();
   }
-
-  res.status(200).json({ ok: true, plan: existing[0] });
 };
