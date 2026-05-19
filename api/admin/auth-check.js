@@ -2,7 +2,7 @@ const https = require('https');
 const http  = require('http');
 
 const SB_URL = process.env.SB_URL || 'https://db-dash.nucleocriativo.com.br';
-const SB_KEY = process.env.SB_KEY || '';
+const SB_KEY = process.env.SB_KEY || 'uSLPst+6To2N5BXF3VipCYxUYkzL133Oy0bscyopivY=';
 
 function request(url, opts, body) {
   return new Promise((resolve, reject) => {
@@ -29,7 +29,6 @@ module.exports = async function handler(req, res) {
   if (!user_id || !email) return res.status(400).json({ admin: false, error: 'Missing user_id or email' });
 
   try {
-    // Usa RPC com SECURITY DEFINER — bypassa RLS com a anon key
     const bodyStr = JSON.stringify({ check_email: email });
     const url = `${SB_URL}/rest/v1/rpc/check_is_admin`;
     const parsed = new URL(url);
@@ -47,7 +46,8 @@ module.exports = async function handler(req, res) {
 
     let result;
     try { result = JSON.parse(body); } catch(e) { result = body; }
-    return res.status(200).json({ admin: result === true });
+    // debug temporário
+    return res.status(200).json({ admin: result === true, _sb_status: status, _result: result });
   } catch (e) {
     return res.status(500).json({ admin: false, error: e.message });
   }
