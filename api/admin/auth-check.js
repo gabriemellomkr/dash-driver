@@ -1,29 +1,37 @@
-const https = require('https');
-const http  = require('http');
+const crypto = require('crypto');
 
-// Kong key-auth: raw base64 key that identifies the service_role consumer
-const SB_URL             = process.env.SB_URL || 'https://db-dash.nucleocriativo.com.br';
-const SB_SERVICE_ROLE_KEY = process.env.SB_SERVICE_ROLE_KEY || 'K3RHlT5OjBCAhtb3J0TtOkhgkexf3hcnN4eb7H05Yrs=';
+// JWT_SECRET: mesma chave usada pelo Supabase GoTrue para assinar os tokens
+// ADMIN_EMAILS: lista de emails admin separados por vírgula
+const JWT_SECRET   = process.env.JWT_SECRET   || 'DashDriver_Ultra_Secret_Key_2026_SquadHQ';
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'gabriel18mello@gmail.com')
+  .split(',').map(e => e.trim().toLowerCase());
 
-function httpGet(urlStr, headers) {
-  return new Promise((resolve, reject) => {
-    const parsed = new URL(urlStr);
-    const lib    = parsed.protocol === 'https:' ? https : http;
-    const opts   = {
-      hostname: parsed.hostname,
-      port:     parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
-      path:     parsed.pathname + parsed.search,
-      method:   'GET',
-      headers,
-    };
-    const req = lib.request(opts, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve({ status: res.statusCode, body: data }));
-    });
-    req.on('error', reject);
-    req.end();
-  });
+function verifyJWT(token) {
+  const parts = token.split('.');
+  if (parts.length !== 3) throw new Error('Formato JWT inválido');
+
+  const [header, payload, signature] = parts;
+
+  // Verifica assinatura HMAC-SHA256
+  const expected = crypto
+    .createHmac('sha256', JWT_SECRET)
+    .update(`${header}.${payload}`)
+    .digest('base64')
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); // base64url
+
+  if (expected !== signature) throw new Error('Assinatura JWT inválida');
+
+  // Decodifica payload
+  const decoded = JSON.parse(
+    Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
+  );
+
+  // Verifica expiração
+  if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
+    throw new Error('Token expirado');
+  }
+
+  return decoded;
 }
 
 module.exports = async function handler(req, res) {
@@ -35,20 +43,21 @@ module.exports = async function handler(req, res) {
 
   const { user_id, email, access_token } = req.body || {};
   if (!user_id || !email) return res.status(400).json({ admin: false, error: 'Missing user_id or email' });
-  if (!access_token) return res.status(400).json({ admin: false, error: 'Missing access_token' });
+  if (!access_token)      return res.status(400).json({ admin: false, error: 'Missing access_token' });
 
   try {
-    const url = `${SB_URL}/rest/v1/dashdriver_admins?email=eq.${encodeURIComponent(email)}&select=id`;
-    const { status, body } = await httpGet(url, {
-      apikey:        SB_SERVICE_ROLE_KEY,      // Kong consumer key (key-auth plugin)
-      Authorization: `Bearer ${access_token}`, // User JWT → PostgREST applies RLS (auth.email()=email)
-    });
-    if (status !== 200) {
-      return res.status(500).json({ admin: false, error: `Supabase error ${status}: ${body}` });
+    const claims = verifyJWT(access_token);
+
+    // O email deve bater com o claim do JWT (garante que o token é desse usuário)
+    const tokenEmail = (claims.email || '').toLowerCase();
+    if (tokenEmail !== email.toLowerCase()) {
+      return res.status(200).json({ admin: false });
     }
-    const rows = JSON.parse(body);
-    return res.status(200).json({ admin: Array.isArray(rows) && rows.length > 0 });
+
+    const isAdmin = ADMIN_EMAILS.includes(tokenEmail);
+    return res.status(200).json({ admin: isAdmin });
+
   } catch (e) {
-    return res.status(500).json({ admin: false, error: e.message });
+    return res.status(200).json({ admin: false, error: e.message });
   }
 };
