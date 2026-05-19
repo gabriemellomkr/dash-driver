@@ -1,7 +1,6 @@
 const https = require('https');
 const http  = require('http');
 
-// Fallback to hardcoded values if env vars not set (Vercel hobby plan quirk)
 const SB_URL             = process.env.SB_URL || 'https://db-dash.nucleocriativo.com.br';
 const SB_SERVICE_ROLE_KEY = process.env.SB_SERVICE_ROLE_KEY || '';
 
@@ -32,7 +31,7 @@ module.exports = async function handler(req, res) {
   try {
     const url = `${SB_URL}/rest/v1/dashdriver_admins?email=eq.${encodeURIComponent(email)}&select=id`;
     const parsed = new URL(url);
-    const { body } = await request(url, {
+    const { status, body } = await request(url, {
       hostname: parsed.hostname,
       path: parsed.pathname + parsed.search,
       method: 'GET',
@@ -41,8 +40,10 @@ module.exports = async function handler(req, res) {
         Authorization: `Bearer ${SB_SERVICE_ROLE_KEY}`,
       },
     });
-    const rows = JSON.parse(body);
-    return res.status(200).json({ admin: Array.isArray(rows) && rows.length > 0 });
+    let rows;
+    try { rows = JSON.parse(body); } catch(e) { rows = body; }
+    const isAdmin = Array.isArray(rows) && rows.length > 0;
+    return res.status(200).json({ admin: isAdmin, _debug: { status, rows_count: Array.isArray(rows) ? rows.length : null, raw: Array.isArray(rows) ? undefined : body.slice(0,200) } });
   } catch (e) {
     return res.status(500).json({ admin: false, error: e.message });
   }
