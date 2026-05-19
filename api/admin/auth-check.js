@@ -1,7 +1,8 @@
 const https = require('https');
 const http  = require('http');
 
-const SB_URL             = process.env.SB_URL || '';
+// Fallback to hardcoded values if env vars not set (Vercel hobby plan quirk)
+const SB_URL             = process.env.SB_URL || 'https://db-dash.nucleocriativo.com.br';
 const SB_SERVICE_ROLE_KEY = process.env.SB_SERVICE_ROLE_KEY || '';
 
 function request(url, opts) {
@@ -19,24 +20,14 @@ function request(url, opts) {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
-
-  // Debug endpoint
-  if (req.method === 'GET') {
-    const availableVars = Object.keys(process.env).filter(k =>
-      ['SB_URL','SB_KEY','SB_SERVICE_ROLE_KEY','EVOLUTION_URL','EVOLUTION_INSTANCE','EVOLUTION_KEY'].includes(k)
-    );
-    return res.status(200).json({ available_env_vars: availableVars, sb_url_length: (process.env.SB_URL||'').length });
-  }
-
   if (req.method !== 'POST') return res.status(405).end();
 
   const { user_id, email } = req.body || {};
   if (!user_id || !email) return res.status(400).json({ admin: false, error: 'Missing user_id or email' });
   if (!SB_SERVICE_ROLE_KEY) return res.status(500).json({ admin: false, error: 'SB_SERVICE_ROLE_KEY not configured' });
-  if (!SB_URL) return res.status(500).json({ admin: false, error: 'SB_URL not configured' });
 
   try {
     const url = `${SB_URL}/rest/v1/dashdriver_admins?email=eq.${encodeURIComponent(email)}&select=id`;
