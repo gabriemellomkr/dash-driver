@@ -3,8 +3,10 @@ const pool   = require('../admin/_db');
 
 const stripe        = Stripe(process.env.STRIPE_SECRET_KEY);
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const PRICE_ID      = process.env.STRIPE_PRICE_ID || 'price_1TYwuxA3GkEpPzeDfvOu3dMr';
+const APP_URL       = process.env.APP_URL          || 'https://dashdriver.com.br';
 
-// Coleta body raw antes que o framework parse (necessário para verificar assinatura Stripe)
+// Coleta body raw (necessário para verificar assinatura Stripe)
 function getRawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -14,23 +16,49 @@ function getRawBody(req) {
   });
 }
 
-// Desabilita o body parser automático do Vercel para esta rota
 const handler = async function (req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, stripe-signature');
+  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  const sig = req.headers['stripe-signature'];
+  // ── Se NÃO tem stripe-signature → é pedido de checkout do app ──────────
+  if (!req.headers['stripe-signature']) {
+    const body = req.body || {};
+    const { user_id, email } = body;
+    if (!user_id || !email)
+      return res.status(400).json({ error: 'user_id e email são obrigatórios' });
 
+    try {
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        customer_email: email,
+        line_items: [{ price: PRICE_ID, quantity: 1 }],
+        success_url: `${APP_URL}?subscribed=1`,
+        cancel_url:  `${APP_URL}?subscribed=0`,
+        metadata: { user_id },
+        subscription_data: { metadata: { user_id } },
+      });
+      return res.status(200).json({ url: session.url });
+    } catch (err) {
+      console.error('[stripe/checkout] error:', err.message);
+      return res.status(500).json({ error: 'Erro ao criar sessão de pagamento', detail: err.message });
+    }
+  }
+
+  // ── Com stripe-signature → é webhook da Stripe ──────────────────────────
   let rawBody;
   let event;
 
   try {
-    // Se o body já foi parseado (objeto), reconstrói para string
     if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
       rawBody = JSON.stringify(req.body);
     } else {
       rawBody = await getRawBody(req);
     }
-    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+    event = stripe.webhooks.constructEvent(rawBody, req.headers['stripe-signature'], webhookSecret);
   } catch (err) {
     console.error('[stripe/webhook] assinatura inválida:', err.message);
     return res.status(400).json({ error: `Webhook Error: ${err.message}` });
@@ -42,17 +70,13 @@ const handler = async function (req, res) {
   try {
     client = await pool.connect();
 
-    // ── Pagamento confirmado → ativa plano ──────────────────────────────
     if (type === 'checkout.session.completed') {
       const session = data.object;
       const user_id = session.metadata?.user_id;
-      if (!user_id) {
-        console.warn('[stripe/webhook] checkout.session.completed sem user_id');
-        return res.status(200).json({ received: true });
-      }
+      if (!user_id) return res.status(200).json({ received: true });
 
       const expires_at = new Date();
-      expires_at.setDate(expires_at.getDate() + 35); // margem inicial (renovado via invoice)
+      expires_at.setDate(expires_at.getDate() + 35);
 
       await client.query(
         `INSERT INTO public.dashdriver_plans
@@ -69,7 +93,6 @@ const handler = async function (req, res) {
       console.log(`[stripe/webhook] plano ativado user_id=${user_id}`);
     }
 
-    // ── Pagamento mensal renovado ────────────────────────────────────────
     if (type === 'invoice.payment_succeeded') {
       const inv = data.object;
       if (inv.subscription) {
@@ -81,11 +104,9 @@ const handler = async function (req, res) {
            WHERE stripe_subscription_id = $2`,
           [expires_at.toISOString(), inv.subscription]
         );
-        console.log(`[stripe/webhook] renovação sub=${inv.subscription}`);
       }
     }
 
-    // ── Pagamento falhou ─────────────────────────────────────────────────
     if (type === 'invoice.payment_failed') {
       const inv = data.object;
       if (inv.subscription) {
@@ -95,11 +116,9 @@ const handler = async function (req, res) {
            WHERE stripe_subscription_id = $1`,
           [inv.subscription]
         );
-        console.log(`[stripe/webhook] pagamento falhou sub=${inv.subscription}`);
       }
     }
 
-    // ── Assinatura cancelada ─────────────────────────────────────────────
     if (type === 'customer.subscription.deleted') {
       const sub = data.object;
       await client.query(
@@ -108,7 +127,6 @@ const handler = async function (req, res) {
          WHERE stripe_subscription_id = $1`,
         [sub.id]
       );
-      console.log(`[stripe/webhook] assinatura cancelada sub=${sub.id}`);
     }
 
     return res.status(200).json({ received: true });

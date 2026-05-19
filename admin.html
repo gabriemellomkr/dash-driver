@@ -268,7 +268,7 @@ async function doLogin() {
   adminToken = data.session.access_token;
   let adminOk = false;
   try {
-    const r = await fetch('/api/admin/auth-check', {
+    const r = await fetch('/api/admin/stats', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: data.user.id, email: data.user.email, access_token: data.session.access_token }),
