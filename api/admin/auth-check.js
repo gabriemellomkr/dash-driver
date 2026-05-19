@@ -1,10 +1,10 @@
 const https = require('https');
 const http  = require('http');
 
-const SB_URL             = process.env.SB_URL || 'https://db-dash.nucleocriativo.com.br';
-const SB_SERVICE_ROLE_KEY = process.env.SB_SERVICE_ROLE_KEY || '';
+const SB_URL = process.env.SB_URL || 'https://db-dash.nucleocriativo.com.br';
+const SB_KEY = process.env.SB_KEY || '';
 
-function request(url, opts) {
+function request(url, opts, body) {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? https : http;
     const req = lib.request(url, opts, (res) => {
@@ -13,6 +13,7 @@ function request(url, opts) {
       res.on('end', () => resolve({ status: res.statusCode, body: data }));
     });
     req.on('error', reject);
+    if (body) req.write(body);
     req.end();
   });
 }
@@ -26,24 +27,27 @@ module.exports = async function handler(req, res) {
 
   const { user_id, email } = req.body || {};
   if (!user_id || !email) return res.status(400).json({ admin: false, error: 'Missing user_id or email' });
-  if (!SB_SERVICE_ROLE_KEY) return res.status(500).json({ admin: false, error: 'SB_SERVICE_ROLE_KEY not configured' });
 
   try {
-    const url = `${SB_URL}/rest/v1/dashdriver_admins?email=eq.${encodeURIComponent(email)}&select=id`;
+    // Usa RPC com SECURITY DEFINER — bypassa RLS com a anon key
+    const bodyStr = JSON.stringify({ check_email: email });
+    const url = `${SB_URL}/rest/v1/rpc/check_is_admin`;
     const parsed = new URL(url);
     const { status, body } = await request(url, {
       hostname: parsed.hostname,
-      path: parsed.pathname + parsed.search,
-      method: 'GET',
+      path: parsed.pathname,
+      method: 'POST',
       headers: {
-        apikey: SB_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SB_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(bodyStr),
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
       },
-    });
-    let rows;
-    try { rows = JSON.parse(body); } catch(e) { rows = body; }
-    const isAdmin = Array.isArray(rows) && rows.length > 0;
-    return res.status(200).json({ admin: isAdmin, _debug: { status, rows_count: Array.isArray(rows) ? rows.length : null, raw: Array.isArray(rows) ? undefined : body.slice(0,200) } });
+    }, bodyStr);
+
+    let result;
+    try { result = JSON.parse(body); } catch(e) { result = body; }
+    return res.status(200).json({ admin: result === true });
   } catch (e) {
     return res.status(500).json({ admin: false, error: e.message });
   }
