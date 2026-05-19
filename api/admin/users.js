@@ -3,11 +3,83 @@ const { verifyAdmin } = require('./_auth');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET') return res.status(405).end();
   if (!verifyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+
+  // ── POST → cria novo usuário ─────────────────────────────────────────────
+  if (req.method === 'POST') {
+    const { email, password, plano = 'trial', trial_days = 7, obs = '' } = req.body || {};
+    if (!email || !password)
+      return res.status(400).json({ error: 'email e password são obrigatórios' });
+    if (password.length < 6)
+      return res.status(400).json({ error: 'password deve ter pelo menos 6 caracteres' });
+
+    const client = await pool.connect();
+    try {
+      // Verifica se email já existe
+      const exists = await client.query(
+        'SELECT id FROM auth.users WHERE lower(email) = lower($1) LIMIT 1',
+        [email]
+      );
+      if (exists.rows.length)
+        return res.status(409).json({ error: 'E-mail já cadastrado' });
+
+      // Cria usuário com senha bcrypt (pgcrypto)
+      const rUser = await client.query(`
+        INSERT INTO auth.users (
+          instance_id, id, aud, role,
+          email, encrypted_password,
+          email_confirmed_at,
+          raw_app_meta_data, raw_user_meta_data,
+          created_at, updated_at
+        ) VALUES (
+          '00000000-0000-0000-0000-000000000000',
+          gen_random_uuid(),
+          'authenticated', 'authenticated',
+          $1,
+          crypt($2, gen_salt('bf')),
+          now(),
+          '{"provider":"email","providers":["email"]}',
+          '{}',
+          now(), now()
+        )
+        RETURNING id, email, created_at
+      `, [email.toLowerCase().trim(), password]);
+
+      const newUser = rUser.rows[0];
+
+      // Cria plano inicial
+      const trial_ends_at = plano === 'trial'
+        ? new Date(Date.now() + trial_days * 86_400_000).toISOString()
+        : null;
+
+      await client.query(`
+        INSERT INTO public.dashdriver_plans
+          (user_id, plano, trial_ends_at, obs, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, now(), now())
+        ON CONFLICT (user_id) DO UPDATE
+          SET plano = EXCLUDED.plano,
+              trial_ends_at = EXCLUDED.trial_ends_at,
+              obs = EXCLUDED.obs,
+              updated_at = now()
+      `, [newUser.id, plano, trial_ends_at, obs]);
+
+      return res.status(201).json({
+        ok: true,
+        user: { id: newUser.id, email: newUser.email, created_at: newUser.created_at, plano, trial_ends_at },
+      });
+    } catch (err) {
+      console.error('[users/POST] error:', err.message);
+      return res.status(500).json({ error: err.message });
+    } finally {
+      client.release();
+    }
+  }
+
+  // ── GET → lista usuários ─────────────────────────────────────────────────
+  if (req.method !== 'GET') return res.status(405).end();
 
   const client = await pool.connect();
   try {

@@ -116,9 +116,15 @@
 
     <!-- USUÁRIOS -->
     <section id="section-usuarios" class="section">
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <h2 class="text-white font-black text-xl">Usuários</h2>
-        <input id="user-search" type="text" placeholder="Buscar por e-mail..." oninput="filterUsers()" class="px-4 py-2 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500" style="background:rgba(255,255,255,0.06);width:240px">
+        <div class="flex items-center gap-2">
+          <input id="user-search" type="text" placeholder="Buscar por e-mail..." oninput="filterUsers()" class="px-4 py-2 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500" style="background:rgba(255,255,255,0.06);width:200px">
+          <button onclick="openCreateUserModal()" class="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-black text-xs tracking-wider transition-all flex items-center gap-1.5">
+            <span class="material-symbols-outlined" style="font-size:16px">person_add</span>
+            Criar usuário
+          </button>
+        </div>
       </div>
       <div class="glass rounded-2xl overflow-hidden">
         <table class="w-full text-sm">
@@ -202,6 +208,48 @@
     <div class="flex gap-2">
       <button onclick="closePlanModal()" class="flex-1 py-3 rounded-2xl border border-white/10 text-white/50 font-bold text-sm hover:bg-white/5 transition-all">Cancelar</button>
       <button onclick="savePlan()" class="flex-1 py-3 rounded-2xl bg-blue-500 text-white font-black text-sm transition-all hover:bg-blue-400">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL criar usuário -->
+<div id="create-user-modal" style="display:none" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="glass-strong rounded-3xl p-6 w-full max-w-sm mx-4">
+    <h3 class="text-white font-black mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-blue-400" style="font-size:20px">person_add</span>
+      Criar usuário
+    </h3>
+    <div class="mb-3">
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">E-mail</label>
+      <input type="email" id="new-email" placeholder="motorista@email.com"
+        class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500" style="background:rgba(255,255,255,0.08)">
+    </div>
+    <div class="mb-3">
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Senha</label>
+      <input type="password" id="new-password" placeholder="Mínimo 6 caracteres"
+        class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500" style="background:rgba(255,255,255,0.08)">
+    </div>
+    <div class="mb-3">
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Plano inicial</label>
+      <select id="new-plano" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
+        <option value="trial">Trial (7 dias grátis)</option>
+        <option value="active">Ativo (pago)</option>
+      </select>
+    </div>
+    <div class="mb-3" id="new-trial-days-row">
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Dias de trial</label>
+      <input type="number" id="new-trial-days" value="7" min="1" max="90"
+        class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
+    </div>
+    <div class="mb-5">
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Observação (opcional)</label>
+      <input type="text" id="new-obs" placeholder="Ex: Indicação do fulano"
+        class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
+    </div>
+    <div id="create-user-error" class="hidden mb-3 p-3 rounded-xl text-xs font-semibold text-red-400 bg-red-500/10"></div>
+    <div class="flex gap-2">
+      <button onclick="closeCreateUserModal()" class="flex-1 py-3 rounded-2xl border border-white/10 text-white/50 font-bold text-sm hover:bg-white/5 transition-all">Cancelar</button>
+      <button onclick="createUser()" id="create-user-btn" class="flex-1 py-3 rounded-2xl bg-blue-500 text-white font-black text-sm transition-all hover:bg-blue-400">Criar</button>
     </div>
   </div>
 </div>
@@ -379,6 +427,59 @@ function openPlanModal(userId, plano, trialEnd, planId) {
   document.getElementById('plan-modal').style.display = 'flex';
 }
 function closePlanModal() { document.getElementById('plan-modal').style.display = 'none'; }
+
+// ── Create user modal ──────────────────────────────────
+function openCreateUserModal() {
+  document.getElementById('new-email').value      = '';
+  document.getElementById('new-password').value   = '';
+  document.getElementById('new-plano').value      = 'trial';
+  document.getElementById('new-trial-days').value = '7';
+  document.getElementById('new-obs').value        = '';
+  document.getElementById('create-user-error').classList.add('hidden');
+  document.getElementById('new-trial-days-row').style.display = 'block';
+  document.getElementById('create-user-modal').style.display  = 'flex';
+}
+function closeCreateUserModal() { document.getElementById('create-user-modal').style.display = 'none'; }
+
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'new-plano') {
+    document.getElementById('new-trial-days-row').style.display =
+      e.target.value === 'trial' ? 'block' : 'none';
+  }
+});
+
+async function createUser() {
+  const email      = document.getElementById('new-email').value.trim();
+  const password   = document.getElementById('new-password').value;
+  const plano      = document.getElementById('new-plano').value;
+  const trial_days = parseInt(document.getElementById('new-trial-days').value || '7');
+  const obs        = document.getElementById('new-obs').value;
+  const errEl      = document.getElementById('create-user-error');
+  const btn        = document.getElementById('create-user-btn');
+
+  if (!email || !password) { errEl.textContent = 'Preencha e-mail e senha.'; errEl.classList.remove('hidden'); return; }
+
+  btn.disabled = true; btn.textContent = 'Criando...';
+  errEl.classList.add('hidden');
+
+  try {
+    const r = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ email, password, plano, trial_days, obs }),
+    });
+    const d = await r.json();
+    if (!r.ok) { errEl.textContent = d.error || 'Erro ao criar usuário'; errEl.classList.remove('hidden'); return; }
+    closeCreateUserModal();
+    loadUsers();
+    loadStats();
+  } catch (e) {
+    errEl.textContent = 'Erro de conexão: ' + e.message;
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Criar';
+  }
+}
 
 async function savePlan() {
   const user_id      = document.getElementById('edit-user-id').value;
