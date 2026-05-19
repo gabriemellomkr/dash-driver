@@ -12,6 +12,7 @@
   "type": "commonjs",
   "dependencies": {
     "pg": "^8.13.3",
+    "stripe": "^17.7.0",
     "web-push": "^3.6.7"
   }
 }
