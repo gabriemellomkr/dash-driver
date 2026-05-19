@@ -9,7 +9,14 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
   if (!verifyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
 
-  const client = await pool.connect();
+  let client;
+  try {
+    client = await pool.connect();
+  } catch (connErr) {
+    console.error('[stats] DB connect error:', connErr.message);
+    return res.status(500).json({ error: 'DB connection failed', detail: connErr.message });
+  }
+
   try {
     const [rUsers, rCorridas, rTokens, rSupport, rPlans] = await Promise.all([
       client.query('SELECT count(*)::int AS total FROM auth.users'),
@@ -30,6 +37,9 @@ module.exports = async function handler(req, res) {
       open_tickets:    rSupport.rows[0].total,
       plans:           planCounts,
     });
+  } catch (queryErr) {
+    console.error('[stats] Query error:', queryErr.message);
+    return res.status(500).json({ error: 'Query failed', detail: queryErr.message });
   } finally {
     client.release();
   }

@@ -321,9 +321,10 @@ function showSection(name) {
 
 // ── Stats ──────────────────────────────────────────────
 async function loadStats() {
+  try {
   const r = await fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${adminToken}` } });
   const d = await r.json();
-  if (!r.ok) return;
+  if (!r.ok) { console.error('[stats]', d); document.getElementById('stat-users').textContent = '!'; document.getElementById('stat-users').title = JSON.stringify(d); return; }
   document.getElementById('stat-users').textContent    = d.total_users;
   document.getElementById('stat-corridas').textContent = d.total_corridas;
   document.getElementById('stat-tokens').textContent   = (d.total_tokens_in + d.total_tokens_out).toLocaleString('pt-BR');
@@ -333,6 +334,7 @@ async function loadStats() {
   document.getElementById('stat-premium').textContent  = d.plans.premium;
   document.getElementById('stat-expired').textContent  = d.plans.expired;
   if (d.open_tickets > 0) document.getElementById('badge-suporte').textContent = d.open_tickets;
+  } catch(e) { console.error('[stats] fetch error:', e); document.getElementById('stat-users').textContent = 'ERR'; }
 }
 
 // ── Users ──────────────────────────────────────────────
