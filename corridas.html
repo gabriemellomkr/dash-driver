@@ -152,6 +152,16 @@
   </div>
 </div>
 
+<!-- ═══════════════════ BANNER ASSINATURA ═══════════════════ -->
+<div id="plan-banner" style="display:none" class="w-full px-4 py-2.5 flex items-center justify-between gap-3 text-xs font-semibold" id="plan-banner">
+  <span id="plan-banner-text" class="text-white/80"></span>
+  <button onclick="subscribePlan()" id="plan-banner-btn"
+    class="flex-shrink-0 px-4 py-1.5 rounded-xl font-black text-xs tracking-wider text-white transition-all active:scale-95"
+    style="background:#4b8eff; box-shadow:0 0 12px rgba(75,142,255,.4)">
+    ASSINAR
+  </button>
+</div>
+
 <!-- ═══════════════════ HEADER ═══════════════════ -->
 <header class="sticky top-0 z-50 border-b border-white/5 px-4 py-3 flex justify-between items-center"
   style="background:rgba(14,14,16,0.85); backdrop-filter:blur(30px)">
@@ -4148,7 +4158,107 @@ async function sendSupport() {
   }
 }
 
+// ═══════════════════════════════════════════════
+// PLANO / ASSINATURA
+// ═══════════════════════════════════════════════
+const DD_USER_EMAIL = 'gabriel18mello@gmail.com'; // será dinâmico com auth real
+
+async function checkPlan() {
+  // Verifica se o Stripe redirecionou com sucesso
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('subscribed') === '1') {
+    localStorage.setItem('dd_plano', 'active');
+    localStorage.setItem('dd_plano_ts', Date.now().toString());
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  // Usa cache local por 1h para não consultar sempre
+  const cached = localStorage.getItem('dd_plano');
+  const ts     = parseInt(localStorage.getItem('dd_plano_ts') || '0');
+  const stale  = Date.now() - ts > 3600_000; // 1h
+
+  let plano = cached;
+
+  if (!cached || stale) {
+    try {
+      const r = await fetch(`/api/support?email=${encodeURIComponent(DD_USER_EMAIL)}`);
+      const d = await r.json();
+      if (d.plano) {
+        plano = d.plano;
+        localStorage.setItem('dd_plano', plano);
+        localStorage.setItem('dd_plano_ts', Date.now().toString());
+        // Calcula dias restantes de trial
+        if (plano === 'trial' && d.trial_ends_at) {
+          const days = Math.ceil((new Date(d.trial_ends_at) - Date.now()) / 86_400_000);
+          localStorage.setItem('dd_trial_days', Math.max(0, days).toString());
+        }
+      }
+    } catch (e) {
+      console.warn('[plan] check failed:', e.message);
+    }
+  }
+
+  renderPlanBanner(plano);
+}
+
+function renderPlanBanner(plano) {
+  const banner  = document.getElementById('plan-banner');
+  const text    = document.getElementById('plan-banner-text');
+  const btn     = document.getElementById('plan-banner-btn');
+  if (!banner) return;
+
+  if (plano === 'active') {
+    banner.style.display = 'none';
+    return;
+  }
+
+  if (plano === 'trial') {
+    const days = parseInt(localStorage.getItem('dd_trial_days') || '7');
+    banner.style.background = days <= 2
+      ? 'rgba(239,68,68,0.15)'
+      : 'rgba(234,179,8,0.12)';
+    text.textContent = days > 0
+      ? `⏳ Teste grátis — ${days} dia${days !== 1 ? 's' : ''} restante${days !== 1 ? 's' : ''}`
+      : '⚠️ Trial expirado hoje';
+    btn.textContent = 'ASSINAR AGORA';
+    banner.style.display = 'flex';
+    return;
+  }
+
+  // expired ou sem plano
+  banner.style.background = 'rgba(239,68,68,0.15)';
+  text.textContent = '🔒 Seu acesso expirou — assine para continuar usando';
+  btn.textContent  = 'RENOVAR ACESSO';
+  banner.style.display = 'flex';
+}
+
+async function subscribePlan() {
+  const btn = document.getElementById('plan-banner-btn');
+  btn.disabled   = true;
+  btn.textContent = '...';
+  try {
+    const r = await fetch('/api/stripe/webhook', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ user_id: 'temp_' + DD_USER_EMAIL, email: DD_USER_EMAIL }),
+    });
+    const d = await r.json();
+    if (d.url) {
+      window.location.href = d.url;
+    } else {
+      alert('Erro ao abrir pagamento: ' + (d.error || 'tente novamente'));
+      btn.disabled   = false;
+      btn.textContent = 'ASSINAR';
+    }
+  } catch (e) {
+    alert('Erro de conexão: ' + e.message);
+    btn.disabled   = false;
+    btn.textContent = 'ASSINAR';
+  }
+}
+
 checkAuth();
+checkPlan();
 
 (async () => {
   await Promise.all([loadCorridas(), loadAbastecimentos(), loadOutrasDespesas(), syncFromSB()]);

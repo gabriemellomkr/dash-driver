@@ -2,9 +2,43 @@ const pool = require('./admin/_db');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // ── GET /api/support?email=xxx → retorna plano do usuário ───────────────
+  if (req.method === 'GET') {
+    const email = (req.query?.email || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ error: 'email obrigatório' });
+
+    let client;
+    try {
+      client = await pool.connect();
+      const r = await client.query(
+        `SELECT p.plano, p.trial_ends_at, p.expires_at, p.stripe_subscription_id
+         FROM auth.users u
+         LEFT JOIN public.dashdriver_plans p ON p.user_id = u.id
+         WHERE lower(u.email) = $1
+         LIMIT 1`,
+        [email]
+      );
+      if (!r.rows.length) return res.status(200).json({ plano: null });
+      const row = r.rows[0];
+      return res.status(200).json({
+        plano:           row.plano,
+        trial_ends_at:   row.trial_ends_at,
+        expires_at:      row.expires_at,
+        has_stripe:      !!row.stripe_subscription_id,
+      });
+    } catch (err) {
+      console.error('[support/GET] error:', err.message);
+      return res.status(500).json({ error: err.message });
+    } finally {
+      if (client) client.release();
+    }
+  }
+
+  // ── POST /api/support → cria ticket ────────────────────────────────────
   if (req.method !== 'POST') return res.status(405).end();
 
   const { titulo, mensagem, user_id } = req.body || {};
