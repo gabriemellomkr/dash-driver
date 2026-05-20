@@ -4174,72 +4174,111 @@ async function sendSupport() {
 const DD_USER_EMAIL = 'gabriel18mello@gmail.com'; // será dinâmico com auth real
 
 async function checkPlan() {
-  // Verifica se o Stripe redirecionou com sucesso
+  // Stripe redireciona com ?subscribed=1 após pagamento
   const params = new URLSearchParams(window.location.search);
   if (params.get('subscribed') === '1') {
     localStorage.setItem('dd_plano', 'active');
     localStorage.setItem('dd_plano_ts', Date.now().toString());
+    localStorage.removeItem('dd_trial_days');
     window.history.replaceState({}, '', window.location.pathname);
   }
 
-  // Usa cache local por 1h para não consultar sempre
+  // Cache local por 30min (curto para capturar expiração)
   const cached = localStorage.getItem('dd_plano');
   const ts     = parseInt(localStorage.getItem('dd_plano_ts') || '0');
-  const stale  = Date.now() - ts > 3600_000; // 1h
+  const stale  = Date.now() - ts > 1_800_000; // 30min
 
-  let plano = cached;
+  let plano     = cached;
+  let trialDays = parseInt(localStorage.getItem('dd_trial_days') || '7');
 
   if (!cached || stale) {
     try {
       const r = await fetch(`/api/support?email=${encodeURIComponent(DD_USER_EMAIL)}`);
       const d = await r.json();
-      if (d.plano) {
-        plano = d.plano;
-        localStorage.setItem('dd_plano', plano);
-        localStorage.setItem('dd_plano_ts', Date.now().toString());
-        // Calcula dias restantes de trial
-        if (plano === 'trial' && d.trial_ends_at) {
-          const days = Math.ceil((new Date(d.trial_ends_at) - Date.now()) / 86_400_000);
-          localStorage.setItem('dd_trial_days', Math.max(0, days).toString());
-        }
+      plano = d.plano || 'expired';
+      localStorage.setItem('dd_plano', plano);
+      localStorage.setItem('dd_plano_ts', Date.now().toString());
+
+      if (plano === 'trial' && d.trial_ends_at) {
+        trialDays = Math.ceil((new Date(d.trial_ends_at) - Date.now()) / 86_400_000);
+        trialDays = Math.max(0, trialDays);
+        localStorage.setItem('dd_trial_days', trialDays.toString());
+        // Trial expirado → trata como expired
+        if (trialDays <= 0) plano = 'expired';
       }
     } catch (e) {
       console.warn('[plan] check failed:', e.message);
     }
+  } else if (plano === 'trial' && trialDays <= 0) {
+    plano = 'expired';
   }
 
-  renderPlanBanner(plano);
+  renderPlanBanner(plano, trialDays);
 }
 
-function renderPlanBanner(plano) {
-  const banner  = document.getElementById('plan-banner');
-  const text    = document.getElementById('plan-banner-text');
-  const btn     = document.getElementById('plan-banner-btn');
+function renderPlanBanner(plano, trialDays) {
+  const banner = document.getElementById('plan-banner');
+  const text   = document.getElementById('plan-banner-text');
+  const btn    = document.getElementById('plan-banner-btn');
   if (!banner) return;
 
+  // ── Plano ativo: sem banner ──────────────────────────────────────────────
   if (plano === 'active') {
     banner.style.display = 'none';
+    hidePlanBlock();
     return;
   }
 
-  if (plano === 'trial') {
-    const days = parseInt(localStorage.getItem('dd_trial_days') || '7');
-    banner.style.background = days <= 2
-      ? 'rgba(239,68,68,0.15)'
-      : 'rgba(234,179,8,0.12)';
-    text.textContent = days > 0
-      ? `⏳ Teste grátis — ${days} dia${days !== 1 ? 's' : ''} restante${days !== 1 ? 's' : ''}`
-      : '⚠️ Trial expirado hoje';
-    btn.textContent = 'ASSINAR AGORA';
-    banner.style.display = 'flex';
+  // ── Trial expirado ou plano expirado: BLOQUEAR o app ────────────────────
+  if (plano === 'expired' || (plano === 'trial' && trialDays <= 0)) {
+    banner.style.display = 'none';
+    showPlanBlock(plano === 'trial' ? 'trial_expired' : 'expired');
     return;
   }
 
-  // expired ou sem plano
-  banner.style.background = 'rgba(239,68,68,0.15)';
-  text.textContent = '🔒 Seu acesso expirou — assine para continuar usando';
-  btn.textContent  = 'RENOVAR ACESSO';
+  // ── Trial ativo: banner aviso ────────────────────────────────────────────
+  hidePlanBlock();
+  const days = trialDays ?? parseInt(localStorage.getItem('dd_trial_days') || '7');
+  banner.style.background = days <= 2 ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.12)';
+  text.textContent = `⏳ Teste grátis — ${days} dia${days !== 1 ? 's' : ''} restante${days !== 1 ? 's' : ''}`;
+  btn.textContent  = 'ASSINAR AGORA';
   banner.style.display = 'flex';
+}
+
+function showPlanBlock(reason) {
+  let el = document.getElementById('plan-block-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'plan-block-overlay';
+    el.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;background:rgba(10,10,14,0.97)';
+    document.body.appendChild(el);
+  }
+  const isTrialEnd = reason === 'trial_expired';
+  el.innerHTML = `
+    <div style="max-width:320px;text-align:center">
+      <div style="font-size:56px;margin-bottom:16px">${isTrialEnd ? '⏰' : '🔒'}</div>
+      <h2 style="color:#fff;font-size:20px;font-weight:900;margin-bottom:8px">
+        ${isTrialEnd ? 'Seu período de teste encerrou' : 'Acesso expirado'}
+      </h2>
+      <p style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:28px;line-height:1.5">
+        ${isTrialEnd
+          ? 'Os 7 dias de teste gratuito chegaram ao fim. Assine para continuar usando o DashDriver.'
+          : 'Sua assinatura foi cancelada ou expirou. Renove para continuar acessando.'}
+      </p>
+      <button onclick="subscribePlan()" id="plan-block-btn"
+        style="width:100%;padding:16px;border-radius:16px;background:#4b8eff;color:#fff;font-weight:900;font-size:14px;letter-spacing:.05em;border:none;cursor:pointer;box-shadow:0 0 24px rgba(75,142,255,.4)">
+        ${isTrialEnd ? 'ASSINAR AGORA — R$ 29,90/mês' : 'RENOVAR ACESSO'}
+      </button>
+      <button onclick="checkPlan()" style="margin-top:12px;background:none;border:none;color:rgba(255,255,255,0.3);font-size:11px;cursor:pointer">
+        Já assinei — verificar acesso
+      </button>
+    </div>`;
+  el.style.display = 'flex';
+}
+
+function hidePlanBlock() {
+  const el = document.getElementById('plan-block-overlay');
+  if (el) el.style.display = 'none';
 }
 
 async function subscribePlan() {

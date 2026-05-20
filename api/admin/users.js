@@ -50,6 +50,21 @@ module.exports = async function handler(req, res) {
 
       const newUser = rUser.rows[0];
 
+      // Cria identity (obrigatório para GoTrue aceitar login email/senha)
+      await client.query(`
+        INSERT INTO auth.identities (
+          id, provider_id, user_id, identity_data,
+          provider, last_sign_in_at, created_at, updated_at
+        ) VALUES (
+          gen_random_uuid()::text,
+          $1,
+          $2,
+          jsonb_build_object('sub', $2::text, 'email', $1),
+          'email',
+          now(), now(), now()
+        )
+      `, [email.toLowerCase().trim(), newUser.id]);
+
       // Cria plano inicial
       const trial_ends_at = plano === 'trial'
         ? new Date(Date.now() + trial_days * 86_400_000).toISOString()

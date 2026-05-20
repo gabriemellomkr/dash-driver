@@ -90,6 +90,9 @@
     <div class="text-white font-black text-xs tracking-widest uppercase">DashDriver</div>
   </div>
   <div class="flex gap-1">
+    <button onclick="openSupportModal()" class="p-2 text-outline hover:text-yellow-400 transition-colors active:scale-90" title="Reportar problema">
+      <span class="material-symbols-outlined" style="font-size:20px">help</span>
+    </button>
     <button onclick="openNotifications()" class="p-2 text-outline hover:text-blue-400 transition-colors active:scale-90 relative">
       <span class="material-symbols-outlined" style="font-size:20px">notifications</span>
       <span id="notif-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 rounded-full text-white text-[9px] font-black flex items-center justify-center px-1"></span>
@@ -746,7 +749,7 @@
       </div>
     </div>
     <!-- Input oculto para seleção de imagem (OCR) -->
-    <input type="file" id="ocr-input" accept="image/*" capture="environment"
+    <input type="file" id="ocr-input" accept="image/*"
       class="hidden" onchange="handleOCRImage(this)">
 
     <form id="form-corrida" class="p-4 space-y-4">
@@ -1273,6 +1276,84 @@
 <script src="src/js/admin.js"></script>
 <script src="src/js/main.js"></script>
 
+<!-- ═══ MODAL SUPORTE ═══ -->
+<div id="support-modal" style="display:none" class="fixed inset-0 z-[200] flex flex-col justify-end">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeSupportModal()"></div>
+  <div class="w-full rounded-t-[28px] p-5 pb-8 relative z-10 flex flex-col gap-3" style="max-height:80dvh;background:rgba(26,29,39,0.97);backdrop-filter:blur(40px);border-top:1px solid rgba(255,255,255,0.1)">
+    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-1"></div>
+    <div class="flex items-center gap-2 mb-1">
+      <span class="material-symbols-outlined text-yellow-400" style="font-size:20px">help</span>
+      <h3 class="text-white font-black text-base">Reportar problema / Sugestão</h3>
+    </div>
+    <div>
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Categoria</label>
+      <select id="support-titulo" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-yellow-400 transition-colors" style="background:rgba(255,255,255,0.06)">
+        <option value="">Selecione...</option>
+        <option value="Bug / Erro no app">🐛 Bug / Erro no app</option>
+        <option value="Dúvida sobre funcionalidade">❓ Dúvida sobre funcionalidade</option>
+        <option value="Sugestão de melhoria">💡 Sugestão de melhoria</option>
+        <option value="Problema com OCR de corridas">📸 Problema com OCR de corridas</option>
+        <option value="Outro">📋 Outro</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Descreva o problema</label>
+      <textarea id="support-msg" rows="4" placeholder="Descreva com detalhes o que aconteceu ou sua sugestão..."
+        class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-yellow-400 transition-colors resize-none"
+        style="background:rgba(255,255,255,0.06)"></textarea>
+    </div>
+    <div id="support-feedback" class="hidden text-xs font-semibold"></div>
+    <button id="support-btn" onclick="sendSupport()"
+      class="w-full py-3.5 rounded-2xl font-black text-sm tracking-wider text-white transition-all active:scale-[.98]"
+      style="background:#eab308;box-shadow:0 0 20px rgba(234,179,8,.3)">ENVIAR</button>
+  </div>
+</div>
+
+<script>
+function openSupportModal() {
+  document.getElementById('support-titulo').value = '';
+  document.getElementById('support-msg').value    = '';
+  const fb = document.getElementById('support-feedback');
+  fb.textContent = ''; fb.className = 'hidden text-xs font-semibold';
+  document.getElementById('support-btn').disabled   = false;
+  document.getElementById('support-btn').textContent = 'ENVIAR';
+  document.getElementById('support-modal').style.display = 'flex';
+}
+function closeSupportModal() {
+  document.getElementById('support-modal').style.display = 'none';
+}
+async function sendSupport() {
+  const titulo  = document.getElementById('support-titulo').value;
+  const mensagem = document.getElementById('support-msg').value.trim();
+  const fb  = document.getElementById('support-feedback');
+  const btn = document.getElementById('support-btn');
+  if (!titulo || !mensagem) {
+    fb.textContent = 'Preencha todos os campos.';
+    fb.className = 'text-red-400 text-xs font-semibold mt-1';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    const r = await fetch('/api/support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titulo, mensagem }),
+    });
+    const d = await r.json();
+    if (r.ok && d.ok) {
+      fb.textContent = '✓ Ticket enviado! Vamos analisar em breve.';
+      fb.className = 'text-green-400 text-xs font-semibold mt-1';
+      setTimeout(closeSupportModal, 2000);
+    } else {
+      throw new Error(d.error || 'Erro desconhecido');
+    }
+  } catch (e) {
+    fb.textContent = 'Erro ao enviar: ' + e.message;
+    fb.className = 'text-red-400 text-xs font-semibold mt-1';
+    btn.disabled = false; btn.textContent = 'ENVIAR';
+  }
+}
+</script>
 
 </body>
 </html>

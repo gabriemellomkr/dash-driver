@@ -21,21 +21,25 @@ module.exports = async function handler(req, res) {
   try {
     if (plano_filter) {
       const r = await client.query(
-        `SELECT c.user_id, c.telefone
+        `SELECT c.telefone
          FROM public.dashdriver_config c
-         INNER JOIN public.dashdriver_plans p ON p.user_id = c.user_id
+         JOIN public.dashdriver_plans p ON p.user_id = c.user_id
          WHERE p.plano = $1
-           AND c.telefone IS NOT NULL
-           AND length(c.telefone) >= 10`,
+           AND c.telefone IS NOT NULL AND length(c.telefone) >= 8
+         UNION
+         -- fallback: config com telefone mas sem user_id vinculado (registro legado)
+         SELECT c.telefone
+         FROM public.dashdriver_config c
+         WHERE c.user_id IS NULL
+           AND c.telefone IS NOT NULL AND length(c.telefone) >= 8`,
         [plano_filter]
       );
       recipients = r.rows;
     } else {
       const r = await client.query(
-        `SELECT user_id, telefone
+        `SELECT DISTINCT telefone
          FROM public.dashdriver_config
-         WHERE telefone IS NOT NULL
-           AND length(telefone) >= 10`
+         WHERE telefone IS NOT NULL AND length(telefone) >= 8`
       );
       recipients = r.rows;
     }
