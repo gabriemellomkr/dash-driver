@@ -402,7 +402,9 @@ function renderUsers(users) {
   tbody.innerHTML = users.map(u => `
     <tr class="table-row">
       <td class="p-4">
-        <div class="text-white text-xs font-semibold">${u.email}</div>
+        ${u.nome ? `<div class="text-white text-xs font-bold">${u.nome}</div>` : ''}
+        <div class="text-white ${u.nome ? 'text-[10px] text-white/50' : 'text-xs font-semibold'}">${u.email}</div>
+        ${u.telefone ? `<div class="text-white/30 text-[10px]">📱 ${u.telefone}</div>` : ''}
         <div class="text-white/30 text-[10px] mt-0.5">desde ${fmtDate(u.created_at)}</div>
       </td>
       <td class="p-4">${planBadge(u.plano)}</td>
@@ -548,7 +550,9 @@ function filterTickets(status) {
             <span class="text-white text-sm font-bold">${t.titulo}</span>
             <span class="text-[10px] font-bold ${statusColors[t.status]}">${statusLabels[t.status]}</span>
           </div>
-          <div class="text-[10px] font-semibold mb-1 ${t.user_email ? 'text-yellow-400/70' : 'text-white/20'}">👤 ${t.user_email || 'Usuário não identificado'}</div>
+          <div class="text-[10px] font-semibold mb-1 ${t.user_email ? 'text-yellow-400/70' : 'text-white/20'}">
+            👤 ${t.user_nome ? `<strong>${t.user_nome}</strong> — ` : ''}${t.user_email || 'Usuário não identificado'}${t.user_telefone ? ` · 📱 ${t.user_telefone}` : ''}
+          </div>
           <p class="text-white/50 text-xs mb-2">${t.mensagem}</p>
           ${t.resposta ? `<div class="p-2 rounded-lg text-xs text-green-300 mt-2" style="background:rgba(74,222,128,0.06)">&#8617; ${t.resposta}</div>` : ''}
           <div class="text-white/20 text-[10px] mt-2">${new Date(t.created_at).toLocaleString('pt-BR')}</div>

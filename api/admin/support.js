@@ -12,9 +12,10 @@ module.exports = async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const r = await client.query(`
-        SELECT s.*, u.email AS user_email
+        SELECT s.*, u.email AS user_email, c.nome AS user_nome, c.telefone AS user_telefone
         FROM public.dashdriver_support s
         LEFT JOIN auth.users u ON u.id = s.user_id
+        LEFT JOIN public.dashdriver_config c ON c.user_id = s.user_id
         ORDER BY s.created_at DESC
       `);
       return res.status(200).json({ tickets: r.rows });
