@@ -37,7 +37,9 @@ module.exports = async function handler(req, res) {
           u.email  AS user_email,
           du.full_name AS user_nome,
           c.telefone   AS user_telefone,
-          (SELECT conteudo FROM public.dashdriver_support_messages
+          (SELECT CASE WHEN tipo = 'image' THEN '[imagem]'
+                       ELSE left(conteudo, 120) END
+           FROM public.dashdriver_support_messages
            WHERE ticket_id = s.id ORDER BY created_at DESC LIMIT 1) AS last_message,
           (SELECT tipo FROM public.dashdriver_support_messages
            WHERE ticket_id = s.id ORDER BY created_at DESC LIMIT 1) AS last_tipo,
@@ -89,15 +91,18 @@ module.exports = async function handler(req, res) {
       // Enviar mensagem + opcionalmente atualizar status
       if (!conteudo) return res.status(400).json({ error: 'conteudo obrigatório' });
 
+      // Imagens base64 podem ter 100k+ chars — sem limite para tipo=image
+      const conteudoSalvo = tipo === 'image' ? conteudo : conteudo.substring(0, 4000);
       const rMsg = await client.query(
         `INSERT INTO public.dashdriver_support_messages (ticket_id, sender_role, conteudo, tipo)
          VALUES ($1, 'admin', $2, $3)
          RETURNING id, created_at`,
-        [ticket_id, conteudo.substring(0, 10000), tipo]
+        [ticket_id, conteudoSalvo, tipo]
       );
 
       // Atualiza ticket: assigned_to (se ainda não tem) + status
       const newStatus = status || 'in_progress';
+      const resumo = tipo === 'image' ? '[imagem]' : conteudo.substring(0, 500);
       await client.query(
         `UPDATE public.dashdriver_support
          SET resposta    = $1,
@@ -105,7 +110,7 @@ module.exports = async function handler(req, res) {
              assigned_to = COALESCE(assigned_to, $3),
              updated_at  = now()
          WHERE id = $4`,
-        [conteudo.substring(0, 2000), newStatus, adminEmail, ticket_id]
+        [resumo, newStatus, adminEmail, ticket_id]
       );
 
       return res.status(200).json({ ok: true, message: rMsg.rows[0] });

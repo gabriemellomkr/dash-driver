@@ -78,11 +78,13 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: 'Ticket já resolvido. Abra um novo chamado.' });
 
       // Insere mensagem (sem mudar status — só admin muda status)
+      // Imagens base64 podem ter 100k+ chars — sem limite para tipo=image
+      const conteudoSalvo = tipo === 'image' ? msg : msg.substring(0, 4000);
       const r = await client.query(
         `INSERT INTO public.dashdriver_support_messages (ticket_id, sender_role, conteudo, tipo)
          VALUES ($1, 'user', $2, $3)
          RETURNING id, created_at`,
-        [ticket_id, msg.substring(0, 10000), tipo]
+        [ticket_id, conteudoSalvo, tipo]
       );
 
       // Atualiza updated_at do ticket
