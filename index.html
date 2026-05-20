@@ -1305,7 +1305,7 @@
       class="w-full py-3.5 rounded-2xl font-black text-sm tracking-wider text-white transition-all active:scale-[.98]"
       style="background:#eab308;box-shadow:0 0 20px rgba(234,179,8,.3)">ENVIAR</button>
     <!-- Histórico de tickets -->
-    <div id="support-history" class="hidden flex flex-col gap-2 mt-1">
+    <div id="support-history" style="display:none" class="flex flex-col gap-2 mt-1">
       <div class="text-white/30 text-[10px] font-bold uppercase tracking-wider">Seus chamados anteriores</div>
       <div id="support-history-list" class="flex flex-col gap-2 overflow-y-auto" style="max-height:160px"></div>
     </div>
@@ -1324,7 +1324,7 @@ async function openSupportModal() {
   // Carrega tickets anteriores
   const histEl   = document.getElementById('support-history');
   const histList = document.getElementById('support-history-list');
-  histEl.classList.add('hidden');
+  histEl.style.display = 'none';
   try {
     const email = APP_STATE.user?.email;
     if (!email) return;
@@ -1342,8 +1342,8 @@ async function openSupportModal() {
         <p class="text-white/40 mb-1">${t.mensagem}</p>
         ${t.resposta ? `<div class="rounded-lg p-2 mt-1 text-green-300" style="background:rgba(74,222,128,0.08)">↩ ${t.resposta}</div>` : ''}
       </div>`).join('');
-    histEl.classList.remove('hidden');
-  } catch {}
+    histEl.style.display = 'flex';
+  } catch (err) { console.error('[support history]', err); }
 }
 function closeSupportModal() {
   document.getElementById('support-modal').style.display = 'none';
