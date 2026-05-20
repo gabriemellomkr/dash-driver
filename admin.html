@@ -647,9 +647,9 @@ function renderTktMessages(messages) {
 
     let content = '';
     if (m.tipo === 'image') {
-      content = `<a href="${m.conteudo}" target="_blank" rel="noopener">
-        <img src="${m.conteudo}" alt="imagem" class="max-w-[200px] rounded-xl mt-1 cursor-pointer hover:opacity-80 transition-opacity">
-      </a>`;
+      content = `<img src="${m.conteudo}" alt="imagem"
+        class="max-w-[200px] rounded-xl mt-1 cursor-pointer hover:opacity-80 transition-opacity"
+        onclick="(function(s){var w=window.open();w.document.write('<img src=\\''+s+'\\'>');})(this.src)">`;
     } else {
       content = `<p class="text-sm leading-relaxed whitespace-pre-wrap">${m.conteudo.replace(/</g,'&lt;')}</p>`;
     }
