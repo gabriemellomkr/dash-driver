@@ -1550,7 +1550,9 @@ function renderSupportChat(messages) {
   if (!messages.length) {
     body.innerHTML = '<div class="text-center text-white/20 text-xs py-8">Nenhuma mensagem ainda</div>';
   } else {
+    _supportImgCache.clear();
     body.innerHTML = messages.map(m => renderSupportMsg(m)).join('');
+    _hydrateSupportImages(body);
   }
 
   if (isResolved) {
@@ -1565,21 +1567,40 @@ function renderSupportChat(messages) {
   setTimeout(() => { body.scrollTop = body.scrollHeight; }, 50);
 }
 
+// Cache de imagens para o chat do app (evita src longo no innerHTML)
+const _supportImgCache = new Map();
+
 function renderSupportMsg(m) {
   const isUser  = m.sender_role === 'user';
   const time    = new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const isImage = m.tipo === 'image';
+
+  if (isImage && m.conteudo) _supportImgCache.set(m.id || m.created_at, m.conteudo);
+
+  const imgKey  = m.id || m.created_at;
   return `
     <div class="flex ${isUser ? 'justify-end' : 'justify-start'} mb-2">
       <div class="max-w-[78%] ${isUser ? 'rounded-2xl rounded-tr-sm' : 'rounded-2xl rounded-tl-sm'} px-3 py-2"
         style="background:${isUser ? 'rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.25)' : 'rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1)'}">
         ${!isUser ? '<div class="text-[9px] font-black text-yellow-400/70 mb-1">SUPORTE</div>' : ''}
         ${isImage
-          ? `<img src="${m.conteudo}" class="rounded-xl max-w-full cursor-pointer" style="max-height:200px;object-fit:contain" onclick="(function(s){var w=window.open();w.document.write('<img src=\\''+s+'\\'>');})(this.src)">`
+          ? `<img data-img-key="${imgKey}" class="rounded-xl max-w-full cursor-pointer" style="max-height:200px;object-fit:contain" alt="imagem">`
           : `<p class="text-white text-sm leading-relaxed">${m.conteudo.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</p>`}
         <div class="text-white/25 text-[9px] mt-1 ${isUser ? 'text-right' : ''}">${time}</div>
       </div>
     </div>`;
+}
+
+// Chama após setar innerHTML para injetar src das imagens
+function _hydrateSupportImages(container) {
+  (container || document.getElementById('support-body'))
+    .querySelectorAll('img[data-img-key]').forEach(img => {
+      const src = _supportImgCache.get(img.dataset.imgKey);
+      if (src) {
+        img.src = src;
+        img.onclick = () => { const w = window.open(); w.document.write('<img src="' + src + '">'); };
+      }
+    });
 }
 
 // ── Criar ticket ───────────────────────────────────────
@@ -1673,9 +1694,12 @@ async function handleSupportImage(input) {
     const d = await r.json();
     if (!r.ok) throw new Error(d.error);
 
-    // Exibe na tela (otimista)
+    // Exibe na tela (otimista) — usa cache para não injetar base64 no innerHTML
+    const imgKey = 'opt_' + Date.now();
+    _supportImgCache.set(imgKey, base64);
     const body = document.getElementById('support-body');
-    body.innerHTML += renderSupportMsg({ sender_role: 'user', conteudo: base64, tipo: 'image', created_at: new Date().toISOString() });
+    body.innerHTML += renderSupportMsg({ id: imgKey, sender_role: 'user', conteudo: base64, tipo: 'image', created_at: new Date().toISOString() });
+    _hydrateSupportImages(body);
     body.scrollTop = body.scrollHeight;
   } catch (e) {
     if (typeof utils !== 'undefined') utils.toast('Erro ao enviar imagem: ' + e.message, 'error');

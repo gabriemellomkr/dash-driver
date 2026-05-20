@@ -805,12 +805,22 @@ async function openTicketModal(id, ticketNumber, titulo, userInfo, status) {
   }
 }
 
+// Cache de imagens base64 para evitar injeção de strings longas no innerHTML
+const _tktImgCache = new Map();
+
 function renderTktMessages(messages) {
   const el = document.getElementById('tkt-messages');
   if (!messages.length) {
     el.innerHTML = '<div class="text-center text-white/20 text-xs py-8">Nenhuma mensagem ainda</div>';
     return;
   }
+
+  // Guarda imagens no cache antes de gerar o HTML
+  _tktImgCache.clear();
+  messages.forEach(m => {
+    if (m.tipo === 'image') _tktImgCache.set(m.id, m.conteudo);
+  });
+
   el.innerHTML = messages.map(m => {
     const isAdmin = m.sender_role === 'admin';
     const time    = new Date(m.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
@@ -820,14 +830,10 @@ function renderTktMessages(messages) {
       : 'bg-white/10 text-white/90 rounded-2xl rounded-bl-sm';
     const label   = isAdmin ? 'Admin' : 'Usuário';
 
-    let content = '';
-    if (m.tipo === 'image') {
-      content = `<img src="${m.conteudo}" alt="imagem"
-        class="max-w-[200px] rounded-xl mt-1 cursor-pointer hover:opacity-80 transition-opacity"
-        onclick="(function(s){var w=window.open();w.document.write('<img src=\\''+s+'\\'>');})(this.src)">`;
-    } else {
-      content = `<p class="text-sm leading-relaxed whitespace-pre-wrap">${m.conteudo.replace(/</g,'&lt;')}</p>`;
-    }
+    const content = m.tipo === 'image'
+      ? `<img data-img-id="${m.id}" alt="imagem"
+           class="max-w-[200px] rounded-xl mt-1 cursor-pointer hover:opacity-80 transition-opacity">`
+      : `<p class="text-sm leading-relaxed whitespace-pre-wrap">${m.conteudo.replace(/</g,'&lt;')}</p>`;
 
     return `
     <div class="flex flex-col ${align}">
@@ -838,7 +844,15 @@ function renderTktMessages(messages) {
     </div>`;
   }).join('');
 
-  // scroll para o fim
+  // Injeta src das imagens via DOM (evita problema com strings longas em innerHTML)
+  el.querySelectorAll('img[data-img-id]').forEach(img => {
+    const src = _tktImgCache.get(img.dataset.imgId);
+    if (src) {
+      img.src = src;
+      img.onclick = () => { const w = window.open(); w.document.write('<img src="' + src + '">'); };
+    }
+  });
+
   el.scrollTop = el.scrollHeight;
 }
 
