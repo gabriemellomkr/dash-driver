@@ -377,6 +377,36 @@ let allUsers   = [];
 let allTickets = [];
 let currentTicketFilter = 'open';
 
+// ── Auto-restore session ───────────────────────────────
+(async function tryRestoreSession() {
+  // Supabase persiste a sessão em localStorage automaticamente
+  const { data } = await sb.auth.getSession();
+  if (!data?.session) return; // nenhuma sessão salva
+
+  const session = data.session;
+  adminToken = session.access_token;
+
+  try {
+    const r = await fetch('/api/admin/stats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: session.user.id, email: session.user.email, access_token: adminToken }),
+    });
+    const payload = await r.json();
+    if (payload.admin !== true) return; // não é admin, ignora
+
+    document.getElementById('admin-email-display').textContent = session.user.email;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-app').style.display = 'flex';
+    loadStats();
+    loadUsers();
+    loadTickets();
+  } catch(e) {
+    // sessão inválida ou erro de rede — mantém tela de login
+    adminToken = null;
+  }
+})();
+
 // ── Auth ──────────────────────────────────────────────
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
@@ -436,6 +466,7 @@ async function doLogin() {
 }
 
 async function doLogout() {
+  adminToken = null;
   await sb.auth.signOut();
   location.reload();
 }
