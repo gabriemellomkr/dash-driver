@@ -409,13 +409,37 @@ function renderUsers(users) {
       <td class="p-4 text-white/60 text-xs font-bold">${u.corridas}</td>
       <td class="p-4 text-white/60 text-xs font-bold">${(u.tokens_in + u.tokens_out).toLocaleString('pt-BR')}</td>
       <td class="p-4 text-white/40 text-xs">${fmtDate(u.last_sign_in)}</td>
-      <td class="p-4">
+      <td class="p-4 flex gap-2 flex-wrap">
         <button onclick="openPlanModal('${u.id}','${u.plano}','${u.trial_ends_at||''}','${u.plan_id||''}')"
           class="px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-blue-500/10 transition-all border border-blue-500/20">
           Editar plano
         </button>
+        <button onclick="deleteUser('${u.id}','${u.email.replace(/'/g,"\\'")}')"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold text-red-400 hover:bg-red-500/10 transition-all border border-red-500/20">
+          Excluir
+        </button>
       </td>
     </tr>`).join('');
+}
+
+// ── Delete user ────────────────────────────────────────
+async function deleteUser(userId, email) {
+  if (!confirm(`Excluir o usuário ${email}?\n\nEsta ação é irreversível e apagará todos os dados do usuário.`)) return;
+  try {
+    const r = await fetch('/api/admin/users', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ user_id: userId }),
+    });
+    const d = await r.json();
+    if (r.ok && d.ok) {
+      loadUsers(); loadStats();
+    } else {
+      alert('Erro ao excluir: ' + (d.error || 'Desconhecido'));
+    }
+  } catch (e) {
+    alert('Erro ao excluir: ' + e.message);
+  }
 }
 
 // ── Plan modal ─────────────────────────────────────────
@@ -524,12 +548,13 @@ function filterTickets(status) {
             <span class="text-white text-sm font-bold">${t.titulo}</span>
             <span class="text-[10px] font-bold ${statusColors[t.status]}">${statusLabels[t.status]}</span>
           </div>
+          ${t.user_email ? `<div class="text-yellow-400/70 text-[10px] font-semibold mb-1">👤 ${t.user_email}</div>` : ''}
           <p class="text-white/50 text-xs mb-2">${t.mensagem}</p>
           ${t.resposta ? `<div class="p-2 rounded-lg text-xs text-green-300 mt-2" style="background:rgba(74,222,128,0.06)">&#8617; ${t.resposta}</div>` : ''}
           <div class="text-white/20 text-[10px] mt-2">${new Date(t.created_at).toLocaleString('pt-BR')}</div>
         </div>
         ${t.status !== 'resolved' ? `
-        <button onclick="openTicketModal('${t.id}','${t.titulo.replace(/'/g,"\\'")}','${t.mensagem.replace(/'/g,"\\'")}','${t.user_id}')"
+        <button onclick="openTicketModal('${t.id}','${t.titulo.replace(/'/g,"\\'")}','${t.mensagem.replace(/'/g,"\\'")}','${(t.user_email||t.user_id||'').replace(/'/g,"\\'")}')"
           class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-blue-500/10 border border-blue-500/20 transition-all">
           Responder
         </button>` : ''}

@@ -737,20 +737,30 @@
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-white text-base font-bold" id="modal-title">Lançar Corrida</h2>
       <div class="flex items-center gap-2">
-      <button id="btn-ocr" type="button" onclick="triggerOCR()"
-        title="Importar do print"
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-outline text-[10px] font-bold hover:border-blue-500/50 hover:text-blue-400 active:scale-95 transition-all">
-        <span class="material-symbols-outlined" style="font-size:14px">photo_camera</span>
-        Suba o print aqui
-      </button>
+      <div class="flex items-center gap-1">
+        <button type="button" onclick="document.getElementById('ocr-gallery').click()"
+          title="Enviar da galeria"
+          class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-outline text-[10px] font-bold hover:border-blue-500/50 hover:text-blue-400 active:scale-95 transition-all">
+          <span class="material-symbols-outlined" style="font-size:14px">photo_library</span>
+          Galeria
+        </button>
+        <button type="button" onclick="document.getElementById('ocr-camera').click()"
+          title="Tirar foto agora"
+          class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-outline text-[10px] font-bold hover:border-blue-500/50 hover:text-blue-400 active:scale-95 transition-all">
+          <span class="material-symbols-outlined" style="font-size:14px">photo_camera</span>
+          Câmera
+        </button>
+      </div>
       <button type="button" onclick="closeModal()" class="w-8 h-8 flex items-center justify-center text-outline hover:text-white active:scale-90 transition-all rounded-xl bg-white/5">
         <span class="material-symbols-outlined" style="font-size:18px">close</span>
       </button>
       </div>
     </div>
-    <!-- Input oculto para seleção de imagem (OCR) -->
-    <input type="file" id="ocr-input" accept="image/*"
-      class="hidden" onchange="handleOCRImage(this)">
+    <!-- Inputs separados: galeria sem capture, câmera com capture -->
+    <input type="file" id="ocr-gallery" accept="image/*" class="hidden" onchange="handleOCRImage(this)">
+    <input type="file" id="ocr-camera" accept="image/*" capture="environment" class="hidden" onchange="handleOCRImage(this)">
+    <!-- Compatibilidade: id original mantido apontando para galeria -->
+    <input type="file" id="ocr-input" accept="image/*" class="hidden" onchange="handleOCRImage(this)">
 
     <form id="form-corrida" class="p-4 space-y-4">
 
@@ -1306,11 +1316,16 @@
     <button id="support-btn" onclick="sendSupport()"
       class="w-full py-3.5 rounded-2xl font-black text-sm tracking-wider text-white transition-all active:scale-[.98]"
       style="background:#eab308;box-shadow:0 0 20px rgba(234,179,8,.3)">ENVIAR</button>
+    <!-- Histórico de tickets -->
+    <div id="support-history" class="hidden flex flex-col gap-2 mt-1">
+      <div class="text-white/30 text-[10px] font-bold uppercase tracking-wider">Seus chamados anteriores</div>
+      <div id="support-history-list" class="flex flex-col gap-2 overflow-y-auto" style="max-height:160px"></div>
+    </div>
   </div>
 </div>
 
 <script>
-function openSupportModal() {
+async function openSupportModal() {
   document.getElementById('support-titulo').value = '';
   document.getElementById('support-msg').value    = '';
   const fb = document.getElementById('support-feedback');
@@ -1318,6 +1333,29 @@ function openSupportModal() {
   document.getElementById('support-btn').disabled   = false;
   document.getElementById('support-btn').textContent = 'ENVIAR';
   document.getElementById('support-modal').style.display = 'flex';
+  // Carrega tickets anteriores
+  const histEl   = document.getElementById('support-history');
+  const histList = document.getElementById('support-history-list');
+  histEl.classList.add('hidden');
+  try {
+    const email = APP_STATE.user?.email;
+    if (!email) return;
+    const r = await fetch('/api/support?email=' + encodeURIComponent(email));
+    const d = await r.json();
+    const tickets = d.tickets || [];
+    if (!tickets.length) return;
+    const statusLabel = { open: '🔴 Aberto', in_progress: '🟡 Em andamento', resolved: '🟢 Resolvido' };
+    histList.innerHTML = tickets.map(t => `
+      <div class="rounded-xl p-3 text-xs" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)">
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <span class="text-white font-bold">${t.titulo}</span>
+          <span class="text-white/40">${statusLabel[t.status] || t.status}</span>
+        </div>
+        <p class="text-white/40 mb-1">${t.mensagem}</p>
+        ${t.resposta ? `<div class="rounded-lg p-2 mt-1 text-green-300" style="background:rgba(74,222,128,0.08)">↩ ${t.resposta}</div>` : ''}
+      </div>`).join('');
+    histEl.classList.remove('hidden');
+  } catch {}
 }
 function closeSupportModal() {
   document.getElementById('support-modal').style.display = 'none';
@@ -1334,10 +1372,12 @@ async function sendSupport() {
   }
   btn.disabled = true; btn.textContent = 'Enviando...';
   try {
+    const email   = APP_STATE.user?.email || '';
+    const user_id = APP_STATE.user?.id    || null;
     const r = await fetch('/api/support', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ titulo, mensagem }),
+      body: JSON.stringify({ titulo, mensagem, email, user_id }),
     });
     const d = await r.json();
     if (r.ok && d.ok) {

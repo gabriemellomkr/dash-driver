@@ -11,7 +11,12 @@ module.exports = async function handler(req, res) {
   const client = await pool.connect();
   try {
     if (req.method === 'GET') {
-      const r = await client.query('SELECT * FROM public.dashdriver_support ORDER BY created_at DESC');
+      const r = await client.query(`
+        SELECT s.*, u.email AS user_email
+        FROM public.dashdriver_support s
+        LEFT JOIN auth.users u ON u.id = s.user_id
+        ORDER BY s.created_at DESC
+      `);
       return res.status(200).json({ tickets: r.rows });
     }
 

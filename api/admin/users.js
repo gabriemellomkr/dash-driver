@@ -3,7 +3,7 @@ const { verifyAdmin } = require('./_auth');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (!verifyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
@@ -87,6 +87,30 @@ module.exports = async function handler(req, res) {
       });
     } catch (err) {
       console.error('[users/POST] error:', err.message);
+      return res.status(500).json({ error: err.message });
+    } finally {
+      client.release();
+    }
+  }
+
+  // ── DELETE → remove usuário ──────────────────────────────────────────────
+  if (req.method === 'DELETE') {
+    const { user_id } = req.body || {};
+    if (!user_id) return res.status(400).json({ error: 'user_id obrigatório' });
+
+    const client = await pool.connect();
+    try {
+      // Apaga dados relacionados antes de apagar o usuário
+      await client.query('DELETE FROM public.dashdriver_plans WHERE user_id = $1', [user_id]);
+      await client.query('DELETE FROM public.dashdriver_corridas WHERE user_id = $1', [user_id]);
+      await client.query('DELETE FROM public.dashdriver_config WHERE user_id = $1', [user_id]);
+      await client.query('DELETE FROM public.dashdriver_support WHERE user_id = $1', [user_id]);
+      await client.query('DELETE FROM public.dashdriver_token_usage WHERE user_id = $1', [user_id]);
+      await client.query('DELETE FROM auth.identities WHERE user_id = $1', [user_id]);
+      await client.query('DELETE FROM auth.users WHERE id = $1', [user_id]);
+      return res.status(200).json({ ok: true });
+    } catch (err) {
+      console.error('[users/DELETE] error:', err.message);
       return res.status(500).json({ error: err.message });
     } finally {
       client.release();
