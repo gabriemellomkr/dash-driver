@@ -548,7 +548,7 @@ function filterTickets(status) {
             <span class="text-white text-sm font-bold">${t.titulo}</span>
             <span class="text-[10px] font-bold ${statusColors[t.status]}">${statusLabels[t.status]}</span>
           </div>
-          ${t.user_email ? `<div class="text-yellow-400/70 text-[10px] font-semibold mb-1">👤 ${t.user_email}</div>` : ''}
+          <div class="text-[10px] font-semibold mb-1 ${t.user_email ? 'text-yellow-400/70' : 'text-white/20'}">👤 ${t.user_email || 'Usuário não identificado'}</div>
           <p class="text-white/50 text-xs mb-2">${t.mensagem}</p>
           ${t.resposta ? `<div class="p-2 rounded-lg text-xs text-green-300 mt-2" style="background:rgba(74,222,128,0.06)">&#8617; ${t.resposta}</div>` : ''}
           <div class="text-white/20 text-[10px] mt-2">${new Date(t.created_at).toLocaleString('pt-BR')}</div>
