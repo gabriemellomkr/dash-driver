@@ -1286,9 +1286,18 @@
           <span class="material-symbols-outlined text-yellow-400" style="font-size:18px">support_agent</span>
           <span class="text-white font-black text-sm" id="support-header-title">Suporte</span>
         </div>
-        <button onclick="closeSupportModal()" class="text-white/40 hover:text-white active:scale-90 transition-all">
-          <span class="material-symbols-outlined" style="font-size:20px">close</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <!-- Botão "Novo chamado" — só aparece quando está no chat -->
+          <button id="support-new-btn" onclick="renderSupportCreate()"
+            style="display:none;background:#eab308"
+            class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-black text-black active:scale-95 transition-all">
+            <span class="material-symbols-outlined" style="font-size:14px">add</span>
+            Novo
+          </button>
+          <button onclick="closeSupportModal()" class="text-white/40 hover:text-white active:scale-90 transition-all">
+            <span class="material-symbols-outlined" style="font-size:20px">close</span>
+          </button>
+        </div>
       </div>
       <div id="support-ticket-info" style="display:none" class="mt-1 flex items-center gap-2">
         <span id="support-ticket-number" class="text-[10px] font-black text-yellow-400/70 bg-yellow-400/10 px-2 py-0.5 rounded-full"></span>
@@ -1359,6 +1368,7 @@ function renderSupportLoading() {
   document.getElementById('support-header-title').textContent = 'Suporte';
   document.getElementById('support-ticket-info').style.display = 'none';
   document.getElementById('support-input-area').style.display = 'none';
+  document.getElementById('support-new-btn').style.display = 'none';
   document.getElementById('support-body').innerHTML =
     '<div class="flex items-center justify-center h-32 text-white/30 text-sm">Carregando...</div>';
 }
@@ -1368,6 +1378,7 @@ function renderSupportCreate() {
   document.getElementById('support-header-title').textContent = 'Novo chamado';
   document.getElementById('support-ticket-info').style.display = 'none';
   document.getElementById('support-input-area').style.display = 'none';
+  document.getElementById('support-new-btn').style.display = 'none'; // esconde botão "Novo" no form
   document.getElementById('support-body').innerHTML = `
     <div class="flex flex-col gap-4 pt-1">
       <div>
@@ -1411,6 +1422,7 @@ function renderSupportChat(messages) {
   document.getElementById('support-ticket-status').className = 'text-[10px] font-bold ' + st.color;
   document.getElementById('support-ticket-info').style.display = 'flex';
   document.getElementById('support-input-area').style.display = isResolved ? 'none' : 'block';
+  document.getElementById('support-new-btn').style.display = 'flex'; // mostra botão "Novo"
 
   const body = document.getElementById('support-body');
   if (!messages.length) {
