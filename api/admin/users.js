@@ -56,7 +56,7 @@ module.exports = async function handler(req, res) {
           id, provider_id, user_id, identity_data,
           provider, last_sign_in_at, created_at, updated_at
         ) VALUES (
-          gen_random_uuid()::text,
+          gen_random_uuid(),
           $1,
           $2,
           jsonb_build_object('sub', $2::text, 'email', $1),
