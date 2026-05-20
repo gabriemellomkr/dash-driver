@@ -254,27 +254,51 @@
   </div>
 </div>
 
-<!-- MODAL responder ticket -->
-<div id="ticket-modal" style="display:none" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-  <div class="glass-strong rounded-3xl p-6 w-full max-w-md mx-4">
-    <h3 class="text-white font-black mb-1" id="ticket-modal-titulo"></h3>
-    <p class="text-white/50 text-xs mb-3" id="ticket-modal-user"></p>
-    <div class="p-3 rounded-xl mb-4 text-sm text-white/70" style="background:rgba(255,255,255,0.04)" id="ticket-modal-msg"></div>
-    <input type="hidden" id="ticket-modal-id">
-    <div class="mb-3">
-      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Status</label>
-      <select id="ticket-status" class="w-full p-3 rounded-xl text-white text-sm border border-white/10" style="background:rgba(255,255,255,0.08)">
-        <option value="in_progress">Em andamento</option>
-        <option value="resolved">Resolvido</option>
-      </select>
+<!-- MODAL ticket (chat) -->
+<div id="ticket-modal" style="display:none" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+  <div class="glass-strong rounded-3xl w-full max-w-lg mx-auto flex flex-col" style="height:80vh;max-height:700px">
+    <!-- Header -->
+    <div class="flex-shrink-0 p-5 border-b border-white/10">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span id="tkt-number" class="text-[10px] font-black text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-full"></span>
+            <select id="tkt-status" onchange="updateTicketStatus(this.value)"
+              class="text-[10px] font-bold rounded-lg px-2 py-0.5 border border-white/10 text-white cursor-pointer"
+              style="background:rgba(255,255,255,0.08)">
+              <option value="open">Aberto</option>
+              <option value="in_progress">Em andamento</option>
+              <option value="resolved">Resolvido ✅</option>
+            </select>
+          </div>
+          <h3 class="text-white font-black text-sm truncate" id="tkt-titulo"></h3>
+          <p class="text-yellow-400/60 text-[10px] mt-0.5" id="tkt-user"></p>
+        </div>
+        <button onclick="closeTicketModal()" class="text-white/30 hover:text-white flex-shrink-0">
+          <span class="material-symbols-outlined" style="font-size:20px">close</span>
+        </button>
+      </div>
     </div>
-    <div class="mb-5">
-      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Resposta</label>
-      <textarea id="ticket-resposta" rows="3" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 resize-none" style="background:rgba(255,255,255,0.08)"></textarea>
+    <input type="hidden" id="tkt-id">
+
+    <!-- Mensagens -->
+    <div id="tkt-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+      <div class="text-center text-white/20 text-xs py-8">Carregando...</div>
     </div>
-    <div class="flex gap-2">
-      <button onclick="closeTicketModal()" class="flex-1 py-3 rounded-2xl border border-white/10 text-white/50 font-bold text-sm">Cancelar</button>
-      <button onclick="saveTicket()" class="flex-1 py-3 rounded-2xl bg-blue-500 text-white font-black text-sm">Salvar</button>
+
+    <!-- Input admin -->
+    <div class="flex-shrink-0 p-4 border-t border-white/10">
+      <div class="flex gap-2">
+        <textarea id="tkt-reply" rows="2" placeholder="Resposta do suporte..."
+          class="flex-1 p-3 rounded-2xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+          style="background:rgba(255,255,255,0.06)"
+          onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){sendAdminMessage();}"></textarea>
+        <button onclick="sendAdminMessage()"
+          class="flex-shrink-0 w-10 h-10 self-end rounded-2xl flex items-center justify-center text-white active:scale-90 transition-all bg-blue-500">
+          <span class="material-symbols-outlined" style="font-size:18px">send</span>
+        </button>
+      </div>
+      <p class="text-white/20 text-[9px] mt-1">Ctrl+Enter para enviar · Admin resolve o ticket pelo status acima</p>
     </div>
   </div>
 </div>
@@ -542,51 +566,164 @@ function filterTickets(status) {
 
   const statusColors = { open: 'text-red-400', in_progress: 'text-yellow-400', resolved: 'text-green-400' };
   const statusLabels = { open: 'Aberto', in_progress: 'Em andamento', resolved: 'Resolvido' };
-  el.innerHTML = list.map(t => `
-    <div class="glass rounded-2xl p-4">
+  el.innerHTML = list.map(t => {
+    const userInfo = [t.user_nome, t.user_email, t.user_telefone ? '📱 ' + t.user_telefone : ''].filter(Boolean).join(' · ') || 'Usuário não identificado';
+    const lastMsg  = t.last_message ? (t.last_message.length > 80 ? t.last_message.slice(0,80)+'…' : t.last_message) : '—';
+    const lastSenderLabel = t.last_sender === 'admin' ? '<span class="text-blue-400">↩ Admin</span>' : '<span class="text-yellow-400/70">↪ Usuário</span>';
+    const ticketNum = t.ticket_number || '';
+    // escape for onclick attribute
+    const tituloEsc = t.titulo.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const userInfoEsc = userInfo.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return `
+    <div class="glass rounded-2xl p-4 cursor-pointer hover:bg-white/5 transition-all"
+         onclick="openTicketModal('${t.id}','${ticketNum}','${tituloEsc}','${userInfoEsc}','${t.status}')">
       <div class="flex items-start justify-between gap-3">
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            ${ticketNum ? `<span class="text-[10px] font-black text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-full">${ticketNum}</span>` : ''}
             <span class="text-white text-sm font-bold">${t.titulo}</span>
             <span class="text-[10px] font-bold ${statusColors[t.status]}">${statusLabels[t.status]}</span>
+            ${t.msg_count > 0 ? `<span class="text-[10px] text-white/30">${t.msg_count} msg${t.msg_count !== 1 ? 's' : ''}</span>` : ''}
           </div>
           <div class="text-[10px] font-semibold mb-1 ${t.user_email ? 'text-yellow-400/70' : 'text-white/20'}">
-            👤 ${t.user_nome ? `<strong>${t.user_nome}</strong> — ` : ''}${t.user_email || 'Usuário não identificado'}${t.user_telefone ? ` · 📱 ${t.user_telefone}` : ''}
+            👤 ${userInfo}
           </div>
-          <p class="text-white/50 text-xs mb-2">${t.mensagem}</p>
-          ${t.resposta ? `<div class="p-2 rounded-lg text-xs text-green-300 mt-2" style="background:rgba(74,222,128,0.06)">&#8617; ${t.resposta}</div>` : ''}
-          <div class="text-white/20 text-[10px] mt-2">${new Date(t.created_at).toLocaleString('pt-BR')}</div>
+          <div class="text-white/40 text-xs mb-1 flex items-center gap-1.5">
+            ${t.msg_count > 0 ? lastSenderLabel + ': ' + lastMsg : '<span class="text-white/20">Sem mensagens</span>'}
+          </div>
+          <div class="text-white/20 text-[10px]">${new Date(t.created_at).toLocaleString('pt-BR')}</div>
         </div>
-        ${t.status !== 'resolved' ? `
-        <button onclick="openTicketModal('${t.id}','${t.titulo.replace(/'/g,"\\'")}','${t.mensagem.replace(/'/g,"\\'")}','${(t.user_email||t.user_id||'').replace(/'/g,"\\'")}')"
-          class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-blue-500/10 border border-blue-500/20 transition-all">
-          Responder
-        </button>` : ''}
+        <span class="material-symbols-outlined text-white/20 flex-shrink-0" style="font-size:18px">chevron_right</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-function openTicketModal(id, titulo, mensagem, userId) {
-  document.getElementById('ticket-modal-id').value = id;
-  document.getElementById('ticket-modal-titulo').textContent = titulo;
-  document.getElementById('ticket-modal-user').textContent = userId;
-  document.getElementById('ticket-modal-msg').textContent = mensagem;
-  document.getElementById('ticket-resposta').value = '';
-  document.getElementById('ticket-status').value = 'in_progress';
+async function openTicketModal(id, ticketNumber, titulo, userInfo, status) {
+  // Preenche cabeçalho
+  document.getElementById('tkt-id').value    = id;
+  document.getElementById('tkt-number').textContent  = ticketNumber || '—';
+  document.getElementById('tkt-titulo').textContent  = titulo;
+  document.getElementById('tkt-user').textContent    = userInfo;
+  document.getElementById('tkt-status').value        = status || 'open';
+  document.getElementById('tkt-reply').value         = '';
+
+  // Mostra modal e área de loading
   document.getElementById('ticket-modal').style.display = 'flex';
-}
-function closeTicketModal() { document.getElementById('ticket-modal').style.display = 'none'; }
+  document.getElementById('tkt-messages').innerHTML =
+    '<div class="text-center text-white/20 text-xs py-8">Carregando mensagens...</div>';
 
-async function saveTicket() {
-  const id       = document.getElementById('ticket-modal-id').value;
-  const status   = document.getElementById('ticket-status').value;
-  const resposta = document.getElementById('ticket-resposta').value;
-  const r = await fetch('/api/admin/support', {
+  // Desabilita/habilita input conforme status
+  const resolved = (status === 'resolved');
+  document.getElementById('tkt-reply').disabled = resolved;
+  document.querySelector('#ticket-modal button[onclick="sendAdminMessage()"]').disabled = resolved;
+
+  try {
+    const r = await fetch(`/api/admin/support?ticket_id=${id}`, {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const d = await r.json();
+    renderTktMessages(d.messages || []);
+  } catch(e) {
+    document.getElementById('tkt-messages').innerHTML =
+      '<div class="text-center text-red-400 text-xs py-8">Erro ao carregar mensagens</div>';
+  }
+}
+
+function renderTktMessages(messages) {
+  const el = document.getElementById('tkt-messages');
+  if (!messages.length) {
+    el.innerHTML = '<div class="text-center text-white/20 text-xs py-8">Nenhuma mensagem ainda</div>';
+    return;
+  }
+  el.innerHTML = messages.map(m => {
+    const isAdmin = m.sender_role === 'admin';
+    const time    = new Date(m.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const align   = isAdmin ? 'items-end' : 'items-start';
+    const bubble  = isAdmin
+      ? 'bg-blue-500/20 text-white rounded-2xl rounded-br-sm'
+      : 'bg-white/10 text-white/90 rounded-2xl rounded-bl-sm';
+    const label   = isAdmin ? 'Admin' : 'Usuário';
+
+    let content = '';
+    if (m.tipo === 'image') {
+      content = `<a href="${m.conteudo}" target="_blank" rel="noopener">
+        <img src="${m.conteudo}" alt="imagem" class="max-w-[200px] rounded-xl mt-1 cursor-pointer hover:opacity-80 transition-opacity">
+      </a>`;
+    } else {
+      content = `<p class="text-sm leading-relaxed whitespace-pre-wrap">${m.conteudo.replace(/</g,'&lt;')}</p>`;
+    }
+
+    return `
+    <div class="flex flex-col ${align}">
+      <div class="max-w-[80%] px-3 py-2 ${bubble}">
+        ${content}
+      </div>
+      <span class="text-[9px] text-white/25 mt-0.5 px-1">${label} · ${time}</span>
+    </div>`;
+  }).join('');
+
+  // scroll para o fim
+  el.scrollTop = el.scrollHeight;
+}
+
+function closeTicketModal() {
+  document.getElementById('ticket-modal').style.display = 'none';
+}
+
+async function sendAdminMessage() {
+  const id      = document.getElementById('tkt-id').value;
+  const conteudo = document.getElementById('tkt-reply').value.trim();
+  if (!conteudo || !id) return;
+
+  const btn = document.querySelector('#ticket-modal button[onclick="sendAdminMessage()"]');
+  btn.disabled = true;
+
+  try {
+    const r = await fetch('/api/admin/support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ ticket_id: id, conteudo }),
+    });
+    if (r.ok) {
+      document.getElementById('tkt-reply').value = '';
+      // Atualiza status no select para in_progress
+      const statusEl = document.getElementById('tkt-status');
+      if (statusEl.value === 'open') statusEl.value = 'in_progress';
+
+      // Recarrega mensagens
+      const rd = await fetch(`/api/admin/support?ticket_id=${id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      const dd = await rd.json();
+      renderTktMessages(dd.messages || []);
+
+      // Atualiza lista em background
+      loadTickets();
+    }
+  } finally {
+    btn.disabled = false;
+    document.getElementById('tkt-reply').focus();
+  }
+}
+
+async function updateTicketStatus(status) {
+  const id = document.getElementById('tkt-id').value;
+  if (!id) return;
+
+  await fetch('/api/admin/support', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
-    body: JSON.stringify({ id, status, resposta }),
+    body: JSON.stringify({ ticket_id: id, status }),
   });
-  if (r.ok) { closeTicketModal(); loadTickets(); loadStats(); }
+
+  // Se resolvido, bloqueia input de resposta
+  const resolved = (status === 'resolved');
+  document.getElementById('tkt-reply').disabled = resolved;
+  document.querySelector('#ticket-modal button[onclick="sendAdminMessage()"]').disabled = resolved;
+
+  // Atualiza badge no cabeçalho do modal se quiser feedback visual
+  loadTickets();
 }
 
 // ── Broadcast ──────────────────────────────────────────

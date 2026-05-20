@@ -1274,87 +1274,185 @@
 <script src="src/js/admin.js"></script>
 <script src="src/js/main.js"></script>
 
-<!-- ═══ MODAL SUPORTE ═══ -->
+<!-- ═══ MODAL SUPORTE (chat) ═══ -->
 <div id="support-modal" style="display:none" class="fixed inset-0 z-[200] flex flex-col justify-end">
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeSupportModal()"></div>
-  <div class="w-full rounded-t-[28px] p-5 pb-8 relative z-10 flex flex-col gap-3" style="max-height:80dvh;background:rgba(26,29,39,0.97);backdrop-filter:blur(40px);border-top:1px solid rgba(255,255,255,0.1)">
-    <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-1"></div>
-    <div class="flex items-center gap-2 mb-1">
-      <span class="material-symbols-outlined text-yellow-400" style="font-size:20px">help</span>
-      <h3 class="text-white font-black text-base">Reportar problema / Sugestão</h3>
+  <div class="w-full rounded-t-[28px] relative z-10 flex flex-col" style="height:88dvh;background:rgba(18,20,28,0.98);backdrop-filter:blur(40px);border-top:1px solid rgba(255,255,255,0.1)">
+    <!-- Handle + Header -->
+    <div class="flex-shrink-0 px-4 pt-3 pb-3 border-b border-white/8">
+      <div class="w-10 h-1 bg-white/15 rounded-full mx-auto mb-3"></div>
+      <div id="support-header" class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-yellow-400" style="font-size:18px">support_agent</span>
+          <span class="text-white font-black text-sm" id="support-header-title">Suporte</span>
+        </div>
+        <button onclick="closeSupportModal()" class="text-white/40 hover:text-white active:scale-90 transition-all">
+          <span class="material-symbols-outlined" style="font-size:20px">close</span>
+        </button>
+      </div>
+      <div id="support-ticket-info" style="display:none" class="mt-1 flex items-center gap-2">
+        <span id="support-ticket-number" class="text-[10px] font-black text-yellow-400/70 bg-yellow-400/10 px-2 py-0.5 rounded-full"></span>
+        <span id="support-ticket-status" class="text-[10px] font-bold"></span>
+      </div>
     </div>
-    <div>
-      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Categoria</label>
-      <select id="support-titulo" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-yellow-400 transition-colors" style="background:rgba(255,255,255,0.06)">
-        <option value="">Selecione...</option>
-        <option value="Bug / Erro no app">🐛 Bug / Erro no app</option>
-        <option value="Dúvida sobre funcionalidade">❓ Dúvida sobre funcionalidade</option>
-        <option value="Sugestão de melhoria">💡 Sugestão de melhoria</option>
-        <option value="Problema com OCR de corridas">📸 Problema com OCR de corridas</option>
-        <option value="Outro">📋 Outro</option>
-      </select>
-    </div>
-    <div>
-      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Descreva o problema</label>
-      <textarea id="support-msg" rows="4" placeholder="Descreva com detalhes o que aconteceu ou sua sugestão..."
-        class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-yellow-400 transition-colors resize-none"
-        style="background:rgba(255,255,255,0.06)"></textarea>
-    </div>
-    <div id="support-feedback" class="hidden text-xs font-semibold"></div>
-    <button id="support-btn" onclick="sendSupport()"
-      class="w-full py-3.5 rounded-2xl font-black text-sm tracking-wider text-white transition-all active:scale-[.98]"
-      style="background:#eab308;box-shadow:0 0 20px rgba(234,179,8,.3)">ENVIAR</button>
-    <!-- Histórico de tickets -->
-    <div id="support-history" style="display:none" class="flex flex-col gap-2 mt-1">
-      <div class="text-white/30 text-[10px] font-bold uppercase tracking-wider">Seus chamados anteriores</div>
-      <div id="support-history-list" class="flex flex-col gap-2 overflow-y-auto" style="max-height:160px"></div>
+
+    <!-- Área de conteúdo dinâmico -->
+    <div id="support-body" class="flex-1 overflow-y-auto px-4 py-3"></div>
+
+    <!-- Input area (chat - só exibido no modo chat ativo) -->
+    <div id="support-input-area" style="display:none" class="flex-shrink-0 px-4 pb-6 pt-3 border-t border-white/8">
+      <div class="flex items-end gap-2">
+        <!-- Botão de imagem -->
+        <button onclick="document.getElementById('support-img-input').click()"
+          class="flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center border border-white/10 text-white/40 hover:text-white hover:border-white/30 active:scale-90 transition-all"
+          style="background:rgba(255,255,255,0.06)">
+          <span class="material-symbols-outlined" style="font-size:18px">image</span>
+        </button>
+        <input type="file" id="support-img-input" accept="image/*" class="hidden" onchange="handleSupportImage(this)">
+        <!-- Textarea -->
+        <textarea id="support-chat-input" rows="1" placeholder="Digite sua mensagem..."
+          class="flex-1 p-3 rounded-2xl text-white text-sm border border-white/10 focus:outline-none focus:border-yellow-400 transition-colors resize-none"
+          style="background:rgba(255,255,255,0.06);max-height:100px"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSupportMessage();}"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+        <!-- Botão enviar -->
+        <button onclick="sendSupportMessage()" id="support-send-btn"
+          class="flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center text-white active:scale-90 transition-all"
+          style="background:#eab308">
+          <span class="material-symbols-outlined" style="font-size:18px">send</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
+// ── Estado do suporte ──────────────────────────────────
+let _supportTicket = null;
+let _supportUserId = null;
+
+// ── Abrir modal ────────────────────────────────────────
 async function openSupportModal() {
-  document.getElementById('support-titulo').value = '';
-  document.getElementById('support-msg').value    = '';
-  const fb = document.getElementById('support-feedback');
-  fb.textContent = ''; fb.className = 'hidden text-xs font-semibold';
-  document.getElementById('support-btn').disabled   = false;
-  document.getElementById('support-btn').textContent = 'ENVIAR';
+  _supportUserId = window.APP_STATE?.user?.id || null;
   document.getElementById('support-modal').style.display = 'flex';
-  // Carrega tickets anteriores via Supabase client
-  const histEl   = document.getElementById('support-history');
-  const histList = document.getElementById('support-history-list');
-  histEl.style.display = 'none';
+  renderSupportLoading();
+  if (!_supportUserId) { renderSupportCreate(); return; }
   try {
-    const userId = window.APP_STATE?.user?.id;
-    if (!userId) return;
-    const { data: tickets, error } = await supabase
-      .from('dashdriver_support')
-      .select('id, titulo, mensagem, status, resposta, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(10);
-    if (error) { console.error('[support history]', error.message); return; }
-    if (!tickets || !tickets.length) return;
-    const statusLabel = { open: '🔴 Aberto', in_progress: '🟡 Em andamento', resolved: '🟢 Resolvido' };
-    histList.innerHTML = tickets.map(t => `
-      <div class="rounded-xl p-3 text-xs" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)">
-        <div class="flex items-center justify-between gap-2 mb-1">
-          <span class="text-white font-bold">${t.titulo}</span>
-          <span class="text-white/40">${statusLabel[t.status] || t.status}</span>
-        </div>
-        <p class="text-white/40 mb-1">${t.mensagem}</p>
-        ${t.resposta ? `<div class="rounded-lg p-2 mt-1 text-green-300" style="background:rgba(74,222,128,0.08)">↩ ${t.resposta}</div>` : ''}
-      </div>`).join('');
-    histEl.style.display = 'flex';
-  } catch (err) { console.error('[support history]', err); }
+    const r = await fetch('/api/support?user_id=' + encodeURIComponent(_supportUserId));
+    const d = await r.json();
+    _supportTicket = d.ticket || null;
+    if (!_supportTicket) { renderSupportCreate(); return; }
+    renderSupportChat(d.messages || []);
+  } catch (err) {
+    console.error('[support]', err);
+    renderSupportCreate();
+  }
 }
+
 function closeSupportModal() {
   document.getElementById('support-modal').style.display = 'none';
+  _supportTicket = null;
 }
-async function sendSupport() {
-  const titulo  = document.getElementById('support-titulo').value;
-  const mensagem = document.getElementById('support-msg').value.trim();
+
+// ── Renderiza: loading ─────────────────────────────────
+function renderSupportLoading() {
+  document.getElementById('support-header-title').textContent = 'Suporte';
+  document.getElementById('support-ticket-info').style.display = 'none';
+  document.getElementById('support-input-area').style.display = 'none';
+  document.getElementById('support-body').innerHTML =
+    '<div class="flex items-center justify-center h-32 text-white/30 text-sm">Carregando...</div>';
+}
+
+// ── Renderiza: criar novo ticket ───────────────────────
+function renderSupportCreate() {
+  document.getElementById('support-header-title').textContent = 'Novo chamado';
+  document.getElementById('support-ticket-info').style.display = 'none';
+  document.getElementById('support-input-area').style.display = 'none';
+  document.getElementById('support-body').innerHTML = `
+    <div class="flex flex-col gap-4 pt-1">
+      <div>
+        <label class="text-white/40 text-[10px] font-bold uppercase mb-1.5 block">Categoria</label>
+        <select id="support-titulo" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-yellow-400 transition-colors" style="background:rgba(255,255,255,0.06)">
+          <option value="">Selecione...</option>
+          <option value="Bug / Erro no app">🐛 Bug / Erro no app</option>
+          <option value="Dúvida sobre funcionalidade">❓ Dúvida sobre funcionalidade</option>
+          <option value="Sugestão de melhoria">💡 Sugestão de melhoria</option>
+          <option value="Problema com OCR de corridas">📸 Problema com OCR de corridas</option>
+          <option value="Outro">📋 Outro</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-white/40 text-[10px] font-bold uppercase mb-1.5 block">Descreva o problema</label>
+        <textarea id="support-msg" rows="5" placeholder="Descreva com detalhes o que aconteceu ou sua sugestão..."
+          class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-yellow-400 transition-colors resize-none"
+          style="background:rgba(255,255,255,0.06)"></textarea>
+      </div>
+      <div id="support-feedback" class="hidden text-xs font-semibold"></div>
+      <button id="support-btn" onclick="createSupportTicket()"
+        class="w-full py-3.5 rounded-2xl font-black text-sm tracking-wider text-white transition-all active:scale-[.98]"
+        style="background:#eab308;box-shadow:0 0 20px rgba(234,179,8,.3)">ABRIR CHAMADO</button>
+    </div>`;
+}
+
+// ── Renderiza: chat ────────────────────────────────────
+function renderSupportChat(messages) {
+  const ticket = _supportTicket;
+  const statusMap = {
+    open:        { label: 'Aberto',       color: 'text-blue-400' },
+    in_progress: { label: 'Em andamento', color: 'text-yellow-400' },
+    resolved:    { label: 'Resolvido',    color: 'text-green-400' },
+  };
+  const st = statusMap[ticket.status] || { label: ticket.status, color: 'text-white/40' };
+  const isResolved = ticket.status === 'resolved';
+
+  document.getElementById('support-header-title').textContent = ticket.titulo;
+  document.getElementById('support-ticket-number').textContent = ticket.ticket_number || '';
+  document.getElementById('support-ticket-status').textContent = st.label;
+  document.getElementById('support-ticket-status').className = 'text-[10px] font-bold ' + st.color;
+  document.getElementById('support-ticket-info').style.display = 'flex';
+  document.getElementById('support-input-area').style.display = isResolved ? 'none' : 'block';
+
+  const body = document.getElementById('support-body');
+  if (!messages.length) {
+    body.innerHTML = '<div class="text-center text-white/20 text-xs py-8">Nenhuma mensagem ainda</div>';
+  } else {
+    body.innerHTML = messages.map(m => renderSupportMsg(m)).join('');
+  }
+
+  if (isResolved) {
+    body.innerHTML += `
+      <div class="mt-4 rounded-2xl p-4 text-center" style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2)">
+        <div class="text-green-400 font-black text-sm mb-1">✅ Chamado resolvido</div>
+        <p class="text-white/40 text-xs mb-3">Precisa de mais ajuda? Abra um novo chamado.</p>
+        <button onclick="renderSupportCreate()" class="px-4 py-2 rounded-xl text-xs font-black text-white" style="background:#eab308">Novo chamado</button>
+      </div>`;
+  }
+
+  // Scroll para o final
+  setTimeout(() => { body.scrollTop = body.scrollHeight; }, 50);
+}
+
+function renderSupportMsg(m) {
+  const isUser  = m.sender_role === 'user';
+  const time    = new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const isImage = m.tipo === 'image';
+  return `
+    <div class="flex ${isUser ? 'justify-end' : 'justify-start'} mb-2">
+      <div class="max-w-[78%] ${isUser ? 'rounded-2xl rounded-tr-sm' : 'rounded-2xl rounded-tl-sm'} px-3 py-2"
+        style="background:${isUser ? 'rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.25)' : 'rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1)'}">
+        ${!isUser ? '<div class="text-[9px] font-black text-yellow-400/70 mb-1">SUPORTE</div>' : ''}
+        ${isImage
+          ? `<img src="${m.conteudo}" class="rounded-xl max-w-full" style="max-height:200px;object-fit:contain" onclick="window.open('${m.conteudo}','_blank')">`
+          : `<p class="text-white text-sm leading-relaxed">${m.conteudo.replace(/\n/g,'<br>')}</p>`}
+        <div class="text-white/25 text-[9px] mt-1 ${isUser ? 'text-right' : ''}">${time}</div>
+      </div>
+    </div>`;
+}
+
+// ── Criar ticket ───────────────────────────────────────
+async function createSupportTicket() {
+  const titulo   = document.getElementById('support-titulo')?.value;
+  const mensagem = document.getElementById('support-msg')?.value.trim();
   const fb  = document.getElementById('support-feedback');
   const btn = document.getElementById('support-btn');
   if (!titulo || !mensagem) {
@@ -1364,27 +1462,85 @@ async function sendSupport() {
   }
   btn.disabled = true; btn.textContent = 'Enviando...';
   try {
-    const email   = APP_STATE.user?.email || '';
-    const user_id = APP_STATE.user?.id    || null;
     const r = await fetch('/api/support', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ titulo, mensagem, email, user_id }),
+      body: JSON.stringify({ titulo, mensagem, user_id: _supportUserId }),
     });
     const d = await r.json();
-    if (r.ok && d.ok) {
-      fb.textContent = '✓ Ticket enviado! Vamos analisar em breve.';
-      fb.className = 'text-green-400 text-xs font-semibold mt-1';
-      setTimeout(closeSupportModal, 2000);
-    } else {
-      throw new Error(d.error || 'Erro desconhecido');
-    }
+    if (!r.ok || !d.ok) throw new Error(d.error || 'Erro ao abrir chamado');
+    // Recarrega o chat com o ticket criado
+    await openSupportModal();
   } catch (e) {
-    fb.textContent = 'Erro ao enviar: ' + e.message;
-    fb.className = 'text-red-400 text-xs font-semibold mt-1';
-    btn.disabled = false; btn.textContent = 'ENVIAR';
+    if (fb) { fb.textContent = 'Erro: ' + e.message; fb.className = 'text-red-400 text-xs font-semibold mt-1'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'ABRIR CHAMADO'; }
   }
 }
+
+// ── Enviar mensagem no chat ────────────────────────────
+async function sendSupportMessage() {
+  const input = document.getElementById('support-chat-input');
+  const msg   = input?.value.trim();
+  if (!msg || !_supportTicket) return;
+  input.value = ''; input.style.height = 'auto';
+
+  // Otimista: mostra na tela imediatamente
+  const body = document.getElementById('support-body');
+  const tempId = 'tmp_' + Date.now();
+  body.innerHTML += renderSupportMsg({ id: tempId, sender_role: 'user', conteudo: msg, tipo: 'text', created_at: new Date().toISOString() });
+  body.scrollTop = body.scrollHeight;
+
+  try {
+    const r = await fetch('/api/support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticket_id: _supportTicket.id, conteudo: msg, user_id: _supportUserId }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Erro ao enviar');
+  } catch (e) {
+    if (typeof utils !== 'undefined') utils.toast('Erro ao enviar mensagem', 'error');
+  }
+}
+
+// ── Upload de imagem ───────────────────────────────────
+async function handleSupportImage(input) {
+  const file = input.files[0];
+  if (!file || !_supportTicket) return;
+  input.value = '';
+  if (file.size > 5 * 1024 * 1024) {
+    if (typeof utils !== 'undefined') utils.toast('Imagem muito grande (máx 5MB)', 'error');
+    return;
+  }
+  if (typeof utils !== 'undefined') utils.toast('Enviando imagem...', 'success');
+  try {
+    const ext  = file.name.split('.').pop();
+    const path = `${_supportUserId}/${_supportTicket.id}/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage.from('support-media').upload(path, file, { upsert: false });
+    if (error) throw new Error(error.message);
+    const { data: urlData } = supabase.storage.from('support-media').getPublicUrl(data.path);
+    const imageUrl = urlData.publicUrl;
+
+    // Envia como mensagem
+    const r = await fetch('/api/support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticket_id: _supportTicket.id, conteudo: imageUrl, tipo: 'image', user_id: _supportUserId }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+
+    // Exibe na tela
+    const body = document.getElementById('support-body');
+    body.innerHTML += renderSupportMsg({ sender_role: 'user', conteudo: imageUrl, tipo: 'image', created_at: new Date().toISOString() });
+    body.scrollTop = body.scrollHeight;
+  } catch (e) {
+    if (typeof utils !== 'undefined') utils.toast('Erro ao enviar imagem: ' + e.message, 'error');
+  }
+}
+
+// Backward compat
+function sendSupport() { createSupportTicket(); }
 </script>
 
 </body>
