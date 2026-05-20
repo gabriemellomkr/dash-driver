@@ -1321,17 +1321,21 @@ async function openSupportModal() {
   document.getElementById('support-btn').disabled   = false;
   document.getElementById('support-btn').textContent = 'ENVIAR';
   document.getElementById('support-modal').style.display = 'flex';
-  // Carrega tickets anteriores
+  // Carrega tickets anteriores via Supabase client
   const histEl   = document.getElementById('support-history');
   const histList = document.getElementById('support-history-list');
   histEl.style.display = 'none';
   try {
-    const email = APP_STATE.user?.email;
-    if (!email) return;
-    const r = await fetch('/api/support?email=' + encodeURIComponent(email));
-    const d = await r.json();
-    const tickets = d.tickets || [];
-    if (!tickets.length) return;
+    const userId = window.APP_STATE?.user?.id;
+    if (!userId) return;
+    const { data: tickets, error } = await supabase
+      .from('dashdriver_support')
+      .select('id, titulo, mensagem, status, resposta, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if (error) { console.error('[support history]', error.message); return; }
+    if (!tickets || !tickets.length) return;
     const statusLabel = { open: '🔴 Aberto', in_progress: '🟡 Em andamento', resolved: '🟢 Resolvido' };
     histList.innerHTML = tickets.map(t => `
       <div class="rounded-xl p-3 text-xs" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)">

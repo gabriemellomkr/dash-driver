@@ -124,7 +124,7 @@ module.exports = async function handler(req, res) {
 
   const client = await pool.connect();
   try {
-    const [rUsers, rPlans, rCorridas, rTokens, rConfigs] = await Promise.all([
+    const [rUsers, rPlans, rCorridas, rTokens, rConfigs, rUsuarios] = await Promise.all([
       client.query(`
         SELECT id, email, created_at, last_sign_in_at
         FROM auth.users
@@ -132,7 +132,7 @@ module.exports = async function handler(req, res) {
       `),
       client.query('SELECT user_id, plano, trial_ends_at, stripe_status, id FROM public.dashdriver_plans'),
       client.query('SELECT user_id, count(*)::int AS cnt FROM public.dashdriver_corridas GROUP BY user_id'),
-      client.query('SELECT user_id, nome, telefone FROM public.dashdriver_config'),
+      client.query('SELECT user_id, telefone FROM public.dashdriver_config'),
       client.query(`
         SELECT user_id,
                coalesce(sum(tokens_in),0)::int  AS tokens_in,
@@ -140,6 +140,7 @@ module.exports = async function handler(req, res) {
         FROM public.dashdriver_token_usage
         GROUP BY user_id
       `),
+      client.query('SELECT id, full_name FROM public.dashdriver_usuarios'),
     ]);
 
     const plansMap = {};
@@ -151,13 +152,16 @@ module.exports = async function handler(req, res) {
     const configMap = {};
     rConfigs.rows.forEach(r => { configMap[r.user_id] = r; });
 
+    const usuariosMap = {};
+    rUsuarios.rows.forEach(r => { usuariosMap[r.id] = r; });
+
     const tokenMap = {};
     rTokens.rows.forEach(r => { tokenMap[r.user_id] = { in: r.tokens_in, out: r.tokens_out }; });
 
     const users = rUsers.rows.map(u => ({
       id:            u.id,
       email:         u.email,
-      nome:          configMap[u.id]?.nome || null,
+      nome:          usuariosMap[u.id]?.full_name || null,
       telefone:      configMap[u.id]?.telefone || null,
       created_at:    u.created_at,
       last_sign_in:  u.last_sign_in_at,
