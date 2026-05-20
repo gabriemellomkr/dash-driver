@@ -106,6 +106,8 @@ module.exports = async function handler(req, res) {
       await client.query('DELETE FROM public.dashdriver_config WHERE user_id = $1', [user_id]);
       await client.query('DELETE FROM public.dashdriver_support WHERE user_id = $1', [user_id]);
       await client.query('DELETE FROM public.dashdriver_token_usage WHERE user_id = $1', [user_id]);
+      // dashdriver_usuarios referencia auth.users por FK (id)
+      await client.query('DELETE FROM public.dashdriver_usuarios WHERE id = $1', [user_id]);
       await client.query('DELETE FROM auth.identities WHERE user_id = $1', [user_id]);
       await client.query('DELETE FROM auth.users WHERE id = $1', [user_id]);
       return res.status(200).json({ ok: true });

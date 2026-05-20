@@ -26,8 +26,7 @@ module.exports = async function handler(req, res) {
         client.query(
           `SELECT s.id, s.titulo, s.mensagem, s.status, s.resposta, s.created_at
            FROM public.dashdriver_support s
-           JOIN auth.users u ON u.id = s.user_id
-           WHERE lower(u.email) = $1
+           WHERE s.user_id = (SELECT id FROM auth.users WHERE lower(email) = $1 LIMIT 1)
            ORDER BY s.created_at DESC LIMIT 10`,
           [email]
         ),

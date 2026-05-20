@@ -737,30 +737,18 @@
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-white text-base font-bold" id="modal-title">Lançar Corrida</h2>
       <div class="flex items-center gap-2">
-      <div class="flex items-center gap-1">
-        <button type="button" onclick="document.getElementById('ocr-gallery').click()"
-          title="Enviar da galeria"
-          class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-outline text-[10px] font-bold hover:border-blue-500/50 hover:text-blue-400 active:scale-95 transition-all">
-          <span class="material-symbols-outlined" style="font-size:14px">photo_library</span>
-          Galeria
-        </button>
-        <button type="button" onclick="document.getElementById('ocr-camera').click()"
-          title="Tirar foto agora"
-          class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-outline text-[10px] font-bold hover:border-blue-500/50 hover:text-blue-400 active:scale-95 transition-all">
-          <span class="material-symbols-outlined" style="font-size:14px">photo_camera</span>
-          Câmera
-        </button>
-      </div>
+      <button type="button" onclick="document.getElementById('ocr-gallery').click()"
+        title="Suba o print da corrida"
+        class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-outline text-[10px] font-bold hover:border-blue-500/50 hover:text-blue-400 active:scale-95 transition-all">
+        <span class="material-symbols-outlined" style="font-size:14px">upload</span>
+        Suba o print aqui
+      </button>
       <button type="button" onclick="closeModal()" class="w-8 h-8 flex items-center justify-center text-outline hover:text-white active:scale-90 transition-all rounded-xl bg-white/5">
         <span class="material-symbols-outlined" style="font-size:18px">close</span>
       </button>
       </div>
     </div>
-    <!-- Inputs separados: galeria sem capture, câmera com capture -->
     <input type="file" id="ocr-gallery" accept="image/*" class="hidden" onchange="handleOCRImage(this)">
-    <input type="file" id="ocr-camera" accept="image/*" capture="environment" class="hidden" onchange="handleOCRImage(this)">
-    <!-- Compatibilidade: id original mantido apontando para galeria -->
-    <input type="file" id="ocr-input" accept="image/*" class="hidden" onchange="handleOCRImage(this)">
 
     <form id="form-corrida" class="p-4 space-y-4">
 
