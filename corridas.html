@@ -944,6 +944,12 @@
             class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
         </div>
       </div>
+      <!-- WhatsApp -->
+      <div class="mt-3">
+        <label class="text-outline text-xs block mb-1.5 font-medium">WhatsApp (com DDD, só números)</label>
+        <input type="tel" id="cfg-whatsapp" placeholder="11999998888" inputmode="numeric" maxlength="15"
+          class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-green-500 transition-colors">
+      </div>
       <!-- Avatar picker -->
       <div id="avatar-picker" class="hidden grid grid-cols-8 gap-2 mt-2">
         <!-- emojis injected by JS -->
@@ -3286,7 +3292,8 @@ function openSettings() {
   document.getElementById('cfg-meta-mes').value      = CONFIG_DATA.metaMes;
   document.getElementById('cfg-timezone').value      = CONFIG_DATA.timezone || 'America/Sao_Paulo';
   const perfil = loadPerfil();
-  document.getElementById('cfg-nome').value  = perfil.nome;
+  document.getElementById('cfg-nome').value      = perfil.nome;
+  document.getElementById('cfg-whatsapp').value  = localStorage.getItem('dd_whatsapp') || '';
   document.getElementById('avatar-btn').textContent = perfil.avatar;
   updateCustoPreview();
   updatePushBtn();
@@ -3332,8 +3339,10 @@ function saveSettings() {
   }
 
   // Save profile
-  const nomePerfil = document.getElementById('cfg-nome').value || 'Motorista';
+  const nomePerfil   = document.getElementById('cfg-nome').value || 'Motorista';
   const avatarPerfil = document.getElementById('avatar-btn').textContent || '🏍️';
+  const whatsapp     = document.getElementById('cfg-whatsapp').value.replace(/\D/g, '');
+  localStorage.setItem('dd_whatsapp', whatsapp);
   const perfil = { nome: nomePerfil, avatar: avatarPerfil };
   localStorage.setItem('dd_perfil', JSON.stringify(perfil));
   updateHeader();
@@ -3366,6 +3375,7 @@ function saveSettings() {
     timezone: newConfig.timezone,
     nome_perfil: perfil.nome,
     avatar_perfil: perfil.avatar,
+    telefone: whatsapp || null,
     updated_at: new Date().toISOString()
   }]);
 
