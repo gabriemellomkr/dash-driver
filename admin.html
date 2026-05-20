@@ -24,8 +24,9 @@
     .nav-item.active { background: rgba(59,130,246,0.15); color: #60a5fa; }
     .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; }
     .badge-trial   { background: rgba(251,191,36,0.15); color: #fbbf24; }
-    .badge-active  { background: rgba(52,199,89,0.15);  color: #4ade80; }
-    .badge-expired { background: rgba(239,68,68,0.15);  color: #f87171; }
+    .badge-active    { background: rgba(52,199,89,0.15);   color: #4ade80; }
+    .badge-expired   { background: rgba(239,68,68,0.15);   color: #f87171; }
+    .badge-convidado { background: rgba(168,85,247,0.15);  color: #c084fc; }
     #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
     #admin-app { display: none; }
     .table-row { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.1s; }
@@ -100,17 +101,71 @@
 
     <!-- DASHBOARD -->
     <section id="section-dashboard" class="section active">
-      <h2 class="text-white font-black text-xl mb-6">Dashboard</h2>
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8" id="stats-grid">
-        <div class="stat-card"><div class="text-3xl font-black text-white mb-1" id="stat-users">—</div><div class="text-xs text-white/40 font-semibold">Usuários</div></div>
-        <div class="stat-card"><div class="text-3xl font-black text-white mb-1" id="stat-corridas">—</div><div class="text-xs text-white/40 font-semibold">Corridas registradas</div></div>
-        <div class="stat-card"><div class="text-3xl font-black text-white mb-1" id="stat-tokens">—</div><div class="text-xs text-white/40 font-semibold">Tokens OCR usados</div></div>
-        <div class="stat-card"><div class="text-3xl font-black text-red-400 mb-1" id="stat-tickets">—</div><div class="text-xs text-white/40 font-semibold">Tickets abertos</div></div>
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h2 class="text-white font-black text-xl">Dashboard</h2>
+        <div class="flex items-center gap-2">
+          <span class="text-white/30 text-xs">Preço mensal (R$):</span>
+          <input type="number" id="price-config" value="49.90" min="0" step="0.01" oninput="updateFinancial()"
+            class="w-24 px-2 py-1 rounded-lg text-white text-xs border border-white/10 focus:outline-none focus:border-blue-500"
+            style="background:rgba(255,255,255,0.06)">
+        </div>
       </div>
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="stat-card"><div class="text-2xl font-black text-yellow-400 mb-1" id="stat-trial">—</div><div class="text-xs text-white/40 font-semibold">Trial (7 dias)</div></div>
+
+      <!-- Usuários por plano -->
+      <p class="text-white/30 text-[10px] font-bold uppercase mb-2">Usuários</p>
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+        <div class="stat-card"><div class="text-2xl font-black text-white mb-1" id="stat-users">—</div><div class="text-xs text-white/40 font-semibold">Total</div></div>
         <div class="stat-card"><div class="text-2xl font-black text-green-400 mb-1" id="stat-active">—</div><div class="text-xs text-white/40 font-semibold">Pagantes</div></div>
+        <div class="stat-card"><div class="text-2xl font-black text-yellow-400 mb-1" id="stat-trial">—</div><div class="text-xs text-white/40 font-semibold">Trial</div></div>
+        <div class="stat-card"><div class="text-2xl font-black text-purple-400 mb-1" id="stat-convidado">—</div><div class="text-xs text-white/40 font-semibold">Convidados</div></div>
         <div class="stat-card"><div class="text-2xl font-black text-red-400 mb-1" id="stat-expired">—</div><div class="text-xs text-white/40 font-semibold">Expirados</div></div>
+      </div>
+
+      <!-- Tickets -->
+      <p class="text-white/30 text-[10px] font-bold uppercase mb-2">Suporte</p>
+      <div class="grid grid-cols-3 gap-3 mb-6">
+        <div class="stat-card cursor-pointer hover:border-blue-500/30 transition-colors" onclick="toggleTicketList('open')"
+          style="border-color:rgba(59,130,246,0.15)">
+          <div class="text-2xl font-black text-blue-400 mb-1" id="stat-tickets-open">—</div>
+          <div class="text-xs text-white/40 font-semibold">Em aberto</div>
+          <span class="text-[9px] text-white/20">clique para ver</span>
+        </div>
+        <div class="stat-card cursor-pointer hover:border-yellow-500/30 transition-colors" onclick="toggleTicketList('in_progress')"
+          style="border-color:rgba(234,179,8,0.15)">
+          <div class="text-2xl font-black text-yellow-400 mb-1" id="stat-tickets-inprogress">—</div>
+          <div class="text-xs text-white/40 font-semibold">Em andamento</div>
+          <span class="text-[9px] text-white/20">clique para ver</span>
+        </div>
+        <div class="stat-card">
+          <div class="text-2xl font-black text-green-400 mb-1" id="stat-tickets-resolved">—</div>
+          <div class="text-xs text-white/40 font-semibold">Resolvidos</div>
+        </div>
+      </div>
+      <!-- Lista de tickets expandida -->
+      <div id="dash-ticket-list" class="hidden mb-6 glass rounded-2xl p-4 space-y-2"></div>
+
+      <!-- Financeiro -->
+      <p class="text-white/30 text-[10px] font-bold uppercase mb-2">Financeiro (estimativa mensal)</p>
+      <div class="grid grid-cols-3 gap-3 mb-6">
+        <div class="stat-card">
+          <div class="text-2xl font-black text-white mb-1" id="stat-bruto">R$ —</div>
+          <div class="text-xs text-white/40 font-semibold">Receita bruta</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-2xl font-black text-red-400 mb-1" id="stat-taxa">R$ —</div>
+          <div class="text-xs text-white/40 font-semibold">Taxa Stripe (~3,5%)</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-2xl font-black text-green-400 mb-1" id="stat-liquido">R$ —</div>
+          <div class="text-xs text-white/40 font-semibold">Receita líquida</div>
+        </div>
+      </div>
+
+      <!-- Operacional -->
+      <p class="text-white/30 text-[10px] font-bold uppercase mb-2">Operacional</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="stat-card"><div class="text-2xl font-black text-white mb-1" id="stat-corridas">—</div><div class="text-xs text-white/40 font-semibold">Corridas registradas</div></div>
+        <div class="stat-card"><div class="text-2xl font-black text-white mb-1" id="stat-tokens">—</div><div class="text-xs text-white/40 font-semibold">Tokens OCR usados</div></div>
       </div>
     </section>
 
@@ -148,11 +203,15 @@
     <!-- SUPORTE -->
     <section id="section-suporte" class="section">
       <h2 class="text-white font-black text-xl mb-6">Suporte</h2>
-      <div class="flex gap-2 mb-4">
+      <div class="flex flex-wrap gap-2 mb-4 items-center">
         <button onclick="filterTickets('open')" id="ticket-filter-open" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">Abertos</button>
         <button onclick="filterTickets('in_progress')" id="ticket-filter-in_progress" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 text-white/40 border border-white/10">Em andamento</button>
         <button onclick="filterTickets('resolved')" id="ticket-filter-resolved" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 text-white/40 border border-white/10">Resolvidos</button>
         <button onclick="filterTickets('all')" id="ticket-filter-all" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 text-white/40 border border-white/10">Todos</button>
+        <input id="ticket-search" type="text" placeholder="🔍 Buscar por número ou usuário..."
+          oninput="filterTickets(currentTicketFilter)"
+          class="ml-auto px-3 py-1.5 rounded-xl text-white text-xs border border-white/10 focus:outline-none focus:border-blue-500"
+          style="background:rgba(255,255,255,0.06);min-width:220px">
       </div>
       <div id="tickets-list" class="space-y-3">
         <div class="glass rounded-2xl p-8 text-center text-white/30 text-sm">Carregando tickets...</div>
@@ -194,6 +253,7 @@
       <select id="edit-plano" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
         <option value="trial">Trial (7 dias grátis)</option>
         <option value="active">Ativo (pago)</option>
+        <option value="convidado">Convidado (acesso total, não paga)</option>
         <option value="expired">Expirado</option>
       </select>
     </div>
@@ -234,6 +294,7 @@
       <select id="new-plano" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
         <option value="trial">Trial (7 dias grátis)</option>
         <option value="active">Ativo (pago)</option>
+        <option value="convidado">Convidado (acesso total, não paga)</option>
       </select>
     </div>
     <div class="mb-3" id="new-trial-days-row">
@@ -388,20 +449,78 @@ function showSection(name) {
 }
 
 // ── Stats ──────────────────────────────────────────────
+let _statsData = null;
+
 async function loadStats() {
   try {
-  const r = await fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${adminToken}` } });
-  const d = await r.json();
-  if (!r.ok) { console.error('[stats]', d); document.getElementById('stat-users').textContent = '!'; document.getElementById('stat-users').title = JSON.stringify(d); return; }
-  document.getElementById('stat-users').textContent    = d.total_users;
-  document.getElementById('stat-corridas').textContent = d.total_corridas;
-  document.getElementById('stat-tokens').textContent   = (d.total_tokens_in + d.total_tokens_out).toLocaleString('pt-BR');
-  document.getElementById('stat-tickets').textContent  = d.open_tickets;
-  document.getElementById('stat-trial').textContent    = d.plans.trial;
-  document.getElementById('stat-active').textContent   = d.plans.active;
-  document.getElementById('stat-expired').textContent  = d.plans.expired;
-  if (d.open_tickets > 0) document.getElementById('badge-suporte').textContent = d.open_tickets;
-  } catch(e) { console.error('[stats] fetch error:', e); document.getElementById('stat-users').textContent = 'ERR'; }
+    const r = await fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${adminToken}` } });
+    const d = await r.json();
+    if (!r.ok) { console.error('[stats]', d); return; }
+    _statsData = d;
+
+    // Usuários
+    document.getElementById('stat-users').textContent     = d.total_users;
+    document.getElementById('stat-active').textContent    = d.plans.active   || 0;
+    document.getElementById('stat-trial').textContent     = d.plans.trial    || 0;
+    document.getElementById('stat-convidado').textContent = d.plans.convidado || 0;
+    document.getElementById('stat-expired').textContent   = d.plans.expired  || 0;
+
+    // Operacional
+    document.getElementById('stat-corridas').textContent  = d.total_corridas;
+    document.getElementById('stat-tokens').textContent    = (d.total_tokens_in + d.total_tokens_out).toLocaleString('pt-BR');
+
+    // Tickets
+    document.getElementById('stat-tickets-open').textContent       = d.open_tickets         || 0;
+    document.getElementById('stat-tickets-inprogress').textContent = d.in_progress_tickets  || 0;
+    document.getElementById('stat-tickets-resolved').textContent   = d.resolved_tickets     || 0;
+
+    // Badge sidebar
+    const openCount = d.open_tickets || 0;
+    document.getElementById('badge-suporte').textContent = openCount > 0 ? openCount : '';
+
+    updateFinancial();
+  } catch(e) { console.error('[stats] fetch error:', e); }
+}
+
+function updateFinancial() {
+  const priceStr = document.getElementById('price-config')?.value || '0';
+  const price    = parseFloat(priceStr) || 0;
+  const paying   = (_statsData?.plans?.active || 0);
+  const bruto    = paying * price;
+  const taxa     = bruto * 0.035; // ~3.5% Stripe no Brasil
+  const liquido  = bruto - taxa;
+  const fmt      = v => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('stat-bruto').textContent   = fmt(bruto);
+  document.getElementById('stat-taxa').textContent    = fmt(taxa);
+  document.getElementById('stat-liquido').textContent = fmt(liquido);
+}
+
+// Expande lista de tickets no dashboard
+let _dashTicketListType = null;
+function toggleTicketList(type) {
+  const el   = document.getElementById('dash-ticket-list');
+  const data = type === 'open' ? (_statsData?.tickets_open_list || []) : (_statsData?.tickets_in_progress_list || []);
+
+  if (_dashTicketListType === type) {
+    el.classList.add('hidden');
+    _dashTicketListType = null;
+    return;
+  }
+  _dashTicketListType = type;
+  el.classList.remove('hidden');
+
+  if (!data.length) { el.innerHTML = '<p class="text-white/30 text-xs text-center py-4">Nenhum ticket</p>'; return; }
+
+  el.innerHTML = data.map(t => `
+    <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+      <span class="text-yellow-400 text-[10px] font-black w-16 flex-shrink-0">${t.ticket_number || '—'}</span>
+      <div class="flex-1 min-w-0">
+        <p class="text-white text-xs font-semibold truncate">${t.titulo}</p>
+        <p class="text-white/30 text-[10px]">${t.user_nome || t.user_email || '—'}</p>
+      </div>
+      ${t.assigned_to ? `<span class="text-white/30 text-[9px]">👤 ${t.assigned_to}</span>` : ''}
+      <span class="text-white/20 text-[9px]">${new Date(t.created_at).toLocaleDateString('pt-BR')}</span>
+    </div>`).join('');
 }
 
 // ── Users ──────────────────────────────────────────────
@@ -557,46 +676,84 @@ function filterTickets(status) {
   document.querySelectorAll('[id^="ticket-filter-"]').forEach(b => {
     b.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 text-white/40 border border-white/10';
   });
-  const active = document.getElementById('ticket-filter-' + status);
-  if (active) active.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30';
+  const activeBtn = document.getElementById('ticket-filter-' + status);
+  if (activeBtn) activeBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30';
 
-  const list = status === 'all' ? allTickets : allTickets.filter(t => t.status === status);
+  // Filtro por status
+  let list = status === 'all' ? allTickets : allTickets.filter(t => t.status === status);
+
+  // Filtro por busca (número ou usuário)
+  const q = (document.getElementById('ticket-search')?.value || '').toLowerCase().trim();
+  if (q) {
+    list = list.filter(t =>
+      (t.ticket_number || '').toLowerCase().includes(q) ||
+      (t.user_email    || '').toLowerCase().includes(q) ||
+      (t.user_nome     || '').toLowerCase().includes(q) ||
+      (t.titulo        || '').toLowerCase().includes(q)
+    );
+  }
+
   const el = document.getElementById('tickets-list');
-  if (!list.length) { el.innerHTML = '<div class="glass rounded-2xl p-8 text-center text-white/30 text-sm">Nenhum ticket</div>'; return; }
+  if (!list.length) { el.innerHTML = '<div class="glass rounded-2xl p-8 text-center text-white/30 text-sm">Nenhum ticket encontrado</div>'; return; }
 
-  const statusColors = { open: 'text-red-400', in_progress: 'text-yellow-400', resolved: 'text-green-400' };
-  const statusLabels = { open: 'Aberto', in_progress: 'Em andamento', resolved: 'Resolvido' };
+  const statusColors  = { open: 'text-blue-400', in_progress: 'text-yellow-400', resolved: 'text-green-400' };
+  const statusLabels  = { open: 'Aberto', in_progress: 'Em andamento', resolved: 'Resolvido' };
   el.innerHTML = list.map(t => {
-    const userInfo = [t.user_nome, t.user_email, t.user_telefone ? '📱 ' + t.user_telefone : ''].filter(Boolean).join(' · ') || 'Usuário não identificado';
-    const lastMsg  = t.last_message ? (t.last_message.length > 80 ? t.last_message.slice(0,80)+'…' : t.last_message) : '—';
-    const lastSenderLabel = t.last_sender === 'admin' ? '<span class="text-blue-400">↩ Admin</span>' : '<span class="text-yellow-400/70">↪ Usuário</span>';
-    const ticketNum = t.ticket_number || '';
-    // escape for onclick attribute
-    const tituloEsc = t.titulo.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const userInfo    = [t.user_nome, t.user_email, t.user_telefone ? '📱 ' + t.user_telefone : ''].filter(Boolean).join(' · ') || 'Usuário não identificado';
+    const lastMsg     = t.last_message
+      ? (t.last_tipo === 'image' ? '📷 Imagem' : (t.last_message.length > 80 ? t.last_message.slice(0,80)+'…' : t.last_message))
+      : '—';
+    const lastSenderLabel = t.last_sender === 'admin'
+      ? '<span class="text-blue-400">↩ Admin</span>'
+      : '<span class="text-yellow-400/70">↪ Usuário</span>';
+    const ticketNum   = t.ticket_number || '';
+    const tituloEsc   = t.titulo.replace(/'/g,"\\'").replace(/"/g,'&quot;');
     const userInfoEsc = userInfo.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const isOpen      = t.status === 'open';
+
     return `
-    <div class="glass rounded-2xl p-4 cursor-pointer hover:bg-white/5 transition-all"
-         onclick="openTicketModal('${t.id}','${ticketNum}','${tituloEsc}','${userInfoEsc}','${t.status}')">
-      <div class="flex items-start justify-between gap-3">
-        <div class="flex-1 min-w-0">
+    <div class="glass rounded-2xl p-4 transition-all hover:bg-white/5">
+      <div class="flex items-start gap-3">
+        <div class="flex-1 min-w-0 cursor-pointer"
+             onclick="openTicketModal('${t.id}','${ticketNum}','${tituloEsc}','${userInfoEsc}','${t.status}')">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             ${ticketNum ? `<span class="text-[10px] font-black text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-full">${ticketNum}</span>` : ''}
             <span class="text-white text-sm font-bold">${t.titulo}</span>
-            <span class="text-[10px] font-bold ${statusColors[t.status]}">${statusLabels[t.status]}</span>
+            <span class="text-[10px] font-bold ${statusColors[t.status] || 'text-white/30'}">${statusLabels[t.status] || t.status}</span>
             ${t.msg_count > 0 ? `<span class="text-[10px] text-white/30">${t.msg_count} msg${t.msg_count !== 1 ? 's' : ''}</span>` : ''}
           </div>
           <div class="text-[10px] font-semibold mb-1 ${t.user_email ? 'text-yellow-400/70' : 'text-white/20'}">
             👤 ${userInfo}
           </div>
+          ${t.assigned_to ? `<div class="text-[10px] text-blue-400/70 mb-1">🎧 Responsável: ${t.assigned_to}</div>` : ''}
           <div class="text-white/40 text-xs mb-1 flex items-center gap-1.5">
             ${t.msg_count > 0 ? lastSenderLabel + ': ' + lastMsg : '<span class="text-white/20">Sem mensagens</span>'}
           </div>
           <div class="text-white/20 text-[10px]">${new Date(t.created_at).toLocaleString('pt-BR')}</div>
         </div>
-        <span class="material-symbols-outlined text-white/20 flex-shrink-0" style="font-size:18px">chevron_right</span>
+        <div class="flex flex-col gap-1.5 flex-shrink-0">
+          ${isOpen ? `
+          <button onclick="acceptTicket('${t.id}')" title="Aceitar ticket"
+            class="px-3 py-1.5 rounded-lg text-xs font-bold text-green-400 hover:bg-green-500/10 border border-green-500/20 transition-all whitespace-nowrap">
+            ✅ Aceitar
+          </button>` : ''}
+          <button onclick="openTicketModal('${t.id}','${ticketNum}','${tituloEsc}','${userInfoEsc}','${t.status}')"
+            class="px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-blue-500/10 border border-blue-500/20 transition-all">
+            Abrir chat
+          </button>
+        </div>
       </div>
     </div>`;
   }).join('');
+}
+
+async function acceptTicket(ticketId) {
+  const r = await fetch('/api/admin/support', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ ticket_id: ticketId, action: 'accept' }),
+  });
+  if (r.ok) { loadTickets(); loadStats(); }
 }
 
 async function openTicketModal(id, ticketNumber, titulo, userInfo, status) {
@@ -615,8 +772,26 @@ async function openTicketModal(id, ticketNumber, titulo, userInfo, status) {
 
   // Desabilita/habilita input conforme status
   const resolved = (status === 'resolved');
+  const isOpen   = (status === 'open');
   document.getElementById('tkt-reply').disabled = resolved;
   document.querySelector('#ticket-modal button[onclick="sendAdminMessage()"]').disabled = resolved;
+
+  // Botão "Aceitar ticket" — só aparece se open
+  let acceptBtn = document.getElementById('tkt-accept-btn');
+  if (!acceptBtn) {
+    acceptBtn = document.createElement('button');
+    acceptBtn.id = 'tkt-accept-btn';
+    acceptBtn.className = 'px-3 py-1 rounded-lg text-xs font-black text-green-400 border border-green-500/30 hover:bg-green-500/10 transition-all';
+    acceptBtn.textContent = '✅ Aceitar ticket';
+    document.getElementById('tkt-status').insertAdjacentElement('afterend', acceptBtn);
+  }
+  acceptBtn.style.display = isOpen ? 'inline-flex' : 'none';
+  acceptBtn.onclick = async () => {
+    await acceptTicket(id);
+    document.getElementById('tkt-status').value = 'in_progress';
+    acceptBtn.style.display = 'none';
+    loadTickets();
+  };
 
   try {
     const r = await fetch(`/api/admin/support?ticket_id=${id}`, {
