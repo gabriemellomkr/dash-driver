@@ -401,6 +401,7 @@ let currentTicketFilter = 'open';
     loadStats();
     loadUsers();
     loadTickets();
+    startAutoRefresh();
   } catch(e) {
     // sessão inválida ou erro de rede — mantém tela de login
     adminToken = null;
@@ -463,12 +464,79 @@ async function doLogin() {
   loadStats();
   loadUsers();
   loadTickets();
+  startAutoRefresh();
 }
 
 async function doLogout() {
+  stopAutoRefresh();
   adminToken = null;
   await sb.auth.signOut();
   location.reload();
+}
+
+// ── Auto-refresh de tickets (polling a cada 30s) ───────
+let _refreshInterval = null;
+let _lastTicketCount = 0;
+
+function startAutoRefresh() {
+  if (_refreshInterval) return; // já rodando
+  _refreshInterval = setInterval(async () => {
+    if (!adminToken) return;
+    try {
+      // Silencioso: só atualiza tickets e badge, sem piscar a UI
+      const r = await fetch('/api/admin/support', { headers: { Authorization: `Bearer ${adminToken}` } });
+      const d = await r.json();
+      const novos = d.tickets || [];
+
+      // Detecta se chegou ticket novo (comparando com o que tínhamos)
+      const openNow = novos.filter(t => t.status === 'open').length;
+      const hadBefore = _lastTicketCount;
+      _lastTicketCount = openNow;
+
+      if (openNow > hadBefore) {
+        // Notificação visual: badge pisca e toca som leve
+        const badge = document.getElementById('badge-suporte');
+        badge.textContent = openNow;
+        badge.style.animation = 'none';
+        setTimeout(() => badge.style.animation = '', 10);
+        showRefreshToast(`🔔 Novo ticket de suporte!`);
+      }
+
+      // Atualiza lista se estiver na seção de suporte
+      const secaoAtiva = document.getElementById('section-suporte')?.classList.contains('active');
+      if (secaoAtiva) {
+        allTickets = novos;
+        filterTickets(currentTicketFilter);
+      } else {
+        allTickets = novos;
+      }
+
+      // Atualiza badge sempre
+      document.getElementById('badge-suporte').textContent = openNow > 0 ? openNow : '';
+
+      // Atualiza contador do dashboard se visível
+      document.getElementById('stat-tickets-open').textContent = openNow;
+
+    } catch(e) { /* silencioso em erro de rede */ }
+  }, 30000); // 30 segundos
+}
+
+function stopAutoRefresh() {
+  if (_refreshInterval) { clearInterval(_refreshInterval); _refreshInterval = null; }
+}
+
+function showRefreshToast(msg) {
+  let t = document.getElementById('admin-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'admin-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 20px;border-radius:16px;font-size:13px;font-weight:700;color:white;pointer-events:none;transition:opacity .3s;background:rgba(59,130,246,.9);backdrop-filter:blur(10px);white-space:nowrap';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._hide);
+  t._hide = setTimeout(() => { t.style.opacity = '0'; }, 3000);
 }
 
 // ── Navigation ─────────────────────────────────────────
@@ -699,6 +767,7 @@ async function loadTickets() {
   const r = await fetch('/api/admin/support', { headers: { Authorization: `Bearer ${adminToken}` } });
   const d = await r.json();
   allTickets = d.tickets || [];
+  _lastTicketCount = allTickets.filter(t => t.status === 'open').length;
   filterTickets(currentTicketFilter);
 }
 
