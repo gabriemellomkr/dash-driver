@@ -26,7 +26,10 @@ window.handleOCRImage = async function(input) {
 
   try {
     // Comprime a imagem antes de enviar (reduz para max 1200px e qualidade 80%)
-    const { base64, mimeType } = await compressImage(file, 1200, 0.8);
+    // compressImage (global, definida em index.html) retorna a dataURL completa
+    const dataUrl = await compressImage(file, 1200, 0.8);
+    const base64  = typeof dataUrl === 'object' ? dataUrl.base64 : dataUrl.split(',')[1];
+    const mimeType = 'image/jpeg';
 
     const res = await fetch('/api/ocr-corrida', {
       method: 'POST',

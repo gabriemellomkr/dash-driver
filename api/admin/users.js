@@ -20,29 +20,36 @@ module.exports = async function handler(req, res) {
     try {
       // Verifica se email já existe
       const exists = await client.query(
-        'SELECT id FROM auth.users WHERE lower(email) = lower($1) LIMIT 1',
+        'SELECT id FROM auth.users WHERE lower(email) = lower($1::text) LIMIT 1',
         [email]
       );
       if (exists.rows.length)
         return res.status(409).json({ error: 'E-mail já cadastrado' });
 
       // Cria usuário com senha bcrypt (pgcrypto)
+      // Campos de token devem ser string vazia (não null) para GoTrue não quebrar com 500
       const rUser = await client.query(`
         INSERT INTO auth.users (
           instance_id, id, aud, role,
           email, encrypted_password,
           email_confirmed_at,
           raw_app_meta_data, raw_user_meta_data,
+          confirmation_token, recovery_token,
+          email_change, email_change_token_new,
+          phone_change, phone_change_token,
           created_at, updated_at
         ) VALUES (
           '00000000-0000-0000-0000-000000000000',
           gen_random_uuid(),
           'authenticated', 'authenticated',
-          $1,
-          crypt($2, gen_salt('bf')),
+          $1::text,
+          crypt($2::text, gen_salt('bf', 10)),
           now(),
           '{"provider":"email","providers":["email"]}',
           '{}',
+          '', '',
+          '', '',
+          '', '',
           now(), now()
         )
         RETURNING id, email, created_at
@@ -51,19 +58,22 @@ module.exports = async function handler(req, res) {
       const newUser = rUser.rows[0];
 
       // Cria identity (obrigatório para GoTrue aceitar login email/senha)
+      // Casts explícitos em todos os parâmetros para evitar
+      // "could not determine data type of parameter $N" em contextos polimórficos
+      const emailClean = email.toLowerCase().trim();
       await client.query(`
         INSERT INTO auth.identities (
           id, provider_id, user_id, identity_data,
           provider, last_sign_in_at, created_at, updated_at
         ) VALUES (
           gen_random_uuid(),
-          $1,
-          $2,
-          jsonb_build_object('sub', $2::text, 'email', $1),
+          $1::text,
+          $2::uuid,
+          jsonb_build_object('sub', $2::text, 'email', $1::text),
           'email',
           now(), now(), now()
         )
-      `, [email.toLowerCase().trim(), newUser.id]);
+      `, [emailClean, newUser.id]);
 
       // Cria plano inicial
       const trial_ends_at = plano === 'trial'
@@ -73,7 +83,7 @@ module.exports = async function handler(req, res) {
       await client.query(`
         INSERT INTO public.dashdriver_plans
           (user_id, plano, trial_ends_at, obs, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, now(), now())
+        VALUES ($1::uuid, $2::text, $3::timestamptz, $4::text, now(), now())
         ON CONFLICT (user_id) DO UPDATE
           SET plano = EXCLUDED.plano,
               trial_ends_at = EXCLUDED.trial_ends_at,
