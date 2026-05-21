@@ -97,8 +97,8 @@ Retorne APENAS o JSON.`;
     if (user_id && (tokensIn + tokensOut) > 0) {
       pool.connect().then(client => {
         client.query(
-          `INSERT INTO public.dashdriver_token_usage (user_id, tokens_in, tokens_out)
-           VALUES ($1::uuid, $2, $3)`,
+          `INSERT INTO public.dashdriver_token_usage (user_id, feature, tokens_in, tokens_out)
+           VALUES ($1::uuid, 'ocr', $2, $3)`,
           [user_id, tokensIn, tokensOut]
         ).catch(err => console.error('[ocr] token_usage insert:', err.message))
          .finally(() => client.release());
