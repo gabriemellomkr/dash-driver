@@ -165,7 +165,15 @@
       <p class="text-white/30 text-[10px] font-bold uppercase mb-2">Operacional</p>
       <div class="grid grid-cols-2 gap-3">
         <div class="stat-card"><div class="text-2xl font-black text-white mb-1" id="stat-corridas">—</div><div class="text-xs text-white/40 font-semibold">Corridas registradas</div></div>
-        <div class="stat-card"><div class="text-2xl font-black text-white mb-1" id="stat-tokens">—</div><div class="text-xs text-white/40 font-semibold">Tokens OCR usados</div></div>
+        <div class="stat-card">
+          <div class="text-2xl font-black text-white mb-1" id="stat-tokens">—</div>
+          <div class="text-xs text-white/40 font-semibold mb-1">Tokens OCR usados</div>
+          <div class="flex items-center gap-2 flex-wrap mt-1">
+            <span class="text-[11px] font-bold text-emerald-400" id="stat-custo-usd">$ —</span>
+            <span class="text-white/20 text-[10px]">·</span>
+            <span class="text-[11px] font-bold text-emerald-300" id="stat-custo-brl">R$ —</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -484,18 +492,16 @@ function startAutoRefresh() {
   _refreshInterval = setInterval(async () => {
     if (!adminToken) return;
     try {
-      // Silencioso: só atualiza tickets e badge, sem piscar a UI
+      // ── Tickets (silencioso, detecta novos) ──────────────
       const r = await fetch('/api/admin/support', { headers: { Authorization: `Bearer ${adminToken}` } });
       const d = await r.json();
       const novos = d.tickets || [];
 
-      // Detecta se chegou ticket novo (comparando com o que tínhamos)
       const openNow = novos.filter(t => t.status === 'open').length;
       const hadBefore = _lastTicketCount;
       _lastTicketCount = openNow;
 
       if (openNow > hadBefore) {
-        // Notificação visual: badge pisca e toca som leve
         const badge = document.getElementById('badge-suporte');
         badge.textContent = openNow;
         badge.style.animation = 'none';
@@ -503,20 +509,18 @@ function startAutoRefresh() {
         showRefreshToast(`🔔 Novo ticket de suporte!`);
       }
 
-      // Atualiza lista se estiver na seção de suporte
       const secaoAtiva = document.getElementById('section-suporte')?.classList.contains('active');
-      if (secaoAtiva) {
-        allTickets = novos;
-        filterTickets(currentTicketFilter);
-      } else {
-        allTickets = novos;
-      }
-
-      // Atualiza badge sempre
+      if (secaoAtiva) { allTickets = novos; filterTickets(currentTicketFilter); }
+      else { allTickets = novos; }
       document.getElementById('badge-suporte').textContent = openNow > 0 ? openNow : '';
-
-      // Atualiza contador do dashboard se visível
       document.getElementById('stat-tickets-open').textContent = openNow;
+
+      // ── Stats gerais (tokens, corridas, usuários) ────────
+      await loadStats();
+
+      // ── Usuários: só atualiza se a seção estiver aberta ──
+      const secaoUsers = document.getElementById('section-usuarios')?.classList.contains('active');
+      if (secaoUsers) await loadUsers();
 
     } catch(e) { /* silencioso em erro de rede */ }
   }, 30000); // 30 segundos
@@ -567,7 +571,17 @@ async function loadStats() {
 
     // Operacional
     document.getElementById('stat-corridas').textContent  = d.total_corridas;
-    document.getElementById('stat-tokens').textContent    = (d.total_tokens_in + d.total_tokens_out).toLocaleString('pt-BR');
+    const totalTokens = (d.total_tokens_in || 0) + (d.total_tokens_out || 0);
+    document.getElementById('stat-tokens').textContent    = totalTokens.toLocaleString('pt-BR');
+
+    // Custo OCR — gpt-4o-mini: $0.15/1M input · $0.60/1M output
+    const USD_IN  = 0.15 / 1_000_000;
+    const USD_OUT = 0.60 / 1_000_000;
+    const BRL_USD = 5.80; // câmbio fixo de referência
+    const costUsd = (d.total_tokens_in || 0) * USD_IN + (d.total_tokens_out || 0) * USD_OUT;
+    const costBrl = costUsd * BRL_USD;
+    document.getElementById('stat-custo-usd').textContent = '$ ' + costUsd.toFixed(4);
+    document.getElementById('stat-custo-brl').textContent = 'R$ ' + costBrl.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 
     // Tickets
     document.getElementById('stat-tickets-open').textContent       = d.open_tickets         || 0;
