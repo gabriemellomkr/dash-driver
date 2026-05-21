@@ -94,15 +94,19 @@ Retorne APENAS o JSON.`;
     // Registra uso de tokens no banco (não bloqueia a resposta em caso de erro)
     const tokensIn  = apiData.usage?.prompt_tokens     || 0;
     const tokensOut = apiData.usage?.completion_tokens || 0;
+    console.log(`[ocr] tokens in=${tokensIn} out=${tokensOut} user_id=${user_id || 'null'}`);
     if (user_id && (tokensIn + tokensOut) > 0) {
       pool.connect().then(client => {
         client.query(
           `INSERT INTO public.dashdriver_token_usage (user_id, feature, tokens_in, tokens_out)
            VALUES ($1::uuid, 'ocr', $2, $3)`,
           [user_id, tokensIn, tokensOut]
-        ).catch(err => console.error('[ocr] token_usage insert:', err.message))
+        ).then(() => console.log('[ocr] token_usage inserido ✓'))
+         .catch(err => console.error('[ocr] token_usage insert FAILED:', err.message))
          .finally(() => client.release());
-      }).catch(() => {});
+      }).catch(err => console.error('[ocr] pool.connect FAILED:', err.message));
+    } else if (!user_id) {
+      console.warn('[ocr] user_id ausente — token_usage não registrado');
     }
 
     // Extrai o JSON da resposta

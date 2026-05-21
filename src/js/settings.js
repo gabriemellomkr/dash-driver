@@ -113,7 +113,12 @@ window.saveSettings = function() {
         updated_at:    new Date().toISOString()
       }, { onConflict: 'user_id' })
       .then(({ error }) => {
-        if (error) console.error('Supabase config:', error.message);
+        if (error) {
+          console.error('Supabase config save error:', error.message, error);
+          utils.toast('⚠️ Config salva local, mas sync falhou: ' + error.message, 'error');
+        } else {
+          console.log('[settings] config synced to Supabase ✓');
+        }
       });
     }
   } catch (err) {
