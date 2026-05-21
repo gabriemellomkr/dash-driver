@@ -91,20 +91,28 @@ Retorne APENAS o JSON.`;
     const apiData = await response.json();
     const text = apiData.choices?.[0]?.message?.content || '';
 
-    // Registra uso de tokens no banco (não bloqueia a resposta em caso de erro)
+    // Registra uso de tokens no banco — deve ser awaited antes de responder.
+    // Em Vercel serverless, Promises não-awaited são canceladas quando a função retorna.
     const tokensIn  = apiData.usage?.prompt_tokens     || 0;
     const tokensOut = apiData.usage?.completion_tokens || 0;
     console.log(`[ocr] tokens in=${tokensIn} out=${tokensOut} user_id=${user_id || 'null'}`);
     if (user_id && (tokensIn + tokensOut) > 0) {
-      pool.connect().then(client => {
-        client.query(
-          `INSERT INTO public.dashdriver_token_usage (user_id, feature, tokens_in, tokens_out)
-           VALUES ($1::uuid, 'ocr', $2, $3)`,
-          [user_id, tokensIn, tokensOut]
-        ).then(() => console.log('[ocr] token_usage inserido ✓'))
-         .catch(err => console.error('[ocr] token_usage insert FAILED:', err.message))
-         .finally(() => client.release());
-      }).catch(err => console.error('[ocr] pool.connect FAILED:', err.message));
+      try {
+        const dbClient = await pool.connect();
+        try {
+          await dbClient.query(
+            `INSERT INTO public.dashdriver_token_usage (user_id, feature, tokens_in, tokens_out)
+             VALUES ($1::uuid, 'ocr', $2, $3)`,
+            [user_id, tokensIn, tokensOut]
+          );
+          console.log('[ocr] token_usage inserido ✓');
+        } finally {
+          dbClient.release();
+        }
+      } catch (err) {
+        console.error('[ocr] token_usage insert FAILED:', err.message);
+        // Não bloqueia a resposta — apenas loga o erro
+      }
     } else if (!user_id) {
       console.warn('[ocr] user_id ausente — token_usage não registrado');
     }
