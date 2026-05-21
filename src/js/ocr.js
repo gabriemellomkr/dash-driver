@@ -20,8 +20,32 @@ window.handleOCRImage = async function(input) {
   const btn = document.getElementById('btn-ocr');
   const originalHTML = btn ? btn.innerHTML : '';
   if (btn) {
-    btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size:16px">sync</span>';
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size:14px">sync</span> Analisando...';
     btn.disabled = true;
+  }
+
+  // Overlay de loading no modal
+  const form = document.getElementById('form-corrida');
+  let overlay = null;
+  if (form) {
+    overlay = document.createElement('div');
+    overlay.id = 'ocr-overlay';
+    overlay.style.cssText = `
+      position:absolute;inset:0;background:rgba(0,0,0,0.65);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      border-radius:1.5rem;z-index:50;gap:12px;backdrop-filter:blur(2px)
+    `;
+    overlay.innerHTML = `
+      <span class="material-symbols-outlined animate-spin" style="font-size:40px;color:#60a5fa">sync</span>
+      <p style="color:#93c5fd;font-size:13px;font-weight:600;margin:0">Analisando o print…</p>
+      <p style="color:#6b7280;font-size:11px;margin:0">Isso leva alguns segundos</p>
+    `;
+    // Posiciona no container pai do modal (relativo)
+    const modalBox = form.closest('.glass-strong') || form.parentElement;
+    if (modalBox) {
+      modalBox.style.position = 'relative';
+      modalBox.appendChild(overlay);
+    }
   }
 
   try {
@@ -74,6 +98,8 @@ window.handleOCRImage = async function(input) {
       btn.innerHTML = originalHTML;
       btn.disabled = false;
     }
+    // Remove overlay de loading
+    if (overlay) overlay.remove();
   }
 };
 
