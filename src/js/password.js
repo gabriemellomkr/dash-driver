@@ -89,10 +89,10 @@ window.doResetPassword = async function() {
   }
 
   try {
-    const res = await fetch('/api/reset-password-confirm', {
+    const res = await fetch('/api/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: _resetToken, password: p1 }),
+      body: JSON.stringify({ action: 'confirm', token: _resetToken, password: p1 }),
     });
     const d = await res.json();
     if (!res.ok) {

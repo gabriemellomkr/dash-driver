@@ -28,9 +28,11 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST')   return res.status(405).end();
 
   const path = req.url?.split('?')[0] || '';
+  const body = req.body || {};
 
   // ── Confirmação: valida token e atualiza senha ─────────────────────────────
-  if (path.endsWith('/confirm')) {
+  // Detecta tanto por URL (/confirm) quanto por corpo (action='confirm' ou token presente sem email)
+  if (path.endsWith('/confirm') || body.action === 'confirm' || (body.token && !body.email)) {
     const { token, password } = req.body || {};
     if (!token || !password)
       return res.status(400).json({ error: 'token e password obrigatórios' });

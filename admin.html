@@ -769,10 +769,10 @@ async function savePlan() {
   const plano        = document.getElementById('edit-plano').value;
   const trial_ends_at = document.getElementById('edit-trial-end').value || null;
   const obs          = document.getElementById('edit-obs').value;
-  const r = await fetch('/api/admin/update-plan', {
+  const r = await fetch('/api/admin/users', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
-    body: JSON.stringify({ user_id, plano, trial_ends_at, obs }),
+    body: JSON.stringify({ action: 'update-plan', user_id, plano, trial_ends_at, obs }),
   });
   if (r.ok) { closePlanModal(); loadUsers(); loadStats(); }
 }

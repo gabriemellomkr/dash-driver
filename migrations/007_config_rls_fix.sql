@@ -5,8 +5,17 @@
 -- Rodar no SQL Editor do Supabase.
 
 -- 1. Garante constraint UNIQUE em user_id (necessário para upsert onConflict)
-ALTER TABLE public.dashdriver_config
-  ADD CONSTRAINT IF NOT EXISTS dashdriver_config_user_id_key UNIQUE (user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'dashdriver_config_user_id_key'
+      AND conrelid = 'public.dashdriver_config'::regclass
+  ) THEN
+    ALTER TABLE public.dashdriver_config
+      ADD CONSTRAINT dashdriver_config_user_id_key UNIQUE (user_id);
+  END IF;
+END $$;
 
 -- 2. Habilita RLS (idempotente)
 ALTER TABLE public.dashdriver_config ENABLE ROW LEVEL SECURITY;
