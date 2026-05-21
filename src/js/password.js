@@ -42,18 +42,29 @@ window.doForgotPassword = async function() {
     return;
   }
 
-  const redirectTo = window.location.origin + window.location.pathname;
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-
-  if (error) {
-    errEl.textContent = error.message;
+  try {
+    const res = await fetch('/api/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      errEl.textContent = d.error || 'Erro ao enviar e-mail.';
+      errEl.classList.remove('hidden');
+    } else {
+      sucEl.classList.remove('hidden');
+    }
+  } catch (e) {
+    errEl.textContent = 'Erro de conexão. Tente novamente.';
     errEl.classList.remove('hidden');
-  } else {
-    sucEl.classList.remove('hidden');
   }
 };
 
 /* ─── Salvar nova senha (via link de recuperação) ─────── */
+
+// Token lido da URL (?dd_reset=TOKEN)
+let _resetToken = null;
 
 window.doResetPassword = async function() {
   const p1  = document.getElementById('reset-pass1')?.value || '';
@@ -71,15 +82,32 @@ window.doResetPassword = async function() {
     err.classList.remove('hidden');
     return;
   }
-
-  const { error } = await supabase.auth.updateUser({ password: p1 });
-  if (error) {
-    err.textContent = error.message;
+  if (!_resetToken) {
+    err.textContent = 'Link inválido. Solicite um novo e-mail de recuperação.';
     err.classList.remove('hidden');
-  } else {
-    utils.toast('✅ Senha atualizada! Fazendo login...', 'success');
-    // Sessão já está ativa após o updateUser — redireciona para o app
-    setTimeout(() => window.location.replace(window.location.origin + window.location.pathname), 1500);
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/reset-password/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: _resetToken, password: p1 }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      err.textContent = d.error || 'Erro ao atualizar senha.';
+      err.classList.remove('hidden');
+    } else {
+      utils.toast('✅ Senha atualizada! Faça login com a nova senha.', 'success');
+      _resetToken = null;
+      // Limpa o token da URL e mostra a tela de login
+      window.history.replaceState({}, '', window.location.pathname);
+      setTimeout(showLoginPanel, 1500);
+    }
+  } catch (e) {
+    err.textContent = 'Erro de conexão. Tente novamente.';
+    err.classList.remove('hidden');
   }
 };
 
@@ -124,12 +152,26 @@ window.doChangePassword = async function() {
   }
 };
 
-/* ─── Detecção de recovery link (onAuthStateChange) ────── */
-// Supabase v2 dispara PASSWORD_RECOVERY quando o usuário clica no link do e-mail.
-// Registramos aqui para garantir que o painel certo apareça.
+/* ─── Detecção do link de recuperação na URL ───────────── */
+// Quando o usuário clica no link do e-mail (?dd_reset=TOKEN), detectamos
+// o token na URL e exibimos o painel de nova senha.
 
-supabase.auth.onAuthStateChange((event) => {
-  if (event === 'PASSWORD_RECOVERY') {
-    showResetPanel();
+(function checkResetToken() {
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('dd_reset');
+  if (token) {
+    _resetToken = token;
+    // Mostra a tela de login com o painel de nova senha
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginScreen = document.getElementById('login-screen');
+      if (loginScreen) loginScreen.style.display = 'flex';
+      showResetPanel();
+    });
+    // Caso o DOM já esteja pronto
+    if (document.readyState !== 'loading') {
+      const loginScreen = document.getElementById('login-screen');
+      if (loginScreen) loginScreen.style.display = 'flex';
+      showResetPanel();
+    }
   }
-});
+})();
