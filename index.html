@@ -57,10 +57,12 @@
       </div>
       <div>
         <h1 class="text-white font-black text-base tracking-tight">DashDriver</h1>
-        <p class="text-outline text-xs mt-0.5">Acesso restrito</p>
+        <p id="login-subtitle" class="text-outline text-xs mt-0.5">Acesso restrito</p>
       </div>
     </div>
-    <div class="flex flex-col gap-3">
+
+    <!-- ── Painel de login ── -->
+    <div id="login-panel" class="flex flex-col gap-3">
       <div>
         <label class="text-outline text-xs block mb-1.5 font-medium">E-mail</label>
         <input type="email" id="l-email" placeholder="seu@email.com"
@@ -78,6 +80,104 @@
         Entrar
       </button>
       <div id="l-err" class="text-red-400 text-xs text-center hidden">E-mail ou senha incorretos</div>
+      <button type="button" onclick="showForgotPanel()"
+        class="text-blue-400 text-xs text-center w-full py-1 hover:text-blue-300 transition-colors">
+        Esqueceu sua senha?
+      </button>
+    </div>
+
+    <!-- ── Painel de recuperação de senha ── -->
+    <div id="forgot-panel" class="hidden flex flex-col gap-3">
+      <p class="text-outline text-xs mb-1">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
+      <input type="email" id="forgot-email" placeholder="seu@email.com"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      <button onclick="doForgotPassword()"
+        class="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl active:scale-95 transition-all hover:bg-blue-400">
+        Enviar link de recuperação
+      </button>
+      <div id="forgot-success" class="hidden text-emerald-400 text-xs text-center py-1">
+        ✅ E-mail enviado! Verifique sua caixa de entrada.
+      </div>
+      <div id="forgot-err" class="hidden text-red-400 text-xs text-center py-1"></div>
+      <button type="button" onclick="showLoginPanel()"
+        class="text-outline text-xs text-center w-full py-1 hover:text-white transition-colors">
+        ← Voltar para o login
+      </button>
+    </div>
+
+    <!-- ── Painel de nova senha (recovery link) ── -->
+    <div id="reset-panel" class="hidden flex flex-col gap-3">
+      <p class="text-outline text-xs mb-1">Crie uma nova senha para sua conta.</p>
+      <input type="password" id="reset-pass1" placeholder="Nova senha (mín. 6 caracteres)"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      <input type="password" id="reset-pass2" placeholder="Confirmar nova senha"
+        onkeydown="if(event.key==='Enter')doResetPassword()"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      <button onclick="doResetPassword()"
+        class="w-full bg-emerald-500 text-white font-bold py-3.5 rounded-xl active:scale-95 transition-all hover:bg-emerald-400">
+        Salvar nova senha
+      </button>
+      <div id="reset-err" class="hidden text-red-400 text-xs text-center py-1"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════ MODAL ALTERAR SENHA ═══════════════════ -->
+<div id="modal-change-pass" class="fixed inset-0 z-[999] flex items-end justify-center hidden">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeChangePassModal()"></div>
+  <div class="glass-strong w-full rounded-t-3xl p-6 relative z-10" style="max-width:480px">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-white text-base font-bold">Alterar senha</h2>
+      <button onclick="closeChangePassModal()" class="w-8 h-8 flex items-center justify-center text-outline hover:text-white rounded-xl bg-white/5 active:scale-90 transition-all">
+        <span class="material-symbols-outlined" style="font-size:18px">close</span>
+      </button>
+    </div>
+    <div class="flex flex-col gap-3">
+      <input type="password" id="chpass-new" placeholder="Nova senha (mín. 6 caracteres)"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      <input type="password" id="chpass-confirm" placeholder="Confirmar nova senha"
+        onkeydown="if(event.key==='Enter')doChangePassword()"
+        class="w-full bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+      <div id="chpass-err" class="hidden text-red-400 text-xs text-center"></div>
+      <button onclick="doChangePassword()"
+        class="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl mt-1 active:scale-95 transition-all hover:bg-blue-400">
+        Salvar nova senha
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TUTORIAL PRIMEIRO ACESSO ═══════════════════ -->
+<div id="tutorial-overlay" class="fixed inset-0 z-[9998] hidden" style="background:rgba(0,0,0,0.85);backdrop-filter:blur(4px)">
+  <div class="flex flex-col h-full">
+    <!-- Conteúdo do passo -->
+    <div class="flex-1 flex flex-col items-center justify-center px-6 gap-6">
+      <div id="tutorial-icon" class="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl"
+           style="background:rgba(59,130,246,0.15)">📊</div>
+      <div class="text-center">
+        <h2 id="tutorial-title" class="text-white font-black text-xl mb-2">Bem-vindo ao DashDriver!</h2>
+        <p id="tutorial-desc" class="text-white/60 text-sm leading-relaxed"></p>
+      </div>
+    </div>
+    <!-- Indicadores de passo -->
+    <div class="flex justify-center gap-2 pb-4">
+      <span class="tutorial-dot w-2 h-2 rounded-full bg-blue-400"></span>
+      <span class="tutorial-dot w-2 h-2 rounded-full bg-white/20"></span>
+      <span class="tutorial-dot w-2 h-2 rounded-full bg-white/20"></span>
+      <span class="tutorial-dot w-2 h-2 rounded-full bg-white/20"></span>
+      <span class="tutorial-dot w-2 h-2 rounded-full bg-white/20"></span>
+    </div>
+    <!-- Botões -->
+    <div class="px-6 pb-10 flex flex-col gap-3">
+      <button id="tutorial-next" onclick="tutorialNext()"
+        class="w-full bg-blue-500 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all hover:bg-blue-400 text-base">
+        Próximo →
+      </button>
+      <button onclick="tutorialSkip()"
+        class="text-white/30 text-sm text-center py-2 hover:text-white/60 transition-colors">
+        Pular tutorial
+      </button>
     </div>
   </div>
 </div>
@@ -689,6 +789,14 @@
           </div>
           <span class="material-symbols-outlined text-outline" style="font-size:16px">chevron_right</span>
         </button>
+        <button onclick="openChangePassModal()" class="w-full flex items-center gap-3 p-4 text-left active:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-purple-400" style="font-size:20px;font-variation-settings:'FILL' 1">lock_reset</span>
+          <div class="flex-1">
+            <div class="text-white text-sm font-semibold">Alterar senha</div>
+            <div class="text-outline text-[10px]">Atualizar senha de acesso</div>
+          </div>
+          <span class="material-symbols-outlined text-outline" style="font-size:16px">chevron_right</span>
+        </button>
       </div>
 
       <!-- Info do app -->
@@ -1272,6 +1380,8 @@
   <script src="src/js/promos.js"></script>
 <script src="src/js/profile.js"></script>
 <script src="src/js/admin.js"></script>
+<script src="src/js/password.js"></script>
+<script src="src/js/tutorial.js"></script>
 <script src="src/js/main.js"></script>
 
 <!-- ═══ MODAL SUPORTE (chat) ═══ -->

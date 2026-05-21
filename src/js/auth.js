@@ -22,6 +22,8 @@ async function handleAuthSuccess(user) {
   if (success) {
     if (typeof renderDashboard === 'function') renderDashboard();
     showTab('dash');
+    // Verifica se é primeiro acesso (exibe tutorial)
+    if (typeof checkFirstAccess === 'function') checkFirstAccess();
   } else {
     utils.toast("Erro ao sincronizar dados", "error");
   }
