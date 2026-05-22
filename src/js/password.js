@@ -115,10 +115,11 @@ window.doResetPassword = async function() {
 
 window.openChangePassModal = function() {
   document.getElementById('modal-change-pass').classList.remove('hidden');
+  document.getElementById('chpass-current').value = '';
   document.getElementById('chpass-new').value = '';
   document.getElementById('chpass-confirm').value = '';
   document.getElementById('chpass-err').classList.add('hidden');
-  setTimeout(() => document.getElementById('chpass-new').focus(), 200);
+  setTimeout(() => document.getElementById('chpass-current').focus(), 200);
 };
 
 window.closeChangePassModal = function() {
@@ -126,18 +127,38 @@ window.closeChangePassModal = function() {
 };
 
 window.doChangePassword = async function() {
+  const p0  = document.getElementById('chpass-current')?.value || '';
   const p1  = document.getElementById('chpass-new')?.value     || '';
   const p2  = document.getElementById('chpass-confirm')?.value || '';
   const err = document.getElementById('chpass-err');
   err.classList.add('hidden');
 
+  if (!p0) {
+    err.textContent = 'Digite sua senha atual.';
+    err.classList.remove('hidden');
+    return;
+  }
   if (p1.length < 6) {
-    err.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+    err.textContent = 'A nova senha deve ter pelo menos 6 caracteres.';
     err.classList.remove('hidden');
     return;
   }
   if (p1 !== p2) {
     err.textContent = 'As senhas não coincidem.';
+    err.classList.remove('hidden');
+    return;
+  }
+  if (p0 === p1) {
+    err.textContent = 'A nova senha deve ser diferente da atual.';
+    err.classList.remove('hidden');
+    return;
+  }
+
+  // Verifica a senha atual antes de alterar
+  const email = APP_STATE.user?.email;
+  const { error: authErr } = await supabase.auth.signInWithPassword({ email, password: p0 });
+  if (authErr) {
+    err.textContent = 'Senha atual incorreta.';
     err.classList.remove('hidden');
     return;
   }
