@@ -1,5 +1,114 @@
-const pool = require('./_db');
+const pool       = require('./_db');
 const { verifyAdmin } = require('./_auth');
+const nodemailer = require('nodemailer');
+const crypto     = require('crypto');
+
+const APP_URL    = process.env.APP_URL      || 'https://app.dashdriver.com.br';
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_PASS = process.env.GMAIL_APP_PASS;
+
+async function sendWelcomeEmail(client, userId, email) {
+  if (!GMAIL_USER || !GMAIL_PASS) return; // e-mail não configurado, ignora silenciosamente
+
+  // Gera token de boas-vindas (7 dias — tempo suficiente para o usuário acessar)
+  const token   = crypto.randomBytes(32).toString('hex');
+  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  await client.query(
+    `INSERT INTO public.dashdriver_password_resets (user_id, token, expires_at)
+     VALUES ($1::uuid, $2, $3::timestamptz)`,
+    [userId, token, expires.toISOString()]
+  );
+
+  const resetUrl = `${APP_URL}?dd_reset=${token}`;
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="background:#0e0e10;border-radius:16px;padding:32px;max-width:480px">
+        <!-- Header -->
+        <tr><td style="padding-bottom:24px">
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="background:rgba(59,130,246,0.15);padding:10px;border-radius:12px;font-size:24px;vertical-align:middle">🏍️</td>
+            <td style="padding-left:12px;font-size:20px;font-weight:900;color:#ffffff;vertical-align:middle">DashDriver</td>
+          </tr></table>
+        </td></tr>
+        <!-- Título -->
+        <tr><td style="padding-bottom:6px;font-size:18px;font-weight:800;color:#ffffff">
+          Bem-vindo ao DashDriver! 🎉
+        </td></tr>
+        <!-- Subtítulo -->
+        <tr><td style="padding-bottom:20px;font-size:14px;line-height:1.6;color:rgba(255,255,255,0.6)">
+          Sua conta foi criada. Clique no botão abaixo para definir sua senha e acessar a plataforma.
+        </td></tr>
+        <!-- Botão principal -->
+        <tr><td style="padding-bottom:28px">
+          <a href="${resetUrl}"
+             style="display:inline-block;background:#3b82f6;color:#ffffff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none">
+            Definir minha senha e entrar →
+          </a>
+        </td></tr>
+        <!-- Instruções -->
+        <tr><td style="padding-bottom:20px">
+          <table cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.04);border-radius:12px;padding:16px;width:100%">
+            <tr><td style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.05em;padding-bottom:12px">
+              Como começar
+            </td></tr>
+            <tr><td style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.8">
+              <b style="color:#fff">1.</b> Clique no botão acima para definir sua senha<br>
+              <b style="color:#fff">2.</b> Faça login com o e-mail <b style="color:#60a5fa">${email}</b><br>
+              <b style="color:#fff">3.</b> Registre suas corridas diariamente<br>
+              <b style="color:#fff">4.</b> Acompanhe seus ganhos, KPIs e metas no Dashboard<br>
+              <b style="color:#fff">5.</b> Lance gastos (gasolina, manutenção) para calcular seu lucro real
+            </td></tr>
+          </table>
+        </td></tr>
+        <!-- Rodapé -->
+        <tr><td style="font-size:11px;color:rgba(255,255,255,0.25);line-height:1.6">
+          O link de acesso expira em <b style="color:rgba(255,255,255,0.4)">7 dias</b>. Após isso, use "Esqueceu a senha?" na tela de login.<br><br>
+          <span style="word-break:break-all">Ou acesse: ${resetUrl}</span>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `Bem-vindo ao DashDriver!
+
+Sua conta foi criada. Acesse o link abaixo para definir sua senha (válido por 7 dias):
+
+${resetUrl}
+
+Como começar:
+1. Clique no link acima para definir sua senha
+2. Faça login com o e-mail: ${email}
+3. Registre suas corridas diariamente
+4. Acompanhe ganhos, KPIs e metas no Dashboard
+5. Lance gastos (gasolina, manutenção) para ver seu lucro real
+
+— Equipe DashDriver`;
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: GMAIL_USER, pass: GMAIL_PASS },
+  });
+
+  await transporter.sendMail({
+    from:    `"DashDriver" <${GMAIL_USER}>`,
+    replyTo: GMAIL_USER,
+    to:      email,
+    subject: '🏍️ Bem-vindo ao DashDriver — acesse sua conta',
+    text,
+    html,
+    headers: { 'X-Priority': '3', 'X-Mailer': 'DashDriver Mailer' },
+  });
+
+  console.log(`[users] e-mail de boas-vindas enviado para ${email}`);
+}
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -113,6 +222,13 @@ module.exports = async function handler(req, res) {
               obs = EXCLUDED.obs,
               updated_at = now()
       `, [newUser.id, plano, trial_ends_at, obs]);
+
+      // Envia e-mail de boas-vindas com link para definir senha (não bloqueia resposta em caso de falha)
+      try {
+        await sendWelcomeEmail(client, newUser.id, emailClean);
+      } catch (mailErr) {
+        console.error('[users] falha ao enviar e-mail de boas-vindas:', mailErr.message);
+      }
 
       return res.status(201).json({
         ok: true,
