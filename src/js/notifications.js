@@ -172,8 +172,11 @@ window.checkBadges = function() {
 // ─── Teste manual de WhatsApp ─────────────────────────
 window.testarWhatsApp = async function() {
   // Lê do campo de input (mesmo antes de salvar) ou do CONFIG_DATA
-  const inputEl = document.getElementById('cfg-telefone');
-  const tel = (inputEl?.value || '').replace(/\D/g, '') || CONFIG_DATA.telefone;
+  // cfg-ddi tem o DDI separado desde a refatoração do campo de telefone
+  const ddi      = document.getElementById('cfg-ddi')?.value || '55';
+  const inputEl  = document.getElementById('cfg-telefone');
+  const localDig = (inputEl?.value || '').replace(/\D/g, '');
+  const tel      = localDig ? ddi + localDig : CONFIG_DATA.telefone;
   if (!tel || tel.length < 8) {
     utils.toast('Digite seu número WhatsApp com DDI (ex: 5511999999999)', 'error');
     return;
