@@ -7,6 +7,7 @@ window.data = {
   async loadAll() {
     try {
       await Promise.all([
+        this.loadPlan(),      // plano primeiro — usado para bloquear acesso
         this.loadConfig(),
         this.loadCorridas(),
         this.loadAbastecimentos(),
@@ -21,6 +22,18 @@ window.data = {
       console.error("Erro ao carregar dados:", e);
       return false;
     }
+  },
+
+  async loadPlan() {
+    if (!APP_STATE.user) return;
+    const { data, error } = await supabase
+      .from('dashdriver_plans')
+      .select('plano, trial_ends_at, expires_at, stripe_customer_id, stripe_subscription_id')
+      .eq('user_id', APP_STATE.user.id)
+      .maybeSingle();
+
+    // Sem registro → trata como trial sem data (admin pode não ter criado ainda)
+    APP_STATE.plan = (!error && data) ? data : { plano: 'trial', trial_ends_at: null, expires_at: null };
   },
 
   async loadConfig() {

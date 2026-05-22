@@ -196,3 +196,23 @@ window.doChangePassword = async function() {
     }
   }
 })();
+
+// Quando a Stripe redireciona de volta com ?subscribed=1, mostra toast de sucesso
+// e re-verifica o plano para fechar o paywall automaticamente.
+(function checkSubscribedParam() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('subscribed') === '1') {
+    // Limpa o parâmetro da URL sem recarregar
+    history.replaceState({}, '', window.location.pathname);
+    document.addEventListener('DOMContentLoaded', () => {
+      // Toast de confirmação (o plano já deve ter sido ativado pelo webhook)
+      setTimeout(() => {
+        if (typeof utils !== 'undefined') {
+          utils.toast('🎉 Assinatura ativada! Bem-vindo ao DashDriver!', 'success');
+        }
+        // Re-verifica plano para fechar paywall se ainda estiver aberto
+        window._checkPlanOnFocus?.();
+      }, 1500);
+    });
+  }
+})();

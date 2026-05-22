@@ -188,6 +188,47 @@
   </div>
 </div>
 
+<!-- ═══════════════════ PAYWALL ═══════════════════════════════ -->
+<div id="paywall-screen" class="fixed inset-0 z-[9998] flex items-center justify-center px-6" style="background:#0e0e10;display:none">
+  <div class="w-full max-w-sm flex flex-col items-center text-center gap-6">
+
+    <!-- Ícone -->
+    <div class="w-20 h-20 rounded-3xl flex items-center justify-center" style="background:rgba(239,68,68,.12)">
+      <span class="material-symbols-outlined text-red-400" style="font-size:40px;font-variation-settings:'FILL' 1">lock</span>
+    </div>
+
+    <!-- Mensagem -->
+    <div>
+      <h2 id="paywall-titulo" class="text-white font-black text-xl mb-2">Seu acesso expirou</h2>
+      <p id="paywall-desc" class="text-white/50 text-sm leading-relaxed">Para continuar usando o DashDriver, assine o plano mensal.</p>
+    </div>
+
+    <!-- Benefícios rápidos -->
+    <div class="w-full glass rounded-2xl p-4 text-left">
+      <p class="text-white/40 text-[11px] font-bold uppercase mb-3">O que você tem com o DashDriver</p>
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center gap-2 text-sm text-white/70"><span class="text-emerald-400 text-base">✓</span> Dashboard com KPIs em tempo real</div>
+        <div class="flex items-center gap-2 text-sm text-white/70"><span class="text-emerald-400 text-base">✓</span> OCR para lançar corridas por print</div>
+        <div class="flex items-center gap-2 text-sm text-white/70"><span class="text-emerald-400 text-base">✓</span> Controle de gastos e lucro real</div>
+        <div class="flex items-center gap-2 text-sm text-white/70"><span class="text-emerald-400 text-base">✓</span> Metas, gamificação e notificações</div>
+        <div class="flex items-center gap-2 text-sm text-white/70"><span class="text-emerald-400 text-base">✓</span> Alertas de documentos via WhatsApp</div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="w-full flex flex-col gap-3">
+      <button id="paywall-subscribe-btn" onclick="doSubscribe()"
+        class="w-full py-4 rounded-2xl text-white font-black text-base tracking-wide transition-all active:scale-[.97]"
+        style="background:linear-gradient(135deg,#2563eb,#7c3aed);box-shadow:0 0 30px rgba(124,58,237,.35)">
+        🔓 Assinar agora
+      </button>
+      <p class="text-white/25 text-[11px]">7 dias grátis · cancele quando quiser · cobrança automática após o trial</p>
+      <button onclick="doLogout()" class="text-white/30 text-xs py-2 hover:text-white/60 transition-colors">Sair da conta</button>
+    </div>
+
+  </div>
+</div>
+
 <!-- ═══════════════════ MODAL ALTERAR SENHA ═══════════════════ -->
 <div id="modal-change-pass" class="fixed inset-0 z-[999] flex items-end justify-center hidden">
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeChangePassModal()"></div>
