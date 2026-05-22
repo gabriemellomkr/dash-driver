@@ -3,13 +3,30 @@ const { verifyAdmin } = require('./_auth');
 const nodemailer = require('nodemailer');
 const crypto     = require('crypto');
 
-const APP_URL    = process.env.APP_URL      || 'https://app.dashdriver.com.br';
-const GMAIL_USER = process.env.GMAIL_USER;
-const GMAIL_PASS = process.env.GMAIL_APP_PASS;
+const APP_URL            = process.env.APP_URL      || 'https://app.dashdriver.com.br';
+const GMAIL_USER         = process.env.GMAIL_USER;
+const GMAIL_PASS         = process.env.GMAIL_APP_PASS;
+const EVOLUTION_URL      = process.env.EVOLUTION_URL;
+const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
+const EVOLUTION_KEY      = process.env.EVOLUTION_KEY;
 
+async function sendWelcomeWhatsApp(telefone, resetUrl) {
+  if (!EVOLUTION_URL || !EVOLUTION_INSTANCE || !EVOLUTION_KEY || !telefone) return;
+  const n = telefone.replace(/\D/g, '');
+  if (n.length < 10) return;
+  const text = `🏍️ *Bem-vindo ao DashDriver!*\n\nSua conta foi criada! Acesse o link abaixo para definir sua senha e começar a usar:\n\n👉 ${resetUrl}\n\n_(O link expira em 7 dias)_`;
+  try {
+    await fetch(`${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY },
+      body: JSON.stringify({ number: n, text }),
+    });
+    console.log(`[users] WhatsApp de boas-vindas enviado para ${n}`);
+  } catch (e) { console.warn('[users] WhatsApp welcome falhou:', e.message); }
+}
+
+// Retorna a resetUrl gerada (usada também para WhatsApp)
 async function sendWelcomeEmail(client, userId, email) {
-  if (!GMAIL_USER || !GMAIL_PASS) return; // e-mail não configurado, ignora silenciosamente
-
   // Gera token de boas-vindas (7 dias — tempo suficiente para o usuário acessar)
   const token   = crypto.randomBytes(32).toString('hex');
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -21,6 +38,8 @@ async function sendWelcomeEmail(client, userId, email) {
   );
 
   const resetUrl = `${APP_URL}?dd_reset=${token}`;
+
+  if (!GMAIL_USER || !GMAIL_PASS) return resetUrl; // sem e-mail configurado, retorna só a URL
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -108,6 +127,7 @@ Como começar:
   });
 
   console.log(`[users] e-mail de boas-vindas enviado para ${email}`);
+  return resetUrl;
 }
 
 module.exports = async function handler(req, res) {
@@ -142,7 +162,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const { email, password, plano = 'trial', trial_days = 7, obs = '' } = req.body || {};
+    const { email, password, plano = 'trial', trial_days = 7, obs = '', telefone = '' } = req.body || {};
     if (!email || !password)
       return res.status(400).json({ error: 'email e password são obrigatórios' });
     if (password.length < 6)
@@ -223,9 +243,23 @@ module.exports = async function handler(req, res) {
               updated_at = now()
       `, [newUser.id, plano, trial_ends_at, obs]);
 
-      // Envia e-mail de boas-vindas com link para definir senha (não bloqueia resposta em caso de falha)
+      // Salva telefone em dashdriver_config se fornecido pelo admin
+      const telClean = telefone.replace(/\D/g, '');
+      if (telClean.length >= 10) {
+        await client.query(
+          `INSERT INTO public.dashdriver_config (user_id, telefone, updated_at)
+           VALUES ($1::uuid, $2, NOW())
+           ON CONFLICT (user_id) DO UPDATE SET telefone = EXCLUDED.telefone, updated_at = NOW()`,
+          [newUser.id, telClean]
+        );
+      }
+
+      // Envia e-mail de boas-vindas + WhatsApp com link para definir senha
       try {
-        await sendWelcomeEmail(client, newUser.id, emailClean);
+        const resetUrl = await sendWelcomeEmail(client, newUser.id, emailClean);
+        if (telClean.length >= 10) {
+          sendWelcomeWhatsApp(telClean, resetUrl).catch(() => {});
+        }
       } catch (mailErr) {
         console.error('[users] falha ao enviar e-mail de boas-vindas:', mailErr.message);
       }
