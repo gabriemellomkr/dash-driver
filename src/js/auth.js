@@ -4,14 +4,34 @@
  */
 
 window.checkSession = async function() {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  
-  if (session) {
-    await handleAuthSuccess(session.user);
+  // getUser() valida o token no servidor — detecta usuário deletado pelo admin.
+  // getSession() só lê o localStorage e não percebe a exclusão.
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (user && !error) {
+    await handleAuthSuccess(user);
+    _startSessionWatchdog();
   } else {
+    // Token inválido ou usuário deletado — limpa sessão local
+    await supabase.auth.signOut();
     document.getElementById('login-screen').style.display = 'flex';
   }
 };
+
+// Verifica a cada 5 min se o usuário ainda existe no servidor.
+// Faz logout automático caso o admin tenha deletado a conta.
+let _sessionWatchdogTimer = null;
+function _startSessionWatchdog() {
+  if (_sessionWatchdogTimer) return; // já rodando
+  _sessionWatchdogTimer = setInterval(async () => {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (!user || error) {
+      clearInterval(_sessionWatchdogTimer);
+      await supabase.auth.signOut();
+      window.location.reload();
+    }
+  }, 5 * 60 * 1000); // 5 minutos
+}
 
 async function handleAuthSuccess(user) {
   APP_STATE.user = user;
@@ -50,6 +70,7 @@ window.doLogin = async function() {
     errEl.classList.remove('hidden');
   } else {
     await handleAuthSuccess(authData.user);
+    _startSessionWatchdog();
     utils.toast("Bem-vindo ao DashDriver!", "success");
   }
 };
