@@ -1,167 +1,153 @@
-/* DashDriver — Tutorial Interativo de Primeiro Acesso (Driver.js) */
+/* DashDriver — Tutorial Interativo (Driver.js) */
 
-/* ─── Inicializa o tour ─────────────────────────────────────────── */
+// Variável no escopo do módulo — acessível nos callbacks onHighlightStarted
+let _driverObj = null;
+
 window.startTutorial = function () {
-  // Garante que começa no Dashboard
   if (typeof showTab === 'function') showTab('dash');
 
   const { driver } = window.driver.js;
 
-  const driverObj = driver({
-    showProgress: true,
-    progressText: '{{current}} de {{total}}',
-    nextBtnText: 'Próximo →',
-    prevBtnText: '← Voltar',
-    doneBtnText: 'Começar! 🚀',
-    allowClose: true,
-    overlayColor: '#000',
-    overlayOpacity: 0.75,
-    smoothScroll: true,
+  _driverObj = driver({
+    showProgress:  true,
+    progressText:  '{{current}} de {{total}}',
+    nextBtnText:   'Próximo',
+    prevBtnText:   'Voltar',
+    doneBtnText:   'Começar! 🚀',
+    allowClose:    true,
+    overlayOpacity: 0.4,          // era 0.75 — muito escuro
+    smoothScroll:  true,
+    stagePadding:  6,
+
     onDestroyed: () => {
       localStorage.setItem('dd_tutorial_done', '1');
     },
 
     steps: [
-      /* ── 1. Boas-vindas ── */
+
+      /* ── 1. Hero: receita ─────────────────────────────────── */
       {
         element: '#d-receita',
         popover: {
           title: '👋 Bem-vindo ao DashDriver!',
           description: 'Aqui está sua <strong>Receita Líquida</strong> — o que entrou das corridas. Vou te mostrar o app em menos de 1 minuto.',
-          side: 'bottom',
-          align: 'start',
+          side: 'bottom', align: 'start',
         },
       },
 
-      /* ── 2. KPIs ── */
+      /* ── 2. KPIs ──────────────────────────────────────────── */
       {
         element: '#d-corridas',
         popover: {
           title: '📊 Seus KPIs do dia',
-          description: 'Corridas, Km rodados, ganho por km e ganho por hora — tudo atualizado automaticamente conforme você lança corridas.',
-          side: 'top',
-          align: 'center',
+          description: 'Corridas, Km rodados, R$/km e R$/hora — tudo atualizado automaticamente conforme você lança corridas.',
+          side: 'top', align: 'center',
         },
       },
 
-      /* ── 3. Metas ── */
+      /* ── 3. Metas ─────────────────────────────────────────── */
       {
         element: '#meta-card',
         popover: {
           title: '🎯 Progresso das Metas',
           description: 'Barra de progresso das suas metas diária, semanal e mensal. Configure os valores em <strong>Perfil → Configurações</strong>.',
-          side: 'top',
-          align: 'start',
+          side: 'top', align: 'start',
         },
       },
 
-      /* ── 4. Navegar para Corridas ── */
+      /* ── 4. Botão nav Corridas ────────────────────────────── */
       {
         element: '#nav-corridas',
         popover: {
           title: '🏍️ Aba Corridas',
-          description: 'Toque aqui para ver e lançar suas corridas. Vamos dar uma olhada!',
-          side: 'top',
-          align: 'center',
-          onNextClick: () => {
-            showTab('corridas');
-            setTimeout(() => driverObj.moveNext(), 300);
-          },
+          description: 'Aqui você lança e consulta todas as suas corridas. Clique em Próximo para ver.',
+          side: 'top', align: 'center',
         },
       },
 
-      /* ── 5. Botão + (FAB) ── */
+      /* ── 5. Mini-stats da aba Corridas ───────────────────── */
+      // onHighlightStarted troca a aba ANTES de Driver.js tentar destacar o elemento
+      {
+        element: '#hist-stat-count',
+        onHighlightStarted: () => showTab('corridas'),
+        popover: {
+          title: '📋 Resumo das corridas',
+          description: 'Total de corridas, receita acumulada e km rodados no período selecionado.',
+          side: 'bottom', align: 'start',
+        },
+      },
+
+      /* ── 6. FAB — lançar corrida ─────────────────────────── */
       {
         element: '#fab-add',
         popover: {
           title: '➕ Lançar nova corrida',
-          description: 'Toque no botão azul para registrar uma corrida manualmente. Preencha plataforma, distância e valor.',
-          side: 'top',
-          align: 'center',
+          description: 'Toque no botão azul para registrar uma corrida. Escolha a plataforma, informe distância e valor — ou suba um print e a IA preenche tudo!',
+          side: 'top', align: 'center',
         },
       },
 
-      /* ── 6. OCR ── */
-      {
-        element: '#btn-ocr',
-        popover: {
-          title: '📸 Import por print',
-          description: 'Tirou print da corrida na Uber ou 99? Suba aqui e a IA lê os dados automaticamente — sem digitar nada!',
-          side: 'bottom',
-          align: 'start',
-        },
-      },
-
-      /* ── 7. Navegar para Finanças ── */
+      /* ── 7. Botão nav Finanças ───────────────────────────── */
       {
         element: '#nav-financeiro',
         popover: {
           title: '💰 Aba Finanças',
-          description: 'Registre gasolina, manutenção e outros gastos. O app desconta tudo para calcular seu lucro real.',
-          side: 'top',
-          align: 'center',
-          onNextClick: () => {
-            showTab('financeiro');
-            setTimeout(() => driverObj.moveNext(), 300);
-          },
+          description: 'Registre gasolina, manutenção e outros gastos. O lucro real é calculado descontando tudo automaticamente.',
+          side: 'top', align: 'center',
         },
       },
 
-      /* ── 8. Botão lançar gasto (financeiro) ── */
+      /* ── 8. Botão Lançar gasto (aba Finanças) ────────────── */
       {
-        element: '#nav-financeiro',
+        element: '#btn-lancor-gasto',
+        onHighlightStarted: () => showTab('financeiro'),
         popover: {
-          title: '⛽ Gastos e despesas',
-          description: 'Abastecimento, manutenção, seguro... Tudo que você registrar aqui é subtraído da sua receita para mostrar o lucro real no Dashboard.',
-          side: 'top',
-          align: 'center',
+          title: '⛽ Lançar um gasto',
+          description: 'Toque aqui para registrar gasolina, alimentação, manutenção ou qualquer outro custo do dia.',
+          side: 'bottom', align: 'end',
         },
       },
 
-      /* ── 9. Perfil / Configurações ── */
+      /* ── 9. Botão nav Perfil ─────────────────────────────── */
       {
         element: '#nav-perfil',
         popover: {
           title: '⚙️ Perfil e Configurações',
-          description: 'Em <strong>Perfil → Configurações</strong> você define metas, preço do combustível, km/litro e plataformas. Configure agora para ativar os KPIs!',
-          side: 'top',
-          align: 'center',
-          onNextClick: () => {
-            showTab('perfil');
-            setTimeout(() => driverObj.moveNext(), 300);
-          },
+          description: 'Em <strong>Perfil → Configurações</strong> você define metas, preço do combustível e km/litro. Configure agora para ativar os KPIs!',
+          side: 'top', align: 'center',
         },
       },
 
-      /* ── 10. Fim ── */
+      /* ── 10. Fim ─────────────────────────────────────────── */
       {
         element: '#nav-perfil',
+        onHighlightStarted: () => showTab('perfil'),
         popover: {
           title: '🚀 Tudo pronto!',
-          description: 'Você já conhece o DashDriver. Comece lançando sua primeira corrida. Qualquer dúvida, use o Suporte no seu perfil. Boas corridas! 🏍️',
-          side: 'top',
-          align: 'center',
+          description: 'Você já conhece o DashDriver. Comece lançando sua primeira corrida. Qualquer dúvida, use o <strong>Suporte</strong> no seu perfil. Boas corridas! 🏍️',
+          side: 'top', align: 'center',
         },
       },
     ],
   });
 
-  driverObj.drive();
+  _driverObj.drive();
 };
 
-/* ─── Pular / Encerrar (compatibilidade) ───────────────────────── */
+/* ─── Pular / Encerrar ──────────────────────────────────────────── */
 window.tutorialSkip = function () {
+  if (_driverObj) _driverObj.destroy();
   localStorage.setItem('dd_tutorial_done', '1');
 };
 
-/* ─── Verifica primeiro acesso após login ───────────────────────── */
+/* ─── Verifica primeiro acesso ──────────────────────────────────── */
 window.checkFirstAccess = function () {
   if (!localStorage.getItem('dd_tutorial_done')) {
     setTimeout(startTutorial, 900);
   }
 };
 
-/* ─── Permite relançar o tutorial pelo perfil ──────────────────── */
+/* ─── Relançar pelo Perfil ──────────────────────────────────────── */
 window.resetTutorial = function () {
   localStorage.removeItem('dd_tutorial_done');
   startTutorial();
