@@ -119,35 +119,83 @@ module.exports = async function handler(req, res) {
 
     // Monta e-mail
     const resetUrl = `${APP_URL}?dd_reset=${token}`;
-    const html = `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0e0e10;color:#fff;padding:32px;border-radius:16px">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
-          <div style="background:rgba(59,130,246,0.15);padding:10px;border-radius:12px;font-size:24px">🏍️</div>
-          <h1 style="margin:0;font-size:20px;font-weight:900;color:#fff">DashDriver</h1>
-        </div>
-        <h2 style="color:#fff;font-size:16px;margin-bottom:8px">Redefinição de senha</h2>
-        <p style="color:rgba(255,255,255,0.6);font-size:14px;line-height:1.6;margin-bottom:24px">
-          Recebemos uma solicitação para redefinir a senha da sua conta DashDriver.<br>
-          Clique no botão abaixo para criar uma nova senha. O link expira em <strong>1 hora</strong>.
-        </p>
-        <a href="${resetUrl}"
-           style="display:inline-block;background:#3b82f6;color:#fff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none;margin-bottom:24px">
-          Redefinir minha senha
-        </a>
-        <p style="color:rgba(255,255,255,0.3);font-size:12px;margin-top:16px">
-          Se você não solicitou a redefinição, ignore este e-mail. Sua senha não será alterada.
-        </p>
-        <p style="color:rgba(255,255,255,0.2);font-size:11px;margin-top:8px;word-break:break-all">
-          Link: ${resetUrl}
-        </p>
-      </div>
-    `;
+
+    // Versão HTML (design escuro)
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="background:#0e0e10;border-radius:16px;padding:32px;max-width:480px">
+        <tr>
+          <td style="padding-bottom:24px">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background:rgba(59,130,246,0.15);padding:10px;border-radius:12px;font-size:24px;vertical-align:middle">🏍️</td>
+                <td style="padding-left:12px;font-size:20px;font-weight:900;color:#ffffff;vertical-align:middle">DashDriver</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-bottom:8px;font-size:16px;font-weight:700;color:#ffffff">
+            Redefinição de senha
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-bottom:24px;font-size:14px;line-height:1.6;color:rgba(255,255,255,0.6)">
+            Recebemos uma solicitação para redefinir a senha da sua conta DashDriver.<br><br>
+            Clique no botão abaixo para criar uma nova senha. O link expira em <strong style="color:#fff">1 hora</strong>.
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-bottom:24px">
+            <a href="${resetUrl}"
+               style="display:inline-block;background:#3b82f6;color:#ffffff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none">
+              Redefinir minha senha
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td style="font-size:12px;color:rgba(255,255,255,0.35);line-height:1.5">
+            Se você não solicitou a redefinição, ignore este e-mail. Sua senha não será alterada.<br><br>
+            <span style="word-break:break-all;font-size:11px;color:rgba(255,255,255,0.2)">
+              Ou acesse: ${resetUrl}
+            </span>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+    // Versão texto puro (obrigatória para evitar spam)
+    const text = `DashDriver — Redefinição de senha
+
+Recebemos uma solicitação para redefinir a senha da sua conta DashDriver.
+
+Para criar uma nova senha, acesse o link abaixo (válido por 1 hora):
+
+${resetUrl}
+
+Se você não solicitou a redefinição, ignore este e-mail. Sua senha não será alterada.
+
+— Equipe DashDriver`;
 
     await makeTransporter().sendMail({
-      from:    `"DashDriver" <${GMAIL_USER}>`,
-      to:      email.trim(),
-      subject: 'Redefinição de senha — DashDriver',
+      from:       `"DashDriver" <${GMAIL_USER}>`,
+      replyTo:    GMAIL_USER,
+      to:         email.trim(),
+      subject:    'Redefinição de senha — DashDriver',
+      text,
       html,
+      headers: {
+        'X-Priority':        '3',
+        'X-Mailer':          'DashDriver Mailer',
+        'X-Entity-Ref-ID':   token.slice(0, 16),
+      },
     });
 
     console.log(`[reset-password] e-mail enviado para ${email}`);
