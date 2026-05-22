@@ -94,9 +94,8 @@ module.exports = async function handler(req, res) {
       [email.trim()]
     );
 
-    // Responde ok mesmo se não encontrou (evita enumeração de e-mails)
     if (!rUser.rows.length) {
-      return res.status(200).json({ ok: true });
+      return res.status(404).json({ error: 'E-mail não cadastrado. Fale com o administrador.' });
     }
 
     const user_id = rUser.rows[0].id;
