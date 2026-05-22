@@ -4,8 +4,9 @@ window.renderPerfil = function() {
   const user = APP_STATE.user;
   if (!user) return;
 
-  // Avatar: primeiras letras do e-mail ou display_name
-  const name = user.user_metadata?.full_name || user.user_metadata?.name || '';
+  // Avatar: prioridade → nome salvo nas configs → metadata do auth → prefixo do e-mail
+  const cfgNome = (typeof CONFIG_DATA !== 'undefined' && CONFIG_DATA.nome) ? CONFIG_DATA.nome.trim() : '';
+  const name = cfgNome || user.user_metadata?.full_name || user.user_metadata?.name || '';
   const email = user.email || '';
 
   const initials = name

@@ -228,22 +228,53 @@
 
     <!-- NOTIFICAÇÕES BROADCAST -->
     <section id="section-notificacoes" class="section">
-      <h2 class="text-white font-black text-xl mb-6">Broadcast WhatsApp</h2>
+      <h2 class="text-white font-black text-xl mb-6">Broadcast</h2>
       <div class="glass rounded-2xl p-6 max-w-2xl">
+
+        <!-- Canal -->
+        <div class="mb-4">
+          <label class="text-white/40 text-xs font-bold uppercase mb-2 block">Canal de envio</label>
+          <div class="flex gap-2">
+            <button id="ch-whats" onclick="setBroadcastChannel('whatsapp')" class="flex-1 py-2 rounded-xl text-xs font-bold border border-white/10 transition-all bg-green-500/20 text-green-400 border-green-500/40">📱 WhatsApp</button>
+            <button id="ch-email" onclick="setBroadcastChannel('email')"    class="flex-1 py-2 rounded-xl text-xs font-bold border border-white/10 transition-all text-white/40" style="background:rgba(255,255,255,0.04)">✉️ E-mail</button>
+            <button id="ch-both"  onclick="setBroadcastChannel('both')"     class="flex-1 py-2 rounded-xl text-xs font-bold border border-white/10 transition-all text-white/40" style="background:rgba(255,255,255,0.04)">⚡ Ambos</button>
+          </div>
+          <input type="hidden" id="broadcast-channel" value="whatsapp">
+        </div>
+
+        <!-- Assunto (só e-mail) -->
+        <div id="broadcast-subject-wrap" class="mb-4 hidden">
+          <label class="text-white/40 text-xs font-bold uppercase mb-2 block">Assunto do e-mail</label>
+          <input type="text" id="broadcast-subject" placeholder="Ex: Novidade no DashDriver!" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500" style="background:rgba(255,255,255,0.06)">
+        </div>
+
+        <!-- Filtro plano -->
         <div class="mb-4">
           <label class="text-white/40 text-xs font-bold uppercase mb-2 block">Filtrar por plano (opcional)</label>
           <select id="broadcast-plano" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.06)">
-            <option value="">Todos os usuários com WhatsApp</option>
+            <option value="">Todos os usuários</option>
             <option value="trial">Apenas Trial</option>
             <option value="active">Apenas Pagantes</option>
             <option value="convidado">Apenas Convidados</option>
             <option value="expired">Apenas Expirados</option>
           </select>
         </div>
-        <div class="mb-5">
+
+        <!-- Mensagem + helpers de formatação -->
+        <div class="mb-2">
           <label class="text-white/40 text-xs font-bold uppercase mb-2 block">Mensagem</label>
-          <textarea id="broadcast-msg" rows="5" placeholder="Digite a mensagem que será enviada via WhatsApp..." class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500 resize-none" style="background:rgba(255,255,255,0.06)"></textarea>
+          <textarea id="broadcast-msg" rows="5" placeholder="Digite a mensagem..." class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500 resize-none" style="background:rgba(255,255,255,0.06)"></textarea>
         </div>
+        <!-- Formatting toolbar -->
+        <div class="flex flex-wrap gap-1.5 mb-5">
+          <button onclick="bcInsert('{{nome}}')" title="Insere o nome do destinatário" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-blue-300 hover:bg-blue-500/10 transition-all" style="background:rgba(255,255,255,0.04)">👤 {{nome}}</button>
+          <button onclick="bcWrap('*','*')"      title="Negrito (WhatsApp)"            class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-white/60 hover:bg-white/10 transition-all" style="background:rgba(255,255,255,0.04)"><b>N</b></button>
+          <button onclick="bcWrap('_','_')"      title="Itálico (WhatsApp)"            class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-white/60 hover:bg-white/10 transition-all" style="background:rgba(255,255,255,0.04)"><i>I</i></button>
+          <button onclick="bcWrap('~','~')"      title="Riscado (WhatsApp)"            class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-white/60 hover:bg-white/10 transition-all" style="background:rgba(255,255,255,0.04)"><s>R</s></button>
+          <button onclick="bcWrap('```','```')"  title="Monoespaçado (WhatsApp)"       class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-white/60 hover:bg-white/10 transition-all" style="background:rgba(255,255,255,0.04)">{ }</button>
+          <button onclick="bcInsert('\n')"       title="Nova linha"                    class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-white/40 hover:bg-white/10 transition-all" style="background:rgba(255,255,255,0.04)">↵</button>
+        </div>
+
         <div id="broadcast-result" class="hidden mb-4 p-3 rounded-xl text-xs font-semibold"></div>
         <button onclick="sendBroadcast()" class="w-full py-3 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white font-black text-sm tracking-wider transition-all active:scale-[.98]">ENVIAR BROADCAST</button>
       </div>
@@ -1030,21 +1061,62 @@ async function updateTicketStatus(status) {
   loadTickets();
 }
 
-// ── Broadcast ──────────────────────────────────────────
+// ── Broadcast helpers ───────────────────────────────────
+function setBroadcastChannel(ch) {
+  document.getElementById('broadcast-channel').value = ch;
+  const btns = { whatsapp: 'ch-whats', email: 'ch-email', both: 'ch-both' };
+  Object.entries(btns).forEach(([key, id]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (key === ch) {
+      el.classList.add('border-green-500/40', 'bg-green-500/20', 'text-green-400');
+      el.style.background = '';
+    } else {
+      el.classList.remove('border-green-500/40', 'bg-green-500/20', 'text-green-400');
+      el.style.background = 'rgba(255,255,255,0.04)';
+    }
+  });
+  const subjectWrap = document.getElementById('broadcast-subject-wrap');
+  if (subjectWrap) subjectWrap.classList.toggle('hidden', ch === 'whatsapp');
+}
+
+function bcInsert(text) {
+  const ta = document.getElementById('broadcast-msg');
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
+  ta.focus();
+  ta.setSelectionRange(s + text.length, s + text.length);
+}
+
+function bcWrap(before, after) {
+  const ta = document.getElementById('broadcast-msg');
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const sel = ta.value.slice(s, e) || 'texto';
+  ta.value = ta.value.slice(0, s) + before + sel + after + ta.value.slice(e);
+  ta.focus();
+  ta.setSelectionRange(s + before.length, s + before.length + sel.length);
+}
+
+// ── Broadcast send ──────────────────────────────────────
 async function sendBroadcast() {
-  const message     = document.getElementById('broadcast-msg').value.trim();
+  const message      = document.getElementById('broadcast-msg').value.trim();
   const plano_filter = document.getElementById('broadcast-plano').value || null;
-  const resultEl    = document.getElementById('broadcast-result');
+  const channel      = document.getElementById('broadcast-channel').value || 'whatsapp';
+  const subject      = document.getElementById('broadcast-subject')?.value.trim() || 'Mensagem do DashDriver';
+  const resultEl     = document.getElementById('broadcast-result');
   if (!message) { alert('Digite uma mensagem'); return; }
 
   resultEl.classList.add('hidden');
   const r = await fetch('/api/admin/broadcast', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
-    body: JSON.stringify({ message, plano_filter }),
+    body: JSON.stringify({ message, plano_filter, channel, subject }),
   });
   const d = await r.json();
-  resultEl.textContent = `Enviado: ${d.sent} ✓  |  Falhou: ${d.failed}  |  Total: ${d.total}`;
+  const label = channel === 'whatsapp' ? 'WhatsApp' : channel === 'email' ? 'E-mail' : 'Total';
+  resultEl.textContent = `✓ Enviado: ${d.sent}  |  ✗ Falhou: ${d.failed}  |  ${label}: ${d.total}`;
   resultEl.className = 'mb-4 p-3 rounded-xl text-xs font-semibold ' + (d.failed > 0 ? 'bg-yellow-500/10 text-yellow-400' : 'bg-green-500/10 text-green-400');
   resultEl.classList.remove('hidden');
 }
