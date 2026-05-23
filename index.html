@@ -588,23 +588,25 @@
 
   <!-- FINANCEIRO -->
   <div class="page" id="page-financeiro">
-    <!-- Sticky header -->
-    <div class="sticky top-[57px] z-30 border-b border-white/5 px-4 py-2.5 flex items-center justify-between" style="background:rgba(14,14,16,0.9);backdrop-filter:blur(20px)">
-      <span class="text-white text-sm font-bold">Finanças</span>
-      <button id="btn-lancor-gasto" onclick="openGastoModal()" class="flex items-center gap-1.5 bg-blue-500 text-white text-[11px] font-bold px-3.5 py-2 rounded-xl active:scale-95 transition-all shadow-lg shadow-blue-500/20">
-        <span class="material-symbols-outlined" style="font-size:14px">add</span> Lançar
-      </button>
-    </div>
-
-    <div class="p-3 sm:p-4 space-y-3">
-
-      <!-- Filtro de período -->
-      <div class="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+    <!-- Sticky header com filtro de período embutido -->
+    <div class="sticky top-[57px] z-30 border-b border-white/5" style="background:rgba(14,14,16,0.9);backdrop-filter:blur(20px)">
+      <!-- Linha 1: título + botão Lançar -->
+      <div class="px-4 py-2.5 flex items-center justify-between">
+        <span class="text-white text-sm font-bold">Finanças</span>
+        <button id="btn-lancor-gasto" onclick="openGastoModal()" class="flex items-center gap-1.5 bg-blue-500 text-white text-[11px] font-bold px-3.5 py-2 rounded-xl active:scale-95 transition-all shadow-lg shadow-blue-500/20">
+          <span class="material-symbols-outlined" style="font-size:14px">add</span> Lançar
+        </button>
+      </div>
+      <!-- Linha 2: chips de período -->
+      <div class="flex gap-2 overflow-x-auto pb-2.5 px-4 no-scrollbar">
         <button class="fin-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinPeriod('today',this)">Hoje</button>
         <button class="fin-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinPeriod('week',this)">Semana</button>
         <button class="fin-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-blue-500 bg-blue-500/10 text-blue-400 transition-all" onclick="setFinPeriod('month',this)">Mês</button>
         <button class="fin-period-chip flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-outline-variant text-outline transition-all" onclick="setFinPeriod('all',this)">Tudo</button>
       </div>
+    </div>
+
+    <div class="p-3 sm:p-4 space-y-3">
 
       <!-- Filtro de categoria -->
       <div class="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
