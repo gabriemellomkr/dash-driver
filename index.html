@@ -266,7 +266,7 @@
     <div class="text-white font-black text-xs tracking-widest uppercase">DashDriver</div>
   </div>
   <div class="flex gap-1">
-    <button onclick="openSupportModal()" class="p-2 text-outline hover:text-yellow-400 transition-colors active:scale-90" title="Reportar problema">
+    <button id="btn-suporte" onclick="openSupportModal()" class="p-2 text-outline hover:text-yellow-400 transition-colors active:scale-90" title="Reportar problema">
       <span class="material-symbols-outlined" style="font-size:20px">help</span>
     </button>
     <button onclick="openNotifications()" class="p-2 text-outline hover:text-blue-400 transition-colors active:scale-90 relative">
@@ -275,6 +275,14 @@
     </button>
   </div>
 </header>
+
+<!-- ═══════════════════ TRIAL BANNER ═══════════════════ -->
+<div id="plan-banner" style="display:none" class="w-full px-4 py-2.5 flex items-center justify-between gap-3 text-xs font-semibold">
+  <span id="plan-banner-text" class="text-white/80"></span>
+  <button onclick="doSubscribe()" id="plan-banner-btn"
+    class="flex-shrink-0 px-4 py-1.5 rounded-xl font-black text-xs tracking-wider text-white transition-all active:scale-95"
+    style="background:#4b8eff; box-shadow:0 0 12px rgba(75,142,255,.4)">ASSINAR</button>
+</div>
 
 <main class="pb-24">
   <!-- DASHBOARD -->
@@ -649,10 +657,10 @@
 
     </div>
 
-    <!-- FAB dedicado da aba Finanças — auto-oculto via display:none do pai (.page) -->
-    <button onclick="openGastoModal()"
+    <!-- FAB dedicado da aba Finanças — controlado via JS em showTab -->
+    <button id="fab-fin" onclick="openGastoModal()"
       class="fixed z-50 w-14 h-14 bg-blue-500 rounded-full items-center justify-center text-white active:scale-90 transition-transform border-4 border-background"
-      style="display:flex; bottom: calc(72px + max(8px, env(safe-area-inset-bottom))); right: 20px; box-shadow:0 0 24px rgba(59,130,246,.45)">
+      style="display:none; bottom: calc(72px + max(8px, env(safe-area-inset-bottom))); right: 20px; box-shadow:0 0 24px rgba(59,130,246,.45)">
       <span class="material-symbols-outlined" style="font-size:26px">add</span>
     </button>
   </div>

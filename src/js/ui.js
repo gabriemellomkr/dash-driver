@@ -31,6 +31,12 @@ window.showTab = function(tabId) {
     fab.style.display = tabId === 'corridas' ? 'flex' : 'none';
   }
 
+  // FAB da aba Finanças
+  const fabFin = document.getElementById('fab-fin');
+  if (fabFin) {
+    fabFin.style.display = tabId === 'financeiro' ? 'flex' : 'none';
+  }
+
   // Reload specific data if needed
   if (tabId === 'dash') renderDashboard();
   if (tabId === 'corridas') renderHistorico();

@@ -204,17 +204,30 @@ window.startTutorial = function () {
         },
       },
 
-      /* ═══ FIM ════════════════════════════════════════════════════════════ */
+      /* ═══ SUPORTE ═══════════════════════════════════════════════════════ */
 
-      /* 14. Fim */
+      /* 14. Botão de suporte no header */
       {
-        element: '#nav-perfil',
+        element: '#btn-suporte',
         onHighlightStarted: () => {
           if (typeof closeSettings === 'function') closeSettings();
+          showTab('dash');
         },
         popover: {
+          title: '🆘 Aba Suporte',
+          description: 'Teve algum problema ou dúvida? Toque aqui a qualquer momento para abrir o canal de suporte e falar com a gente. Respondemos rápido!',
+          side: 'bottom', align: 'end',
+        },
+      },
+
+      /* ═══ FIM ════════════════════════════════════════════════════════════ */
+
+      /* 15. Fim */
+      {
+        element: '#nav-perfil',
+        popover: {
           title: '🚀 Tudo pronto!',
-          description: 'Você já conhece o DashDriver. Comece lançando sua primeira corrida e configure suas metas agora. Qualquer dúvida, use o <strong>Suporte</strong> no Perfil. Boas corridas! 🏍️',
+          description: 'Você já conhece o DashDriver. Comece lançando sua primeira corrida e configure suas metas agora. Boas corridas! 🏍️',
           side: 'top', align: 'center',
         },
       },

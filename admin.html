@@ -579,19 +579,22 @@ function stopAutoRefresh() {
   if (_refreshInterval) { clearInterval(_refreshInterval); _refreshInterval = null; }
 }
 
-function showRefreshToast(msg) {
+function showToast(msg, color = 'blue') {
+  const colors = { blue: 'rgba(59,130,246,.9)', green: 'rgba(34,197,94,.9)', red: 'rgba(239,68,68,.9)' };
   let t = document.getElementById('admin-toast');
   if (!t) {
     t = document.createElement('div');
     t.id = 'admin-toast';
-    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 20px;border-radius:16px;font-size:13px;font-weight:700;color:white;pointer-events:none;transition:opacity .3s;background:rgba(59,130,246,.9);backdrop-filter:blur(10px);white-space:nowrap';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 20px;border-radius:16px;font-size:13px;font-weight:700;color:white;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(10px);white-space:nowrap';
     document.body.appendChild(t);
   }
+  t.style.background = colors[color] || colors.blue;
   t.textContent = msg;
   t.style.opacity = '1';
   clearTimeout(t._hide);
-  t._hide = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+  t._hide = setTimeout(() => { t.style.opacity = '0'; }, 3500);
 }
+function showRefreshToast(msg) { showToast(msg, 'blue'); }
 
 // ── Navigation ─────────────────────────────────────────
 function showSection(name) {
@@ -713,7 +716,10 @@ function renderUsers(users) {
         ${u.telefone ? `<div class="text-white/30 text-[10px]">📱 ${u.telefone}</div>` : ''}
         <div class="text-white/30 text-[10px] mt-0.5">desde ${fmtDate(u.created_at)}</div>
       </td>
-      <td class="p-4">${planBadge(u.plano)}</td>
+      <td class="p-4">
+        ${planBadge(u.plano)}
+        ${u.plano === 'trial' && u.trial_ends_at ? `<div class="text-white/40 text-[10px] mt-1">até ${fmtDate(u.trial_ends_at)}</div>` : ''}
+      </td>
       <td class="p-4 text-white/60 text-xs font-bold">${u.corridas}</td>
       <td class="p-4 text-white/60 text-xs font-bold">${(u.tokens_in + u.tokens_out).toLocaleString('pt-BR')}</td>
       <td class="p-4 text-white/40 text-xs">${fmtDate(u.last_sign_in)}</td>
@@ -812,6 +818,8 @@ async function createUser() {
     closeCreateUserModal();
     loadUsers();
     loadStats();
+    if (d.updated) showToast('Usuário já existia — plano atualizado com sucesso!', 'blue');
+    else showToast('Usuário criado com sucesso!', 'green');
   } catch (e) {
     errEl.textContent = 'Erro de conexão: ' + e.message;
     errEl.classList.remove('hidden');

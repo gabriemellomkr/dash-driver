@@ -76,9 +76,52 @@ async function handleAuthSuccess(user) {
     return;
   }
 
+  _renderPlanBanner();
+
   if (typeof renderDashboard === 'function') renderDashboard();
   showTab('dash');
   if (typeof checkFirstAccess === 'function') checkFirstAccess();
+}
+
+// ─── Banner de trial (contador de dias restantes) ────────────────────────────
+function _renderPlanBanner() {
+  const banner = document.getElementById('plan-banner');
+  if (!banner) return;
+
+  const plan  = APP_STATE.plan || {};
+  const plano = plan.plano || 'trial';
+
+  // Planos ativos ou sem trial não mostram o banner
+  if (plano === 'active' || plano === 'convidado') {
+    banner.style.display = 'none';
+    return;
+  }
+
+  // Calcula dias restantes do trial
+  if (plano === 'trial' && plan.trial_ends_at) {
+    const msLeft   = new Date(plan.trial_ends_at) - new Date();
+    const daysLeft = Math.ceil(msLeft / 86_400_000);
+
+    // Trial expirado — paywall já vai aparecer, não precisa do banner
+    if (daysLeft <= 0) { banner.style.display = 'none'; return; }
+
+    const isUrgent = daysLeft <= 2;
+    banner.style.display      = 'flex';
+    banner.style.background   = isUrgent ? 'rgba(239,68,68,.12)' : 'rgba(251,191,36,.08)';
+    banner.style.borderBottom = isUrgent
+      ? '1px solid rgba(239,68,68,.2)'
+      : '1px solid rgba(251,191,36,.15)';
+
+    const textEl = document.getElementById('plan-banner-text');
+    if (textEl) {
+      textEl.textContent = `⏳ Teste grátis — ${daysLeft} dia${daysLeft !== 1 ? 's' : ''} restante${daysLeft !== 1 ? 's' : ''}`;
+      textEl.style.color = isUrgent ? '#fca5a5' : '#fde68a';
+    }
+    return;
+  }
+
+  // Para qualquer outro estado (expirado sem data de trial, etc.) esconde o banner
+  banner.style.display = 'none';
 }
 
 // ─── Tela de paywall ──────────────────────────────────────────────────────────
@@ -148,8 +191,11 @@ window._checkPlanOnFocus = async function() {
     _showPaywall();
   } else if (!_isPlanBlocked() && paywallVisible) {
     _hidePaywall(); // pagamento foi processado enquanto o usuário estava na tela
+    _renderPlanBanner();
     if (typeof renderDashboard === 'function') renderDashboard();
     showTab('dash');
+  } else {
+    _renderPlanBanner(); // atualiza contador mesmo sem mudança de estado
   }
 };
 

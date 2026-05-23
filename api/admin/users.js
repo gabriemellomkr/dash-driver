@@ -163,20 +163,58 @@ module.exports = async function handler(req, res) {
     }
 
     const { email, password, plano = 'trial', trial_days = 7, obs = '', telefone = '' } = req.body || {};
-    if (!email || !password)
-      return res.status(400).json({ error: 'email e password são obrigatórios' });
-    if (password.length < 6)
-      return res.status(400).json({ error: 'password deve ter pelo menos 6 caracteres' });
+    if (!email)
+      return res.status(400).json({ error: 'email é obrigatório' });
 
+    const emailClean = email.toLowerCase().trim();
     const client = await pool.connect();
     try {
       // Verifica se email já existe
       const exists = await client.query(
-        'SELECT id FROM auth.users WHERE lower(email) = lower($1::text) LIMIT 1',
-        [email]
+        'SELECT id FROM auth.users WHERE email = $1 LIMIT 1',
+        [emailClean]
       );
-      if (exists.rows.length)
-        return res.status(409).json({ error: 'E-mail já cadastrado' });
+
+      if (exists.rows.length) {
+        // Usuário já existe (veio do Stripe ou foi criado antes)
+        // Atualiza o plano dele em vez de tentar criar um duplicado
+        const existingId = exists.rows[0].id;
+        const trial_ends_at = plano === 'trial'
+          ? new Date(Date.now() + trial_days * 86_400_000).toISOString()
+          : null;
+
+        await client.query(`
+          INSERT INTO public.dashdriver_plans (user_id, plano, trial_ends_at, obs, updated_at)
+          VALUES ($1::uuid, $2::text, $3::timestamptz, $4::text, now())
+          ON CONFLICT (user_id) DO UPDATE
+            SET plano         = EXCLUDED.plano,
+                trial_ends_at = EXCLUDED.trial_ends_at,
+                obs           = EXCLUDED.obs,
+                updated_at    = now()
+        `, [existingId, plano, trial_ends_at, obs]);
+
+        // Salva telefone se fornecido
+        const telClean = (telefone || '').replace(/\D/g, '');
+        if (telClean.length >= 10) {
+          await client.query(
+            `INSERT INTO public.dashdriver_config (user_id, telefone, updated_at)
+             VALUES ($1::uuid, $2, NOW())
+             ON CONFLICT (user_id) DO UPDATE SET telefone = EXCLUDED.telefone, updated_at = NOW()`,
+            [existingId, telClean]
+          );
+        }
+
+        console.log(`[users/POST] plano atualizado para usuário existente id=${existingId} plano=${plano}`);
+        return res.status(200).json({
+          ok: true,
+          updated: true,
+          user: { id: existingId, email: emailClean, plano, trial_ends_at },
+        });
+      }
+
+      // Usuário não existe — valida senha antes de criar
+      if (!password || password.length < 6)
+        return res.status(400).json({ error: 'password deve ter pelo menos 6 caracteres' });
 
       // Cria usuário com senha bcrypt (pgcrypto)
       // Campos de token devem ser string vazia (não null) para GoTrue não quebrar com 500
@@ -205,14 +243,9 @@ module.exports = async function handler(req, res) {
           now(), now()
         )
         RETURNING id, email, created_at
-      `, [email.toLowerCase().trim(), password]);
+      `, [emailClean, password]);
 
       const newUser = rUser.rows[0];
-
-      // Cria identity (obrigatório para GoTrue aceitar login email/senha)
-      // Casts explícitos em todos os parâmetros para evitar
-      // "could not determine data type of parameter $N" em contextos polimórficos
-      const emailClean = email.toLowerCase().trim();
       await client.query(`
         INSERT INTO auth.identities (
           id, provider_id, user_id, identity_data,
