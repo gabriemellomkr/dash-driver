@@ -156,7 +156,7 @@ module.exports = async function handler(req, res) {
 
   if (!email) return res.status(200).json({ ignored: 'no buyer email' });
 
-  const client = await pool.connect();
+  const client = await pool.connectWithRetry();
   try {
     const rUser = await client.query(
       'SELECT id FROM auth.users WHERE lower(email) = lower($1) LIMIT 1', [email]
