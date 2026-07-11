@@ -5,23 +5,20 @@
 
 window.data = {
   async loadAll() {
-    try {
-      await Promise.all([
-        this.loadPlan(),      // plano primeiro — usado para bloquear acesso
-        this.loadConfig(),
-        this.loadCorridas(),
-        this.loadAbastecimentos(),
-        this.loadOutrasDespesas(),
-        this.loadOutrasEntradas(),
-        this.loadJornadas(),
-        this.loadPromos(),
-        this.loadMetas()
-      ]);
-      return true;
-    } catch (e) {
-      console.error("Erro ao carregar dados:", e);
-      return false;
-    }
+    const results = await Promise.allSettled([
+      this.loadPlan(),
+      this.loadConfig(),
+      this.loadCorridas(),
+      this.loadAbastecimentos(),
+      this.loadOutrasDespesas(),
+      this.loadOutrasEntradas(),
+      this.loadJornadas(),
+      this.loadPromos(),
+      this.loadMetas()
+    ]);
+    const failed = results.filter(r => r.status === 'rejected');
+    failed.forEach(r => console.error("Erro ao carregar dados:", r.reason));
+    return failed.length === 0;
   },
 
   async loadPlan() {
@@ -32,8 +29,9 @@ window.data = {
       .eq('user_id', APP_STATE.user.id)
       .maybeSingle();
 
-    // Sem registro → trata como trial sem data (admin pode não ter criado ainda)
-    APP_STATE.plan = (!error && data) ? data : { plano: 'trial', trial_ends_at: null, expires_at: null };
+    // Sem registro de plano → sem acesso (fail-closed): acesso exige pagar ou ser convidado.
+    // Erro transitório também cai aqui, mas o re-check (foco/watchdog) recarrega e libera.
+    APP_STATE.plan = (!error && data) ? data : { plano: 'expired', trial_ends_at: null, expires_at: null };
   },
 
   async loadConfig() {

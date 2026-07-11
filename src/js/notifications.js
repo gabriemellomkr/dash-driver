@@ -22,7 +22,7 @@ async function _sendWhatsApp(text) {
   try {
     const r = await fetch('/api/whatsapp', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await ddAuthHeaders(),
       body: JSON.stringify({ number: tel, text }),
     });
     if (!r.ok) {
@@ -185,7 +185,7 @@ window.testarWhatsApp = async function() {
   try {
     const r = await fetch('/api/whatsapp', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await ddAuthHeaders(),
       body: JSON.stringify({ number: tel, text: '✅ *DashDriver*\nTeste de notificação — funcionando!' }),
     });
     const data = await r.json().catch(() => ({}));

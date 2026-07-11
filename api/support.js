@@ -1,10 +1,16 @@
 const pool = require('./admin/_db');
+const { verifyUser } = require('./_verify-user');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Usuário sempre vem do token — nunca do cliente (evita ler/escrever tickets alheios)
+  const claims = await verifyUser(req);
+  if (!claims) return res.status(401).json({ error: 'Não autenticado' });
+  const user_id = claims.sub;
 
   let client;
   try {
@@ -15,8 +21,7 @@ module.exports = async function handler(req, res) {
 
   // ── GET: todos os tickets do usuário OU mensagens de um ticket ──────────
   if (req.method === 'GET') {
-    const { user_id, ticket_id } = req.query || {};
-    if (!user_id) return res.status(400).json({ error: 'user_id obrigatório' });
+    const { ticket_id } = req.query || {};
 
     try {
       // Mensagens de um ticket específico (pertencente ao usuário)
@@ -58,14 +63,13 @@ module.exports = async function handler(req, res) {
   // ── POST: criar ticket OU enviar mensagem ─────────────────────────────
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { titulo, mensagem, conteudo, tipo = 'text', user_id, ticket_id } = req.body || {};
+  const { titulo, mensagem, conteudo, tipo = 'text', ticket_id } = req.body || {};
 
   try {
     // ── Adicionar mensagem em ticket existente ────────────────────────────
     if (ticket_id) {
       const msg = (conteudo || mensagem || '').trim();
       if (!msg) return res.status(400).json({ error: 'conteudo obrigatório' });
-      if (!user_id) return res.status(400).json({ error: 'user_id obrigatório' });
 
       // Verifica que ticket pertence ao usuário e não está resolvido
       const rCheck = await client.query(
@@ -103,8 +107,6 @@ module.exports = async function handler(req, res) {
     // ── Criar novo ticket ─────────────────────────────────────────────────
     if (!titulo || !mensagem)
       return res.status(400).json({ error: 'titulo e mensagem são obrigatórios' });
-    if (!user_id)
-      return res.status(400).json({ error: 'user_id obrigatório' });
 
     const rTicket = await client.query(
       `INSERT INTO public.dashdriver_support (titulo, mensagem, user_id, status)

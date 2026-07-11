@@ -1,11 +1,10 @@
 const pool       = require('./_db');
 const { verifyAdmin } = require('./_auth');
-const nodemailer = require('nodemailer');
 const crypto     = require('crypto');
+const { sendMail } = require('../_mailer');
 
 const APP_URL            = process.env.APP_URL      || 'https://app.dashdriver.com.br';
-const GMAIL_USER         = process.env.GMAIL_USER;
-const GMAIL_PASS         = process.env.GMAIL_APP_PASS;
+const MAIL_CONFIGURED    = !!(process.env.RESEND_API_KEY || (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS));
 const EVOLUTION_URL      = process.env.EVOLUTION_URL;
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
 const EVOLUTION_KEY      = process.env.EVOLUTION_KEY;
@@ -16,7 +15,7 @@ async function sendWelcomeWhatsApp(telefone, resetUrl) {
   if (n.length < 10) return;
   const text = `🏍️ *Bem-vindo ao DashDriver!*\n\nSua conta foi criada! Acesse o link abaixo para definir sua senha e começar a usar:\n\n👉 ${resetUrl}\n\n_(O link expira em 7 dias)_`;
   try {
-    await fetch(`${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`, {
+    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY },
       body: JSON.stringify({ number: n, text }),
@@ -39,7 +38,7 @@ async function sendWelcomeEmail(client, userId, email) {
 
   const resetUrl = `${APP_URL}?dd_reset=${token}`;
 
-  if (!GMAIL_USER || !GMAIL_PASS) return resetUrl; // sem e-mail configurado, retorna só a URL
+  if (!MAIL_CONFIGURED) return resetUrl; // sem e-mail configurado, retorna só a URL
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -111,19 +110,11 @@ Como começar:
 
 — Equipe DashDriver`;
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: GMAIL_USER, pass: GMAIL_PASS },
-  });
-
-  await transporter.sendMail({
-    from:    `"DashDriver" <${GMAIL_USER}>`,
-    replyTo: GMAIL_USER,
+  await sendMail({
     to:      email,
     subject: '🏍️ Bem-vindo ao DashDriver — acesse sua conta',
     text,
     html,
-    headers: { 'X-Priority': '3', 'X-Mailer': 'DashDriver Mailer' },
   });
 
   console.log(`[users] e-mail de boas-vindas enviado para ${email}`);
@@ -135,7 +126,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (!verifyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  if (!(await verifyAdmin(req))) return res.status(403).json({ error: 'Forbidden' });
 
   // ── POST → cria usuário OU atualiza plano (action='update-plan') ─────────
   if (req.method === 'POST') {
@@ -179,7 +170,7 @@ module.exports = async function handler(req, res) {
         // Usuário já existe (veio do Stripe ou foi criado antes)
         // Atualiza o plano dele em vez de tentar criar um duplicado
         const existingId = exists.rows[0].id;
-        const trial_ends_at = plano === 'trial'
+        const trial_ends_at = ((plano === 'convidado' || plano === 'trial') && trial_days > 0)
           ? new Date(Date.now() + trial_days * 86_400_000).toISOString()
           : null;
 
@@ -261,7 +252,7 @@ module.exports = async function handler(req, res) {
       `, [emailClean, newUser.id]);
 
       // Cria plano inicial
-      const trial_ends_at = plano === 'trial'
+      const trial_ends_at = ((plano === 'convidado' || plano === 'trial') && trial_days > 0)
         ? new Date(Date.now() + trial_days * 86_400_000).toISOString()
         : null;
 

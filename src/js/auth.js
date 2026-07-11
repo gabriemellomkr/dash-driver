@@ -39,35 +39,42 @@ function _startSessionWatchdog() {
 // ─── Verifica se o plano bloqueia o acesso ────────────────────────────────────
 function _isPlanBlocked() {
   const plan  = APP_STATE.plan || {};
-  const plano = plan.plano || 'trial';
-
-  if (plano === 'convidado') return false;      // acesso total concedido pelo admin
-  if (plano === 'expired')   return true;       // bloqueado explicitamente
+  const plano = plan.plano;
 
   if (plano === 'active') {
-    // Ativo via Stripe — só bloqueia se expires_at ultrapassado (segurança)
+    // Pagante (Lastlink) — só bloqueia se houver expires_at ultrapassado (segurança)
     if (plan.expires_at && new Date(plan.expires_at) < new Date()) return true;
     return false;
   }
 
-  if (plano === 'trial') {
-    // Trial manual do admin: sem data = acesso liberado
+  // Convidado: sem data = vitalício (você/equipe); com data = trial de X dias que trava
+  if (plano === 'convidado') {
     if (!plan.trial_ends_at) return false;
     return new Date(plan.trial_ends_at) < new Date();
   }
 
-  return false; // desconhecido → libera (fail-open)
+  // Trial legado (mesma regra do convidado com data)
+  if (plano === 'trial') {
+    if (!plan.trial_ends_at) return false;
+    return new Date(plan.trial_ends_at) < new Date();
+  }
+
+  if (plano === 'expired') return true;
+
+  // Sem plano / desconhecido → trava (fail-closed: acesso exige pagar ou ser convidado)
+  return true;
 }
 
 async function handleAuthSuccess(user) {
   APP_STATE.user = user;
   document.getElementById('login-screen').style.display = 'none';
 
-  // Carregar dados e atualizar interface
+  // Carregar dados e atualizar interface.
+  // Se alguma tabela não-crítica falhar, seguimos com os dados parciais em vez de
+  // travar o app inteiro (e bloquear dashboard + tutorial) por causa de uma falha.
   const success = await data.loadAll();
   if (!success) {
-    utils.toast("Erro ao sincronizar dados", "error");
-    return;
+    utils.toast("Alguns dados não sincronizaram — tentando continuar", "error");
   }
 
   // ── Verifica acesso pelo plano ───────────────────────────────────────────
@@ -89,39 +96,30 @@ function _renderPlanBanner() {
   if (!banner) return;
 
   const plan  = APP_STATE.plan || {};
-  const plano = plan.plano || 'trial';
+  const plano = plan.plano;
 
-  // Planos ativos ou sem trial não mostram o banner
-  if (plano === 'active' || plano === 'convidado') {
-    banner.style.display = 'none';
-    return;
+  // Só mostra o contador quando é convidado/trial COM data (período grátis rolando)
+  const isTemp = (plano === 'convidado' || plano === 'trial') && plan.trial_ends_at;
+  if (!isTemp) { banner.style.display = 'none'; return; }
+
+  const msLeft   = new Date(plan.trial_ends_at) - new Date();
+  const daysLeft = Math.ceil(msLeft / 86_400_000);
+
+  // Expirado — o paywall já cuida, não precisa do banner
+  if (daysLeft <= 0) { banner.style.display = 'none'; return; }
+
+  const isUrgent = daysLeft <= 2;
+  banner.style.display      = 'flex';
+  banner.style.background   = isUrgent ? 'rgba(239,68,68,.12)' : 'rgba(251,191,36,.08)';
+  banner.style.borderBottom = isUrgent
+    ? '1px solid rgba(239,68,68,.2)'
+    : '1px solid rgba(251,191,36,.15)';
+
+  const textEl = document.getElementById('plan-banner-text');
+  if (textEl) {
+    textEl.textContent = `⏳ Teste grátis — ${daysLeft} dia${daysLeft !== 1 ? 's' : ''} restante${daysLeft !== 1 ? 's' : ''}`;
+    textEl.style.color = isUrgent ? '#fca5a5' : '#fde68a';
   }
-
-  // Calcula dias restantes do trial
-  if (plano === 'trial' && plan.trial_ends_at) {
-    const msLeft   = new Date(plan.trial_ends_at) - new Date();
-    const daysLeft = Math.ceil(msLeft / 86_400_000);
-
-    // Trial expirado — paywall já vai aparecer, não precisa do banner
-    if (daysLeft <= 0) { banner.style.display = 'none'; return; }
-
-    const isUrgent = daysLeft <= 2;
-    banner.style.display      = 'flex';
-    banner.style.background   = isUrgent ? 'rgba(239,68,68,.12)' : 'rgba(251,191,36,.08)';
-    banner.style.borderBottom = isUrgent
-      ? '1px solid rgba(239,68,68,.2)'
-      : '1px solid rgba(251,191,36,.15)';
-
-    const textEl = document.getElementById('plan-banner-text');
-    if (textEl) {
-      textEl.textContent = `⏳ Teste grátis — ${daysLeft} dia${daysLeft !== 1 ? 's' : ''} restante${daysLeft !== 1 ? 's' : ''}`;
-      textEl.style.color = isUrgent ? '#fca5a5' : '#fde68a';
-    }
-    return;
-  }
-
-  // Para qualquer outro estado (expirado sem data de trial, etc.) esconde o banner
-  banner.style.display = 'none';
 }
 
 // ─── Tela de paywall ──────────────────────────────────────────────────────────
@@ -158,28 +156,12 @@ window._hidePaywall = function() {
   if (el) el.style.display = 'none';
 };
 
-// Gera checkout Stripe e redireciona
-window.doSubscribe = async function() {
-  const btn = document.getElementById('paywall-subscribe-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Aguarde...'; }
+// Link do checkout do Lastlink (oferta de R$ 59,90).
+const LASTLINK_CHECKOUT_URL = 'https://lastlink.com/p/CB3366677/checkout-payment/';
 
-  try {
-    const r = await fetch('/api/stripe/webhook', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: APP_STATE.user.id, email: APP_STATE.user.email }),
-    });
-    const d = await r.json();
-    if (d.url) {
-      window.location.href = d.url;
-    } else {
-      alert('Erro ao gerar link de assinatura. Tente novamente.');
-    }
-  } catch(e) {
-    alert('Erro de conexão: ' + e.message);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🔓 Assinar agora'; }
-  }
+// Redireciona pro checkout do Lastlink
+window.doSubscribe = function() {
+  window.location.href = LASTLINK_CHECKOUT_URL;
 };
 
 // Verifica a cada 5min se a sessão e o plano ainda são válidos

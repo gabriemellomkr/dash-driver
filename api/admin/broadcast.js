@@ -66,12 +66,12 @@ async function sendEmail(to, nome, subject, plainText) {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', process.env.APP_URL || 'https://app.dashdriver.com.br');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
-  if (!verifyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  if (!(await verifyAdmin(req))) return res.status(403).json({ error: 'Forbidden' });
 
   const { message, plano_filter, channel = 'whatsapp', subject = 'Mensagem do DashDriver' } = req.body || {};
   if (!message) return res.status(400).json({ error: 'message required' });
@@ -79,14 +79,9 @@ module.exports = async function handler(req, res) {
   const client = await pool.connect();
   let recipients = [];
   try {
-    const planFilter = plano_filter
-      ? `AND p.plano = '${plano_filter.replace(/'/g, "''")}'`
-      : '';
-
     if (channel === 'whatsapp' || channel === 'both') {
-      // Busca telefone + nome para personalização
       const r = await client.query(`
-        SELECT DISTINCT ON (c.telefone) c.telefone, c.nome
+        SELECT DISTINCT ON (c.telefone) c.user_id, c.telefone, c.nome
         FROM public.dashdriver_config c
         LEFT JOIN public.dashdriver_plans p ON p.user_id = c.user_id
         WHERE c.telefone IS NOT NULL AND length(c.telefone) >= 8
@@ -96,9 +91,8 @@ module.exports = async function handler(req, res) {
     }
 
     if (channel === 'email' || channel === 'both') {
-      // Busca e-mail dos usuários + nome do config
       const r = await client.query(`
-        SELECT DISTINCT ON (au.email) au.email, c.nome
+        SELECT DISTINCT ON (au.email) au.id AS user_id, au.email, c.nome
         FROM auth.users au
         LEFT JOIN public.dashdriver_config c ON c.user_id = au.id
         LEFT JOIN public.dashdriver_plans p  ON p.user_id = au.id
@@ -109,11 +103,9 @@ module.exports = async function handler(req, res) {
       if (channel === 'email') {
         recipients = r.rows.map(row => ({ ...row, _channels: ['email'] }));
       } else {
-        // 'both': merge pelo nome, adicionando canal email às entradas existentes por telefone
-        // e adicionando registros de email-only
-        const byNome = new Map(recipients.map(r2 => [r2.nome, r2]));
+        const byUserId = new Map(recipients.map(r2 => [r2.user_id, r2]));
         r.rows.forEach(row => {
-          const existing = byNome.get(row.nome);
+          const existing = byUserId.get(row.user_id);
           if (existing) {
             existing.email = row.email;
             existing._channels.push('email');

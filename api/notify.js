@@ -1,4 +1,5 @@
 const webpush = require('web-push');
+const { verifyAdmin } = require('./admin/_auth');
 
 webpush.setVapidDetails(
   'mailto:gabriel18mello@gmail.com',
@@ -12,9 +13,12 @@ const SB_KEY = process.env.SB_KEY;
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
+
+  // Broadcast para todos os inscritos → restrito a admin
+  if (!(await verifyAdmin(req))) return res.status(403).json({ error: 'Forbidden' });
 
   const { title, body, icon = '/icon-192.png', tag = '', url = '/' } = req.body || {};
   if (!title) return res.status(400).json({ error: 'title required' });

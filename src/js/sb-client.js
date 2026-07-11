@@ -3,11 +3,26 @@
  * Initializing the official Supabase JS client.
  */
 
-const SB_URL = "https://db-dash.nucleocriativo.com.br";
-const SB_KEY = "uSLPst+6To2N5BXF3VipCYxUYkzL133Oy0bscyopivY=";
+const SB_URL = "https://amkekvavjsdwekthnwzu.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFta2VrdmF2anNkd2VrdGhud3p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0NDQwNjcsImV4cCI6MjA5OTAyMDA2N30.WQ9mNe3KLyvN40uvmKClBfPbBAgJ-s_69SabzGF8hwQ";
 
 // Official client
 window.supabase = supabase.createClient(SB_URL, SB_KEY);
+
+// Headers autenticados para chamadas às nossas APIs (/api/*).
+// Anexa o access_token do Supabase como Bearer para o backend validar o usuário.
+window.ddAuthHeaders = async function (extra = {}) {
+  let token = null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    token = data?.session?.access_token || null;
+  } catch (_) {}
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extra,
+  };
+};
 
 // Legacy wrapper for compatibility with existing modules
 window.sb = {

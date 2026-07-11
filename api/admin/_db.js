@@ -1,14 +1,18 @@
 const { Pool } = require('pg');
 
-// Conexão ao Postgres via Supavisor (porta 54323, tenant: your-tenant-id)
-// Bypassa Kong completamente — sem bloqueio de IP do Vercel
+// Conexão ao Postgres do Supabase Cloud via Session pooler (porta 5432, IPv4).
+// SSL é obrigatório no Cloud.
+if (!process.env.DB_HOST || !process.env.DB_PASS || !process.env.DB_USER) {
+  throw new Error('Missing required DB environment variables: DB_HOST, DB_USER, DB_PASS');
+}
+
 const pool = new Pool({
-  host:     process.env.DB_HOST     || '87.99.151.178',
-  port:     parseInt(process.env.DB_PORT || '54323'),
-  database: process.env.DB_NAME     || 'postgres',
-  user:     process.env.DB_USER     || 'postgres.your-tenant-id',
-  password: process.env.DB_PASS     || 'Etb013118.',
-  ssl:      false,
+  host:     process.env.DB_HOST,
+  port:     parseInt(process.env.DB_PORT || '5432'),
+  database: process.env.DB_NAME || 'postgres',
+  user:     process.env.DB_USER,
+  password: process.env.DB_PASS,
+  ssl:      { rejectUnauthorized: false },
   max: 3,
   idleTimeoutMillis: 10000,
   connectionTimeoutMillis: 8000,

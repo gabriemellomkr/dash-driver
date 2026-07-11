@@ -105,7 +105,7 @@
         <h2 class="text-white font-black text-xl">Dashboard</h2>
         <div class="flex items-center gap-2">
           <span class="text-white/30 text-xs">Preço mensal (R$):</span>
-          <input type="number" id="price-config" value="49.90" min="0" step="0.01" oninput="updateFinancial()"
+          <input type="number" id="price-config" value="29.90" min="0" step="0.01" oninput="updateFinancial()"
             class="w-24 px-2 py-1 rounded-lg text-white text-xs border border-white/10 focus:outline-none focus:border-blue-500"
             style="background:rgba(255,255,255,0.06)">
         </div>
@@ -332,14 +332,13 @@
     <div class="mb-3">
       <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Plano inicial</label>
       <select id="new-plano" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
-        <option value="trial">Trial (7 dias grátis)</option>
-        <option value="active">Ativo (pago)</option>
-        <option value="convidado">Convidado (acesso total, não paga)</option>
+        <option value="convidado">Convidado (grátis por N dias — 0 = vitalício)</option>
+        <option value="active">Ativo (cortesia / pago manual)</option>
       </select>
     </div>
     <div class="mb-3" id="new-trial-days-row">
-      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Dias de trial</label>
-      <input type="number" id="new-trial-days" value="7" min="1" max="90"
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Dias grátis (0 = vitalício)</label>
+      <input type="number" id="new-trial-days" value="7" min="0" max="90"
         class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
     </div>
     <div class="mb-3">
@@ -424,8 +423,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const SB_URL  = 'https://db-dash.nucleocriativo.com.br';
-const SB_ANON = 'uSLPst+6To2N5BXF3VipCYxUYkzL133Oy0bscyopivY=';
+const SB_URL  = 'https://amkekvavjsdwekthnwzu.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFta2VrdmF2anNkd2VrdGhud3p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0NDQwNjcsImV4cCI6MjA5OTAyMDA2N30.WQ9mNe3KLyvN40uvmKClBfPbBAgJ-s_69SabzGF8hwQ';
 
 const { createClient } = supabase;
 const sb = createClient(SB_URL, SB_ANON);
@@ -770,7 +769,7 @@ function closePlanModal() { document.getElementById('plan-modal').style.display 
 function openCreateUserModal() {
   document.getElementById('new-email').value      = '';
   document.getElementById('new-password').value   = '';
-  document.getElementById('new-plano').value      = 'trial';
+  document.getElementById('new-plano').value      = 'convidado';
   document.getElementById('new-trial-days').value = '7';
   document.getElementById('new-obs').value        = '';
   const telEl = document.getElementById('new-telefone');
@@ -786,7 +785,7 @@ function closeCreateUserModal() { document.getElementById('create-user-modal').s
 document.addEventListener('change', (e) => {
   if (e.target.id === 'new-plano') {
     document.getElementById('new-trial-days-row').style.display =
-      e.target.value === 'trial' ? 'block' : 'none';
+      e.target.value === 'convidado' ? 'block' : 'none';
   }
 });
 

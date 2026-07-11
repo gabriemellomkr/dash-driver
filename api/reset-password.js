@@ -5,20 +5,12 @@
  * POST /api/reset-password/confirm  { token, password } → valida token, atualiza senha
  */
 
-const pool       = require('./admin/_db');
-const nodemailer = require('nodemailer');
-const crypto     = require('crypto');
+const pool   = require('./admin/_db');
+const crypto = require('crypto');
+const { sendMail } = require('./_mailer');
 
-const APP_URL      = process.env.APP_URL      || 'https://app.dashdriver.com.br';
-const GMAIL_USER   = process.env.GMAIL_USER;   // ex: dashdriver.notif@gmail.com
-const GMAIL_PASS   = process.env.GMAIL_APP_PASS; // App Password de 16 chars
-
-function makeTransporter() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: GMAIL_USER, pass: GMAIL_PASS },
-  });
-}
+const APP_URL = process.env.APP_URL || 'https://app.dashdriver.com.br';
+const MAIL_CONFIGURED = !!(process.env.RESEND_API_KEY || (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS));
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -81,8 +73,8 @@ module.exports = async function handler(req, res) {
   const { email } = req.body || {};
   if (!email) return res.status(400).json({ error: 'email obrigatório' });
 
-  if (!GMAIL_USER || !GMAIL_PASS) {
-    console.error('[reset-password] GMAIL_USER ou GMAIL_APP_PASS não configurado');
+  if (!MAIL_CONFIGURED) {
+    console.error('[reset-password] nenhum provedor de e-mail configurado');
     return res.status(500).json({ error: 'Serviço de e-mail não configurado. Contate o suporte.' });
   }
 
@@ -183,18 +175,11 @@ Se você não solicitou a redefinição, ignore este e-mail. Sua senha não ser�
 
 — Equipe DashDriver`;
 
-    await makeTransporter().sendMail({
-      from:       `"DashDriver" <${GMAIL_USER}>`,
-      replyTo:    GMAIL_USER,
-      to:         email.trim(),
-      subject:    'Redefinição de senha — DashDriver',
+    await sendMail({
+      to:      email.trim(),
+      subject: 'Redefinição de senha — DashDriver',
       text,
       html,
-      headers: {
-        'X-Priority':        '3',
-        'X-Mailer':          'DashDriver Mailer',
-        'X-Entity-Ref-ID':   token.slice(0, 16),
-      },
     });
 
     console.log(`[reset-password] e-mail enviado para ${email}`);

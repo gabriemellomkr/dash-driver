@@ -1,12 +1,18 @@
+const { verifyUser } = require('./_verify-user');
+
 const SB_URL = process.env.SB_URL;
 const SB_KEY = process.env.SB_KEY;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
+
+  // Amarra a inscrição ao usuário autenticado (necessário para push segmentado)
+  const claims = await verifyUser(req);
+  if (!claims) return res.status(401).json({ error: 'Não autenticado' });
 
   const { subscription } = req.body || {};
   if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
@@ -24,6 +30,7 @@ module.exports = async function handler(req, res) {
       endpoint: subscription.endpoint,
       p256dh:   subscription.keys.p256dh,
       auth:     subscription.keys.auth,
+      user_id:  claims.sub,
     }),
   });
 

@@ -5,6 +5,8 @@
      EVOLUTION_KEY      = <instance apikey>
 */
 
+const { verifyUser } = require('./_verify-user');
+
 const EVOLUTION_URL      = process.env.EVOLUTION_URL;
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
 const EVOLUTION_KEY      = process.env.EVOLUTION_KEY;
@@ -12,9 +14,12 @@ const EVOLUTION_KEY      = process.env.EVOLUTION_KEY;
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
+
+  // Exige usuário autenticado — evita uso da instância Evolution por terceiros (spam/ban)
+  if (!(await verifyUser(req))) return res.status(401).json({ error: 'Não autenticado' });
 
   if (!EVOLUTION_URL || !EVOLUTION_INSTANCE || !EVOLUTION_KEY) {
     return res.status(500).json({ error: 'Evolution API não configurada (env vars ausentes)' });
@@ -33,7 +38,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const r = await fetch(
-      `${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
+      `${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`,
       {
         method: 'POST',
         headers: {

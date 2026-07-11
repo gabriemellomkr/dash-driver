@@ -7,7 +7,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const claims = verifyAdmin(req);
+  const claims = await verifyAdmin(req);
   if (!claims) return res.status(403).json({ error: 'Forbidden' });
   const adminEmail = claims.email || 'admin';
 

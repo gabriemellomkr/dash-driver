@@ -8,17 +8,14 @@
       "permanent": false
     }
   ],
-  "rewrites": [
-    { "source": "/", "destination": "/corridas.html" }
-  ],
   "crons": [
-    { "path": "/api/cron-resumo", "schedule": "0 0 * * *" }
+    { "path": "/api/cron-resumo", "schedule": "0 23 * * *" }
   ],
   "functions": {
-    "api/ocr-corrida.js":        { "maxDuration": 30 },
-    "api/admin/users.js":        { "maxDuration": 30 },
-    "api/admin/stats.js":        { "maxDuration": 15 },
-    "api/admin/broadcast.js":    { "maxDuration": 60 },
-    "api/stripe/webhook.js":     { "maxDuration": 30 }
+    "api/ocr-corrida.js":     { "maxDuration": 30 },
+    "api/admin/users.js":     { "maxDuration": 30 },
+    "api/admin/stats.js":     { "maxDuration": 15 },
+    "api/admin/broadcast.js": { "maxDuration": 60 },
+    "api/cron-resumo.js":     { "maxDuration": 60 }
   }
 }

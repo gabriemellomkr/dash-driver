@@ -1,5 +1,5 @@
 {
-  "name": "amazing-kepler-2c130c",
+  "name": "dashdriver",
   "version": "1.0.0",
   "description": "",
   "main": "sw.js",
@@ -13,7 +13,6 @@
   "dependencies": {
     "nodemailer": "^8.0.7",
     "pg": "^8.13.3",
-    "stripe": "^17.7.0",
     "web-push": "^3.6.7"
   }
 }

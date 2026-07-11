@@ -1569,7 +1569,7 @@ async function openSupportModal() {
   renderSupportLoading();
   if (!_supportUserId) { renderSupportCreate(); return; }
   try {
-    const r = await fetch('/api/support?user_id=' + encodeURIComponent(_supportUserId));
+    const r = await fetch('/api/support', { headers: await ddAuthHeaders() });
     const d = await r.json();
     _supportTickets = d.tickets || [];
     renderSupportList();
@@ -1707,7 +1707,7 @@ async function openSupportTicketChat(ticketId) {
   _supportTicket = _supportTickets.find(t => t.id === ticketId) || null;
   renderSupportLoading();
   try {
-    const r = await fetch(`/api/support?user_id=${encodeURIComponent(_supportUserId)}&ticket_id=${ticketId}`);
+    const r = await fetch(`/api/support?ticket_id=${ticketId}`, { headers: await ddAuthHeaders() });
     const d = await r.json();
     renderSupportChat(d.messages || []);
   } catch (err) {
@@ -1839,18 +1839,18 @@ async function createSupportTicket() {
   try {
     const r = await fetch('/api/support', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ titulo, mensagem, user_id: _supportUserId }),
+      headers: await ddAuthHeaders(),
+      body: JSON.stringify({ titulo, mensagem }),
     });
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d.error || 'Erro ao abrir chamado');
     // Recarrega a lista e entra no novo ticket
-    const r2 = await fetch('/api/support?user_id=' + encodeURIComponent(_supportUserId));
+    const r2 = await fetch('/api/support', { headers: await ddAuthHeaders() });
     const d2 = await r2.json();
     _supportTickets = d2.tickets || [];
     _supportTicket  = _supportTickets.find(t => t.id === d.ticket_id) || null;
     if (_supportTicket) {
-      const r3 = await fetch(`/api/support?user_id=${encodeURIComponent(_supportUserId)}&ticket_id=${d.ticket_id}`);
+      const r3 = await fetch(`/api/support?ticket_id=${d.ticket_id}`, { headers: await ddAuthHeaders() });
       const d3 = await r3.json();
       renderSupportChat(d3.messages || []);
     } else {
@@ -1878,8 +1878,8 @@ async function sendSupportMessage() {
   try {
     const r = await fetch('/api/support', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticket_id: _supportTicket.id, conteudo: msg, user_id: _supportUserId }),
+      headers: await ddAuthHeaders(),
+      body: JSON.stringify({ ticket_id: _supportTicket.id, conteudo: msg }),
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Erro ao enviar');
@@ -1909,8 +1909,8 @@ async function handleSupportImage(input) {
 
     const r = await fetch('/api/support', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticket_id: _supportTicket.id, conteudo: base64, tipo: 'image', user_id: _supportUserId }),
+      headers: await ddAuthHeaders(),
+      body: JSON.stringify({ ticket_id: _supportTicket.id, conteudo: base64, tipo: 'image' }),
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error);

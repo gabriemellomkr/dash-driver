@@ -8,15 +8,21 @@
  */
 
 const pool = require('./admin/_db');
+const { verifyUser } = require('./_verify-user');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { image_base64, mime_type = 'image/jpeg', user_id } = req.body || {};
+  // Exige usuário autenticado — evita abuso de custo na OpenAI por terceiros
+  const claims = await verifyUser(req);
+  if (!claims) return res.status(401).json({ error: 'Não autenticado' });
+  const user_id = claims.sub;
+
+  const { image_base64, mime_type = 'image/jpeg' } = req.body || {};
   if (!image_base64) return res.status(400).json({ error: 'image_base64 required' });
 
   const OPENAI_KEY = process.env.OPENAI_API_KEY;

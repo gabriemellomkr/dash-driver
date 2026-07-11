@@ -57,11 +57,10 @@ window.handleOCRImage = async function(input) {
 
     const res = await fetch('/api/ocr-corrida', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await ddAuthHeaders(),
       body: JSON.stringify({
         image_base64: base64,
         mime_type: mimeType,
-        user_id: (typeof APP_STATE !== 'undefined' && APP_STATE.user?.id) || null,
       })
     });
 

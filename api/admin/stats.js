@@ -1,22 +1,9 @@
-const crypto = require('crypto');
 const pool = require('./_db');
 const { verifyAdmin } = require('./_auth');
+const { verifyToken } = require('../_verify-jwt');
 
-const JWT_SECRET   = process.env.JWT_SECRET   || 'DashDriver_Ultra_Secret_Key_2026_SquadHQ';
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'gabriel18mello@gmail.com')
   .split(',').map(e => e.trim().toLowerCase());
-
-function verifyJWT(token) {
-  const parts = token.split('.');
-  if (parts.length !== 3) throw new Error('Formato JWT inválido');
-  const [h, p, sig] = parts;
-  const expected = crypto.createHmac('sha256', JWT_SECRET).update(`${h}.${p}`)
-    .digest('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-  if (expected !== sig) throw new Error('Assinatura JWT inválida');
-  const decoded = JSON.parse(Buffer.from(p.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
-  if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) throw new Error('Token expirado');
-  return decoded;
-}
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -30,7 +17,8 @@ module.exports = async function handler(req, res) {
     if (!user_id || !email || !access_token)
       return res.status(400).json({ admin: false, error: 'Missing fields' });
     try {
-      const claims = verifyJWT(access_token);
+      const claims = await verifyToken(access_token);
+      if (!claims) return res.status(200).json({ admin: false });
       const tokenEmail = (claims.email || '').toLowerCase();
       if (tokenEmail !== email.toLowerCase()) return res.status(200).json({ admin: false });
       return res.status(200).json({ admin: ADMIN_EMAILS.includes(tokenEmail) });
@@ -41,7 +29,7 @@ module.exports = async function handler(req, res) {
 
   // GET → métricas completas
   if (req.method !== 'GET') return res.status(405).end();
-  if (!verifyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  if (!(await verifyAdmin(req))) return res.status(403).json({ error: 'Forbidden' });
 
   let client;
   try {
