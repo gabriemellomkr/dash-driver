@@ -55,6 +55,7 @@
     <input id="login-email" type="email" placeholder="E-mail admin" class="w-full p-3 rounded-xl mb-3 text-white text-sm focus:outline-none focus:border-blue-500 border border-white/10" style="background:rgba(255,255,255,0.06)">
     <input id="login-pass" type="password" placeholder="Senha" class="w-full p-3 rounded-xl mb-5 text-white text-sm focus:outline-none focus:border-blue-500 border border-white/10" style="background:rgba(255,255,255,0.06)">
     <button id="login-btn" onclick="doLogin()" class="w-full py-3 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white font-black text-sm tracking-wider transition-all active:scale-[.98]">ENTRAR</button>
+    <button onclick="doAdminForgot()" class="w-full mt-3 text-xs text-white/40 hover:text-white/70 transition-colors">Esqueci minha senha</button>
   </div>
 </div>
 
@@ -466,6 +467,37 @@ let currentTicketFilter = 'open';
 })();
 
 // ── Auth ──────────────────────────────────────────────
+// Recuperação de senha — dispara o e-mail de reset (mesma infra do app principal)
+async function doAdminForgot() {
+  const email = document.getElementById('login-email').value.trim();
+  const errEl = document.getElementById('login-error');
+  if (!email) {
+    errEl.textContent = 'Digite seu e-mail no campo acima primeiro.';
+    errEl.className = 'mb-4 p-3 rounded-xl bg-red-500/10 text-red-400 text-xs font-semibold';
+    return;
+  }
+  errEl.textContent = 'Enviando...';
+  errEl.className = 'mb-4 p-3 rounded-xl bg-white/5 text-white/60 text-xs font-semibold';
+  try {
+    const r = await fetch('/api/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const d = await r.json();
+    if (r.ok && d.ok) {
+      errEl.textContent = '✓ Link de recuperação enviado para ' + email + '. Confira seu e-mail (e o spam).';
+      errEl.className = 'mb-4 p-3 rounded-xl bg-green-500/10 text-green-400 text-xs font-semibold';
+    } else {
+      errEl.textContent = d.error || 'Não foi possível enviar. Tente novamente.';
+      errEl.className = 'mb-4 p-3 rounded-xl bg-red-500/10 text-red-400 text-xs font-semibold';
+    }
+  } catch (e) {
+    errEl.textContent = 'Erro de conexão: ' + e.message;
+    errEl.className = 'mb-4 p-3 rounded-xl bg-red-500/10 text-red-400 text-xs font-semibold';
+  }
+}
+
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-pass').value;
@@ -477,7 +509,7 @@ async function doLogin() {
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
   if (error) {
     errEl.textContent = 'E-mail ou senha inválidos';
-    errEl.classList.remove('hidden');
+    errEl.className = 'mb-4 p-3 rounded-xl bg-red-500/10 text-red-400 text-xs font-semibold';
     btn.textContent = 'ENTRAR'; btn.disabled = false;
     return;
   }
