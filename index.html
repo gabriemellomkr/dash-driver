@@ -1956,5 +1956,43 @@ function compressImage(file, maxPx, quality) {
 function sendSupport() { createSupportTicket(); }
 </script>
 
+<!-- Olhinho para mostrar/ocultar senha em todos os campos de senha -->
+<script>
+(function () {
+  var EYE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10 10 0 0 1 12 20C5 20 1 12 1 12a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.1 9.1 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  function enhance(inp) {
+    if (inp.dataset.eyeOn) return;
+    inp.dataset.eyeOn = '1';
+    var cs = getComputedStyle(inp);
+    var w = document.createElement('div');
+    w.style.position = 'relative';
+    w.style.marginTop = cs.marginTop;
+    w.style.marginBottom = cs.marginBottom;
+    inp.parentNode.insertBefore(w, inp);
+    w.appendChild(inp);
+    inp.style.marginTop = '0';
+    inp.style.marginBottom = '0';
+    inp.style.paddingRight = '42px';
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', 'Mostrar ou ocultar senha');
+    b.style.cssText = 'position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:0;margin:0;padding:2px;cursor:pointer;display:flex;align-items:center;line-height:0;color:rgba(255,255,255,.5)';
+    b.innerHTML = EYE;
+    b.addEventListener('mouseenter', function () { b.style.color = 'rgba(255,255,255,.85)'; });
+    b.addEventListener('mouseleave', function () { b.style.color = 'rgba(255,255,255,.5)'; });
+    b.addEventListener('click', function () {
+      var show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      b.innerHTML = show ? OFF : EYE;
+    });
+    w.appendChild(b);
+  }
+  function run() { document.querySelectorAll('input[type="password"]').forEach(enhance); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+
 </body>
 </html>
