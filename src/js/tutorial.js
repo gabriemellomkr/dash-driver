@@ -31,6 +31,15 @@ window.startTutorial = function () {
       localStorage.setItem('dd_tutorial_done', '1');
     },
 
+    onPopoverRender: (popover, { config, index }) => {
+      const total = config.steps.length;
+      const current = (index ?? 0) + 1;
+      const bar = document.createElement('div');
+      bar.className = 'dd-tutorial-progress-bar';
+      bar.style.width = Math.round((current / total) * 100) + '%';
+      popover.wrapper.prepend(bar);
+    },
+
     steps: [
 
       /* ═══ DASHBOARD ════════════════════════════════════════════════════ */

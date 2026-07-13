@@ -49,23 +49,35 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
   <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
   <style>
-    /* Driver.js — tema escuro DashDriver */
+    /* Driver.js — tema "Vidro" DashDriver */
     .driver-popover {
-      background: #1c1c1e;
-      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      background: rgba(26,27,32,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 16px;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.55);
       min-width: 260px;
       max-width: 320px;
     }
+    .dd-tutorial-progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: #4b8eff;
+      transition: width .3s ease;
+    }
     .driver-popover-title {
       color: #fff;
-      font-weight: 800;
+      font-weight: 700;
       font-size: 15px;
       margin-bottom: 6px;
     }
     .driver-popover-description {
-      color: rgba(255,255,255,0.6);
+      color: rgba(255,255,255,0.62);
       font-size: 13px;
       line-height: 1.6;
     }
@@ -77,9 +89,9 @@
       margin-top: 14px;
       gap: 8px;
     }
-    /* Botão Próximo */
-    .driver-popover-next-btn {
-      background: #3b82f6;
+    /* Botão Próximo — seletor com escopo extra pra vencer o .driver-popover-footer button do driver.css */
+    .driver-popover-footer .driver-popover-next-btn {
+      background: #4b8eff;
       border: none;
       border-radius: 10px;
       color: #fff;
@@ -88,27 +100,27 @@
       padding: 8px 16px;
       cursor: pointer;
     }
-    .driver-popover-next-btn:hover,
-    .driver-popover-next-btn:focus { background: #2563eb; outline: none; }
+    .driver-popover-footer .driver-popover-next-btn:hover,
+    .driver-popover-footer .driver-popover-next-btn:focus { background: #2f6bd6; outline: none; }
     /* Botão Voltar */
-    .driver-popover-prev-btn {
+    .driver-popover-footer .driver-popover-prev-btn {
       background: transparent;
       border: 1px solid rgba(255,255,255,0.15);
       border-radius: 10px;
-      color: rgba(255,255,255,0.5);
+      color: rgba(255,255,255,0.55);
       font-size: 13px;
       padding: 8px 16px;
       cursor: pointer;
     }
-    .driver-popover-prev-btn:hover { border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.8); }
+    .driver-popover-footer .driver-popover-prev-btn:hover { border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.85); }
     /* Fechar */
     .driver-popover-close-btn { color: rgba(255,255,255,0.35); font-size: 18px; }
     .driver-popover-close-btn:hover { color: rgba(255,255,255,0.7); }
     /* Seta */
-    .driver-popover-arrow-side-left.driver-popover-arrow { border-right-color: #1c1c1e; }
-    .driver-popover-arrow-side-right.driver-popover-arrow { border-left-color: #1c1c1e; }
-    .driver-popover-arrow-side-top.driver-popover-arrow { border-bottom-color: #1c1c1e; }
-    .driver-popover-arrow-side-bottom.driver-popover-arrow { border-top-color: #1c1c1e; }
+    .driver-popover-arrow-side-left.driver-popover-arrow { border-right-color: #1a1b20; }
+    .driver-popover-arrow-side-right.driver-popover-arrow { border-left-color: #1a1b20; }
+    .driver-popover-arrow-side-top.driver-popover-arrow { border-bottom-color: #1a1b20; }
+    .driver-popover-arrow-side-bottom.driver-popover-arrow { border-top-color: #1a1b20; }
   </style>
 </head>
 <body class="bg-background text-on-surface overflow-x-hidden">
