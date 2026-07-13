@@ -8,6 +8,9 @@
       "permanent": false
     }
   ],
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" }
+  ],
   "crons": [
     { "path": "/api/cron-resumo", "schedule": "0 23 * * *" }
   ],
