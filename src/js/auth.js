@@ -156,8 +156,8 @@ window._hidePaywall = function() {
   if (el) el.style.display = 'none';
 };
 
-// Link do checkout do Lastlink (oferta de R$ 59,90).
-const LASTLINK_CHECKOUT_URL = 'https://lastlink.com/p/CB3366677/checkout-payment/';
+// Link do checkout do Lastlink (oferta de R$ 29,90 — em teste).
+const LASTLINK_CHECKOUT_URL = 'https://lastlink.com/p/CB420A0A6/checkout-payment/';
 
 // Redireciona pro checkout do Lastlink
 window.doSubscribe = function() {
