@@ -20,7 +20,7 @@ window.handleOCRImage = async function(input) {
   const btn = document.getElementById('btn-ocr');
   const originalHTML = btn ? btn.innerHTML : '';
   if (btn) {
-    btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size:14px">sync</span> Analisando...';
+    btn.innerHTML = '<span class="dd-bars-spinner dd-bars-small" aria-hidden="true">'+ '<i></i>'.repeat(8) + '</span> Lendo print…';
     btn.disabled = true;
   }
 
@@ -30,15 +30,17 @@ window.handleOCRImage = async function(input) {
   if (form) {
     overlay = document.createElement('div');
     overlay.id = 'ocr-overlay';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
     overlay.style.cssText = `
       position:absolute;inset:0;background:rgba(0,0,0,0.65);
       display:flex;flex-direction:column;align-items:center;justify-content:center;
       border-radius:1.5rem;z-index:50;gap:12px;backdrop-filter:blur(2px)
     `;
     overlay.innerHTML = `
-      <span class="material-symbols-outlined animate-spin" style="font-size:40px;color:#60a5fa">sync</span>
-      <p style="color:#93c5fd;font-size:13px;font-weight:600;margin:0">Analisando o print…</p>
-      <p style="color:#6b7280;font-size:11px;margin:0">Isso leva alguns segundos</p>
+      <span class="dd-bars-spinner" aria-hidden="true">${'<i></i>'.repeat(8)}</span>
+      <p style="color:#93c5fd;font-size:13px;font-weight:600;margin:0">Lendo os dados da corrida…</p>
+      <p style="color:#6b7280;font-size:11px;margin:0">Aguarde um instante. Você poderá conferir antes de salvar.</p>
     `;
     // Posiciona no container pai do modal (relativo)
     const modalBox = form.closest('.glass-strong') || form.parentElement;

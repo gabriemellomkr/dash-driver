@@ -6,3 +6,19 @@ body{background:var(--dd-bg);color:#eef2f8;font-family:'Outfit',sans-serif;font-
 body.dd-admin{background:var(--dd-bg)}.dd-admin .sidebar{background:#111722;border-color:var(--dd-line);width:228px}.dd-admin .stat-card{background:var(--dd-panel);border-color:var(--dd-line);border-radius:18px}.dd-admin .nav-item{min-height:48px;border-radius:12px;color:#b7c3d6}.dd-admin .nav-item.active{background:#213551;color:#b7d3ff}.dd-admin .table-row{border-color:var(--dd-line)}.dd-admin #admin-app>main{padding:32px;min-width:0;max-width:none}.dd-admin #admin-app h2{letter-spacing:-.025em;font-weight:600;font-size:27px}.dd-admin #login-screen{min-height:100dvh}
 @media(min-width:900px){.page>div.p-3{padding:28px}.dd-admin .sidebar{position:sticky;top:0;height:100dvh}}@media(max-width:700px){.dd-page-heading{align-items:flex-start}.dd-page-heading>span{display:none}.dd-admin #admin-app{flex-direction:column}.dd-admin .sidebar{width:100%;position:static;border-bottom:1px solid var(--dd-line);height:auto;flex-direction:row;flex-wrap:wrap;padding:12px}.dd-admin .sidebar>div:first-child{width:100%;margin:0;padding:8px}.dd-admin .sidebar>.nav-item{flex:1;justify-content:center;font-size:12px;gap:6px;padding:8px}.dd-admin .sidebar>.mt-auto{width:100%;display:flex;align-items:center;justify-content:space-between;padding-top:8px}.dd-admin #admin-app>main{padding:20px 14px}.dd-admin table{min-width:650px}.dd-admin main .overflow-x-auto{max-width:100%}.dd-admin .grid.grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}#login-screen>.glass{padding:28px 24px}.dd-privacy-actions>*{flex:1;text-align:center}.period-chip{padding-inline:14px}body>main{padding-bottom:calc(100px + env(safe-area-inset-bottom))}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* CSS adaptation of Spell UI Bars Spinner; no React runtime required. */
+.dd-bars-spinner {display:inline-block;position:relative;width:36px;height:36px;color:#93bbff;flex-shrink:0}
+.dd-bars-spinner i {position:absolute;left:46%;top:4%;width:8%;height:25%;border-radius:3px;background:currentColor;transform-origin:50% 184%;opacity:.3;animation:dd-bars-fade 1s linear infinite}
+.dd-bars-spinner i:nth-child(1) {transform:rotate(0deg);animation-delay:-1.0s}
+.dd-bars-spinner i:nth-child(2) {transform:rotate(45deg);animation-delay:-0.875s}
+.dd-bars-spinner i:nth-child(3) {transform:rotate(90deg);animation-delay:-0.75s}
+.dd-bars-spinner i:nth-child(4) {transform:rotate(135deg);animation-delay:-0.625s}
+.dd-bars-spinner i:nth-child(5) {transform:rotate(180deg);animation-delay:-0.5s}
+.dd-bars-spinner i:nth-child(6) {transform:rotate(225deg);animation-delay:-0.375s}
+.dd-bars-spinner i:nth-child(7) {transform:rotate(270deg);animation-delay:-0.25s}
+.dd-bars-spinner i:nth-child(8) {transform:rotate(315deg);animation-delay:-0.125s}
+.dd-bars-small {width:18px;height:18px}
+#ocr-overlay p {max-width:30ch;text-align:center;padding-inline:12px}
+@keyframes dd-bars-fade {0%,100%{opacity:1}80%{opacity:.2}}
+@media(prefers-reduced-motion:reduce){.dd-bars-spinner i{animation:none;opacity:.65}}
