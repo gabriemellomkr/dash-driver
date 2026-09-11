@@ -3,22 +3,85 @@
   "redirects": [
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "admin.dashdriver.com.br" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.dashdriver.com.br"
+        }
+      ],
       "destination": "/admin.html",
       "permanent": false
     }
   ],
   "rewrites": [
-    { "source": "/admin", "destination": "/admin.html" }
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/api/whatsapp",
+      "destination": "/api/notify?retired=whatsapp"
+    }
   ],
   "crons": [
-    { "path": "/api/cron-resumo", "schedule": "0 23 * * *" }
+    {
+      "path": "/api/cron-resumo",
+      "schedule": "0 23 * * *"
+    }
   ],
   "functions": {
-    "api/ocr-corrida.js":     { "maxDuration": 30 },
-    "api/admin/users.js":     { "maxDuration": 30 },
-    "api/admin/stats.js":     { "maxDuration": 15 },
-    "api/admin/broadcast.js": { "maxDuration": 60 },
-    "api/cron-resumo.js":     { "maxDuration": 60 }
-  }
+    "api/ocr-corrida.js": {
+      "maxDuration": 30
+    },
+    "api/admin/users.js": {
+      "maxDuration": 30
+    },
+    "api/admin/stats.js": {
+      "maxDuration": 15
+    },
+    "api/admin/broadcast.js": {
+      "maxDuration": 60
+    },
+    "api/cron-resumo.js": {
+      "maxDuration": 60
+    },
+    "api/lastlink-webhook.js": {
+      "maxDuration": 30
+    },
+    "api/privacy.js": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ]
 }

@@ -36,12 +36,5 @@ window.APP_STATE = {
   indriverSaldoMax: 100  // referência para a barra de progresso
 };
 
-// Initialize from localStorage if available
-try {
-  const savedCfg = localStorage.getItem('dash_config');
-  if (savedCfg) {
-    Object.assign(window.CONFIG_DATA, JSON.parse(savedCfg));
-  }
-} catch (e) {
-  console.error("Erro ao carregar configuração:", e);
-}
+// Cache is loaded only after its owner has been authenticated.
+window.DEFAULT_CONFIG = {...window.CONFIG_DATA};

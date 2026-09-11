@@ -1,4 +1,4 @@
-/* DashDriver — Notificações (Camada 1: in-app + Camada 2: browser push + Camada 3: WhatsApp) */
+/* DashDriver — Notificações (Camada 1: in-app + Camada 2: browser push) */
 
 const NOTIF_KEY = 'dd_notifs';
 const NOTIF_MAX = 50;
@@ -11,33 +11,6 @@ function _getNotifs() {
 function _saveNotifs(list) {
   localStorage.setItem(NOTIF_KEY, JSON.stringify(list.slice(0, NOTIF_MAX)));
 }
-
-// ─── Camada 3: WhatsApp via Evolution API ─────────────
-async function _sendWhatsApp(text) {
-  const tel = CONFIG_DATA.telefone;
-  if (!tel) {
-    console.info('[DashDriver] WhatsApp não enviado: número não configurado em Configurações.');
-    return;
-  }
-  try {
-    const r = await fetch('/api/whatsapp', {
-      method: 'POST',
-      headers: await ddAuthHeaders(),
-      body: JSON.stringify({ number: tel, text }),
-    });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      console.warn('[DashDriver] WhatsApp falhou:', err);
-    }
-  } catch(e) { console.warn('[DashDriver] WhatsApp erro de rede:', e); }
-}
-
-// ─── Prefixos que disparam WhatsApp (metas + docs + promos) ─
-const WHATSAPP_PREFIXES = [
-  'META_DIA_OK', 'META_SEM_OK', 'META_MES_OK', 'META_DIA_QUASE',
-  'DOC_VENCIDO_', 'DOC_7D_',
-  'PROMO_INICIO_', 'PROMO_AMANHA_', 'PROMO_FIM_',
-];
 
 // ─── Adicionar (dedup por tipo nas últimas 6h) ────────
 function addNotif({ tipo, titulo, desc, icon }) {
@@ -56,10 +29,7 @@ function addNotif({ tipo, titulo, desc, icon }) {
     } catch(e) { /* SW pode não estar ativo */ }
   }
 
-  // Camada 3: WhatsApp — apenas eventos importantes
-  if (WHATSAPP_PREFIXES.some(p => tipo.startsWith(p))) {
-    _sendWhatsApp(`${icon} *${titulo}*\n${desc}`);
-  }
+
 }
 
 // ─── Badge com contador ───────────────────────────────
@@ -167,37 +137,6 @@ window.checkBadges = function() {
     }
   });
   if (changed) localStorage.setItem('dd_badges_earned', JSON.stringify(earned));
-};
-
-// ─── Teste manual de WhatsApp ─────────────────────────
-window.testarWhatsApp = async function() {
-  // Lê do campo de input (mesmo antes de salvar) ou do CONFIG_DATA
-  // cfg-ddi tem o DDI separado desde a refatoração do campo de telefone
-  const ddi      = document.getElementById('cfg-ddi')?.value || '55';
-  const inputEl  = document.getElementById('cfg-telefone');
-  const localDig = (inputEl?.value || '').replace(/\D/g, '');
-  const tel      = localDig ? ddi + localDig : CONFIG_DATA.telefone;
-  if (!tel || tel.length < 8) {
-    utils.toast('Digite seu número WhatsApp com DDI (ex: 5511999999999)', 'error');
-    return;
-  }
-  utils.toast('Enviando teste...', 'success');
-  try {
-    const r = await fetch('/api/whatsapp', {
-      method: 'POST',
-      headers: await ddAuthHeaders(),
-      body: JSON.stringify({ number: tel, text: '✅ *DashDriver*\nTeste de notificação — funcionando!' }),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (r.ok) {
-      utils.toast('✅ WhatsApp enviado com sucesso!', 'success');
-    } else {
-      utils.toast('Erro: ' + (data.error || r.status), 'error');
-      console.error('[DashDriver] Teste WhatsApp falhou:', data);
-    }
-  } catch(e) {
-    utils.toast('Erro de rede: ' + e.message, 'error');
-  }
 };
 
 // ─── Reset de notificações de meta (chamado ao excluir corrida) ──

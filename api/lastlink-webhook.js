@@ -8,7 +8,7 @@
  * Eventos que TRAVAM o acesso → plano 'expired'
  *
  * Casamos o comprador com o usuário do app por e-mail (Data.Buyer.Email).
- * Opcional: LASTLINK_PRODUCT_IDS (csv) restringe a quais produtos respondemos.
+ * Obrigatório: LASTLINK_PRODUCT_IDS (csv) restringe a quais produtos respondemos.
  */
 const pool   = require('./admin/_db');
 const crypto = require('crypto');
@@ -19,48 +19,18 @@ const APP_URL       = process.env.APP_URL || 'https://app.dashdriver.com.br';
 const PRODUCT_IDS   = (process.env.LASTLINK_PRODUCT_IDS || '')
   .split(',').map(s => s.trim()).filter(Boolean);
 
-const EVOLUTION_URL      = process.env.EVOLUTION_URL;
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
-const EVOLUTION_KEY      = process.env.EVOLUTION_KEY;
-
-// Eventos do Lastlink que concedem/retiram acesso
-const GRANT_EVENTS = new Set([
-  'Product_Access_Started', 'Purchase_Order_Confirmed',
-  'Purchase_Request_Confirmed', 'Recurrent_Payment',
-]);
-const REVOKE_EVENTS = new Set([
-  'Product_Access_Ended', 'Subscription_Canceled', 'Subscription_Expired',
-  'Payment_Refund', 'Payment_Chargeback',
-]);
-
-// Aceita nosso token na URL (?token=) OU o token do próprio Lastlink (em header/body).
-// Assim funciona independente de como o Lastlink entrega a verificação.
+// Access-ended is authoritative: cancelling renewal does not erase paid time.
+const GRANT_EVENTS = new Set(['Product_Access_Started', 'Product_access_started', 'Purchase_Order_Confirmed', 'Recurrent_Payment']);
+const REVOKE_EVENTS = new Set(['Product_Access_Ended', 'Product_access_ended', 'Subscription_Expired', 'Payment_Refund', 'Payment_Chargeback']);
 function tokenOk(req) {
   const valid = [WEBHOOK_TOKEN, process.env.LASTLINK_TOKEN || ''].filter(Boolean);
-  if (!valid.length) return false;
-  const h = req.headers || {};
-  const b = req.body || {};
-  const candidates = [
-    req.query && req.query.token,
-    h['x-lastlink-token'], h['x-webhook-token'], h['token'],
-    (h['authorization'] || '').replace(/^Bearer\s+/i, ''),
-    b.Token, b.token,
-  ].filter(Boolean).map(String);
-  return candidates.some(c => valid.includes(c));
-}
-
-async function sendWelcomeWhatsApp(phone, resetUrl) {
-  if (!EVOLUTION_URL || !EVOLUTION_INSTANCE || !EVOLUTION_KEY) return;
-  const n = (phone || '').replace(/\D/g, '');
-  if (n.length < 10) return;
-  const text = `🏍️ *Bem-vindo ao DashDriver!*\n\nSua assinatura está ativa! Acesse o link abaixo para definir sua senha e começar a usar:\n\n👉 ${resetUrl}\n\n_(O link expira em 7 dias)_`;
-  try {
-    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY },
-      body: JSON.stringify({ number: n, text }),
-    });
-  } catch (e) { console.warn('[lastlink] whatsapp welcome falhou:', e.message); }
+  const h = req.headers || {}, b = req.body || {};
+  const candidates = [req.query?.token, h['x-lastlink-token'], h['x-webhook-token'], h.token,
+    (h.authorization || '').replace(/^Bearer\s+/i, ''), b.Token, b.token].filter(v => typeof v === 'string');
+  return candidates.some(c => valid.some(v => {
+    const a = Buffer.from(c), z = Buffer.from(v);
+    return a.length === z.length && crypto.timingSafeEqual(a, z);
+  }));
 }
 
 async function sendWelcomeEmail(email, resetUrl) {
@@ -130,89 +100,71 @@ async function createUser(client, email, phone, name) {
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   if (!tokenOk(req)) return res.status(401).json({ error: 'unauthorized' });
-
-  const body  = req.body || {};
-  const event = body.Event;
-  const data  = body.Data || {};
-  const email = (data.Buyer?.Email || '').toLowerCase().trim();
-  const name  = data.Buyer?.Name || '';
-  const phone = data.Buyer?.PhoneNumber || '';
-  const subId = data.Subscriptions?.[0]?.Id || null;
-
-  const isGrant  = GRANT_EVENTS.has(event);
-  const isRevoke = REVOKE_EVENTS.has(event);
+  const body = req.body || {}, data = body.Data || {}, event = body.Event;
+  if (body.IsTest === true) return res.status(200).json({ ignored: 'test event' });
+  const isGrant = GRANT_EVENTS.has(event), isRevoke = REVOKE_EVENTS.has(event);
   if (!isGrant && !isRevoke) return res.status(200).json({ ignored: event || 'unknown' });
-
-  // Whitelist opcional de produtos
-  if (PRODUCT_IDS.length) {
-    const prodIds = [
-      ...(data.Products || []).map(p => p.Id),
-      ...(data.Subscriptions || []).map(s => s.ProductId),
-    ].filter(Boolean);
-    if (!prodIds.some(id => PRODUCT_IDS.includes(id))) {
-      return res.status(200).json({ ignored: 'product not whitelisted' });
-    }
+  if (!PRODUCT_IDS.length) return res.status(503).json({ error: 'Webhook product configuration required' });
+  const products = [data.Product?.Id, ...(Array.isArray(data.Products) ? data.Products.map(p => p.Id) : []),
+    ...(Array.isArray(data.Subscriptions) ? data.Subscriptions.map(s => s.ProductId) : []), data.Subscription?.ProductId].filter(Boolean).map(String);
+  if (!products.some(id => PRODUCT_IDS.includes(id))) return res.status(200).json({ ignored: 'product not whitelisted' });
+  const email = String(data.Buyer?.Email || data.Member?.Email || '').toLowerCase().trim();
+  const subId = data.SubscriptionId || data.Subscription?.Id || data.Subscriptions?.[0]?.Id || null;
+  const eventAt = new Date(body.CreatedAt);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || typeof body.Id !== 'string' || !body.Id || !Number.isFinite(eventAt.getTime())) {
+    return res.status(400).json({ error: 'Invalid event identity, date or member' });
   }
-
-  if (!email) return res.status(200).json({ ignored: 'no buyer email' });
-
-  const client = await pool.connectWithRetry();
+  let client;
   try {
-    const rUser = await client.query(
-      'SELECT id FROM auth.users WHERE lower(email) = lower($1) LIMIT 1', [email]
-    );
-
-    // ── TRAVAR acesso ────────────────────────────────────────────────────
-    if (isRevoke) {
-      if (rUser.rows.length) {
-        await client.query(
-          `UPDATE public.dashdriver_plans SET plano='expired', updated_at=now() WHERE user_id=$1`,
-          [rUser.rows[0].id]
-        );
+    client = await pool.connectWithRetry();
+    await client.query('BEGIN');
+    // Serializes events for the same buyer, including concurrent account creation.
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [email]);
+    const duplicate = await client.query('SELECT event_id FROM public.dashdriver_webhook_events WHERE event_id=$1', [body.Id]);
+    if (duplicate.rows.length) {
+      await client.query('COMMIT');
+      return res.status(200).json({ ok: true, duplicate: true });
+    }
+    const users = await client.query('SELECT id FROM auth.users WHERE lower(email)=lower($1) LIMIT 1', [email]);
+    let userId = users.rows[0]?.id, isNew = false;
+    if (isGrant && !userId) { userId = await createUser(client, email, '', String(data.Buyer?.Name || '')); isNew = true; }
+    if (userId) {
+      const plans = await client.query('SELECT lastlink_event_at, lastlink_subscription_id FROM public.dashdriver_plans WHERE user_id=$1 FOR UPDATE', [userId]);
+      const plan = plans.rows[0];
+      if (plan?.lastlink_event_at && new Date(plan.lastlink_event_at) > eventAt) {
+        await client.query('COMMIT');
+        return res.status(200).json({ ignored: 'stale event' });
       }
-      console.log(`[lastlink] revoke ${event} email=${email}`);
-      return res.status(200).json({ ok: true, action: 'revoked', email });
+      if (isRevoke && subId && plan?.lastlink_subscription_id && subId !== plan.lastlink_subscription_id) {
+        await client.query('COMMIT');
+        return res.status(200).json({ ignored: 'different subscription' });
+      }
+      if (isGrant) {
+        await client.query(`INSERT INTO public.dashdriver_plans
+          (user_id, plano, lastlink_subscription_id, trial_ends_at, expires_at, lastlink_event_at, updated_at)
+          VALUES ($1, 'active', $2, NULL, NULL, $3, now())
+          ON CONFLICT (user_id) DO UPDATE SET plano='active',
+          lastlink_subscription_id=COALESCE(EXCLUDED.lastlink_subscription_id, dashdriver_plans.lastlink_subscription_id),
+          trial_ends_at=NULL, expires_at=NULL, lastlink_event_at=EXCLUDED.lastlink_event_at, updated_at=now()`, [userId, subId, eventAt.toISOString()]);
+      } else {
+        await client.query("UPDATE public.dashdriver_plans SET plano='expired', lastlink_event_at=$2, updated_at=now() WHERE user_id=$1", [userId, eventAt.toISOString()]);
+      }
     }
-
-    // ── LIBERAR acesso ───────────────────────────────────────────────────
-    let userId, isNew = false;
-    if (rUser.rows.length) {
-      userId = rUser.rows[0].id;
-    } else {
-      userId = await createUser(client, email, phone, name);
-      isNew = true;
-    }
-
-    // Ativa o plano (limpa trial_ends_at — pagante não tem trial)
-    await client.query(`
-      INSERT INTO public.dashdriver_plans (user_id, plano, lastlink_subscription_id, trial_ends_at, updated_at)
-      VALUES ($1::uuid, 'active', $2, NULL, now())
-      ON CONFLICT (user_id) DO UPDATE SET
-        plano = 'active',
-        lastlink_subscription_id = COALESCE(EXCLUDED.lastlink_subscription_id, public.dashdriver_plans.lastlink_subscription_id),
-        trial_ends_at = NULL,
-        updated_at = now()
-    `, [userId, subId]);
-
     if (isNew) {
-      const token   = crypto.randomBytes(32).toString('hex');
-      const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      await client.query(
-        `INSERT INTO public.dashdriver_password_resets (user_id, token, expires_at) VALUES ($1::uuid, $2, $3::timestamptz)`,
-        [userId, token, expires.toISOString()]
-      );
-      const resetUrl = `${APP_URL}?dd_reset=${token}`;
-      try { await sendWelcomeEmail(email, resetUrl); }
-      catch (e) { console.error('[lastlink] welcome email falhou:', e.message); }
-      sendWelcomeWhatsApp(phone, resetUrl).catch(() => {});
+      const token = crypto.randomBytes(32).toString('hex');
+      const digest = crypto.createHash('sha256').update(token).digest('hex');
+      await client.query(`INSERT INTO public.dashdriver_password_resets (user_id, token, expires_at)
+        VALUES ($1, $2, now() + interval '7 days')`, [userId, digest]);
+      // Await delivery before commit: a mail failure rolls back creation and lets Lastlink retry.
+      await sendWelcomeEmail(email, `${APP_URL}?dd_reset=${token}`);
     }
-
-    console.log(`[lastlink] grant ${event} email=${email} new=${isNew}`);
-    return res.status(200).json({ ok: true, action: 'granted', email, isNew });
+    await client.query(`INSERT INTO public.dashdriver_webhook_events (event_id, event_type, event_at, user_id)
+      VALUES ($1,$2,$3,$4)`, [body.Id, event, eventAt.toISOString(), userId || null]);
+    await client.query('COMMIT');
+    return res.status(200).json({ ok: true, action: isGrant ? 'granted' : 'revoked', isNew });
   } catch (err) {
-    console.error('[lastlink] erro:', err.message);
-    return res.status(500).json({ error: err.message });
-  } finally {
-    client.release();
-  }
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    console.error('[lastlink] processing failed', err.code || 'integration_error');
+    return res.status(503).json({ error: 'Event processing failed; retry required' });
+  } finally { client?.release(); }
 };

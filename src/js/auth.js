@@ -66,6 +66,14 @@ function _isPlanBlocked() {
 }
 
 async function handleAuthSuccess(user) {
+  const previousOwner = localStorage.getItem('dd_cache_owner');
+  if (previousOwner !== user.id) {
+    Object.keys(localStorage).filter(k => k.startsWith('dd_') || k.startsWith('dash_')).forEach(k => localStorage.removeItem(k));
+    Object.assign(CONFIG_DATA, DEFAULT_CONFIG);
+  } else {
+    try {Object.assign(CONFIG_DATA, JSON.parse(localStorage.getItem('dash_config') || '{}'));} catch {}
+  }
+  localStorage.setItem('dd_cache_owner', user.id);
   APP_STATE.user = user;
   document.getElementById('login-screen').style.display = 'none';
 
@@ -212,6 +220,15 @@ window.doLogin = async function() {
 };
 
 window.doLogout = async function() {
+  try {
+    const registration = await navigator.serviceWorker?.getRegistration();
+    const subscription = await registration?.pushManager.getSubscription();
+    if (subscription) {
+      await fetch('/api/subscribe',{method:'POST',headers:await ddAuthHeaders(),body:JSON.stringify({action:'unsubscribe',subscription:subscription.toJSON()})});
+      await subscription.unsubscribe();
+    }
+  } catch {}
+  Object.keys(localStorage).filter(k => k.startsWith('dd_') || k.startsWith('dash_')).forEach(k => localStorage.removeItem(k));
   await supabase.auth.signOut();
   window.location.reload();
 };

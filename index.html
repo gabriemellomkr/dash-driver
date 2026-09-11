@@ -2,7 +2,7 @@
 <html class="dark" lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#131315">
@@ -16,7 +16,6 @@
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
 
   <script>
     tailwind.config = {
@@ -122,6 +121,8 @@
     .driver-popover-arrow-side-top.driver-popover-arrow { border-bottom-color: #1a1b20; }
     .driver-popover-arrow-side-bottom.driver-popover-arrow { border-top-color: #1a1b20; }
   </style>
+  <link rel="stylesheet" href="src/css/refresh.css">
+  <meta name="referrer" content="no-referrer">
 </head>
 <body class="bg-background text-on-surface overflow-x-hidden">
 
@@ -134,7 +135,7 @@
       </div>
       <div>
         <h1 class="text-white font-black text-base tracking-tight">DashDriver</h1>
-        <p id="login-subtitle" class="text-outline text-xs mt-0.5">Acesso restrito</p>
+        <p id="login-subtitle" class="text-outline text-xs mt-0.5">Entre para acompanhar sua rotina.</p>
       </div>
     </div>
 
@@ -156,6 +157,7 @@
         style="box-shadow:0 0 20px rgba(59,130,246,.3)">
         Entrar
       </button>
+      <div class="dd-login-footer"><a href="https://www.dashdriver.com.br/privacidade" target="_blank" rel="noopener">Privacidade</a><a href="https://www.dashdriver.com.br/termos" target="_blank" rel="noopener">Termos de uso</a></div>
       <div id="l-err" class="text-red-400 text-xs text-center hidden">E-mail ou senha incorretos</div>
       <button type="button" onclick="showForgotPanel()"
         class="text-blue-400 text-xs text-center w-full py-1 hover:text-blue-300 transition-colors">
@@ -223,7 +225,7 @@
         <div class="flex items-center gap-2 text-sm text-white/70"><span class="text-emerald-400 text-base">✓</span> OCR para lançar corridas por print</div>
         <div class="flex items-center gap-2 text-sm text-white/70"><span class="text-emerald-400 text-base">✓</span> Controle de gastos e lucro real</div>
         <div class="flex items-center gap-2 text-sm text-white/70"><span class="text-emerald-400 text-base">✓</span> Metas, gamificação e notificações</div>
-        <div class="flex items-center gap-2 text-sm text-white/70"><span class="text-emerald-400 text-base">✓</span> Alertas de documentos via WhatsApp</div>
+        <div class="flex items-center gap-2 text-sm text-white/70"><span class="text-emerald-400 text-base">✓</span> Alertas de documentos por notificação</div>
       </div>
     </div>
 
@@ -301,6 +303,7 @@
   <div class="page active" id="page-dash">
     <div class="p-3 sm:p-5 space-y-3">
 
+      <div class="dd-page-heading"><div><h1>Seu trabalho em números</h1><p>Acompanhe o resultado e planeje seu próximo dia.</p></div><span>Seu painel de controle</span></div>
       <!-- Filtro de período -->
       <div>
         <div class="flex gap-2 overflow-x-auto pb-0.5" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
@@ -919,6 +922,7 @@
       </div>
 
       <!-- Logout -->
+      <section class="dd-privacy-card"><h3>Seus dados e sua privacidade</h3><p>Baixe uma cópia dos seus registros ou solicite correção e exclusão pelo suporte. O cancelamento da assinatura é feito na Lastlink.</p><div class="dd-privacy-actions"><button onclick="exportMyData()">Exportar meus dados</button><button onclick="requestDataHelp()">Solicitar atendimento</button><a href="https://www.dashdriver.com.br/privacidade" target="_blank" rel="noopener">Ver política</a></div></section>
       <button onclick="doLogout()" class="w-full glass rounded-2xl p-4 flex items-center justify-center gap-2 text-red-400 active:bg-red-500/10 transition-colors">
         <span class="material-symbols-outlined" style="font-size:18px">logout</span>
         <span class="text-sm font-semibold">Sair da conta</span>
@@ -1183,30 +1187,9 @@
             <option value="America/Noronha">Fernando de Noronha (UTC-2)</option>
           </select>
         </div>
-        <div>
-          <label class="text-outline text-[10px] uppercase font-bold mb-1.5 block">WhatsApp 📲</label>
-          <div class="flex gap-2">
-            <select id="cfg-ddi"
-              class="bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors flex-shrink-0"
-              style="width:120px">
-              <option value="55"  selected>🇧🇷 +55</option>
-              <option value="1"          >🇺🇸 +1</option>
-              <option value="351"        >🇵🇹 +351</option>
-              <option value="54"         >🇦🇷 +54</option>
-              <option value="56"         >🇨🇱 +56</option>
-              <option value="57"         >🇨🇴 +57</option>
-              <option value="598"        >🇺🇾 +598</option>
-              <option value="595"        >🇵🇾 +595</option>
-            </select>
-            <input type="text" inputmode="tel" id="cfg-telefone"
-              placeholder="(11) 99999-9999"
-              oninput="formatTelefone(this)"
-              class="flex-1 bg-surface-container-high border border-outline-variant rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
-          </div>
-          <div class="flex items-center justify-between mt-1.5">
-            <p class="text-outline text-[10px]">DDD + número (ex: (11) 99999-9999)</p>
-            <button onclick="testarWhatsApp()" class="text-blue-400 text-[10px] font-bold hover:text-blue-300 active:scale-95 transition-all">Testar →</button>
-          </div>
+        <div class="rounded-xl p-4 bg-surface-container-high">
+          <p class="text-white text-sm font-semibold">E-mail e notificações</p>
+          <p class="text-outline text-xs mt-2">O acesso chega no e-mail da sua conta. Ative as notificações para receber alertas no dispositivo.</p>
         </div>
       </div>
       <!-- Divisor -->
@@ -2006,5 +1989,6 @@ function sendSupport() { createSupportTicket(); }
 })();
 </script>
 
+<script src="src/js/privacy.js"></script>
 </body>
 </html>

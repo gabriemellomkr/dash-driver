@@ -15,7 +15,7 @@
       --outline-variant: rgba(255,255,255,0.12);
       --outline: rgba(255,255,255,0.4);
     }
-    body { background: var(--surface); color: white; font-family: 'Inter', sans-serif; }
+    body { background: var(--surface); color: white; font-family: 'Outfit', sans-serif; }
     .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
     .glass-strong { background: rgba(255,255,255,0.07); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.12); }
     .sidebar { width: 220px; min-height: 100vh; background: rgba(255,255,255,0.03); border-right: 1px solid rgba(255,255,255,0.06); }
@@ -36,8 +36,10 @@
     .section { display: none; }
     .section.active { display: block; }
   </style>
+<link rel="stylesheet" href="src/css/refresh.css">
+<meta name="referrer" content="no-referrer">
 </head>
-<body>
+<body class="dd-admin">
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
@@ -229,23 +231,23 @@
 
     <!-- NOTIFICAÇÕES BROADCAST -->
     <section id="section-notificacoes" class="section">
-      <h2 class="text-white font-black text-xl mb-6">Broadcast</h2>
+      <h2 class="text-white font-black text-xl mb-6">Comunicados</h2>
       <div class="glass rounded-2xl p-6 max-w-2xl">
 
         <!-- Canal -->
         <div class="mb-4">
           <label class="text-white/40 text-xs font-bold uppercase mb-2 block">Canal de envio</label>
           <div class="flex gap-2">
-            <button id="ch-whats" onclick="setBroadcastChannel('whatsapp')" class="flex-1 py-2 rounded-xl text-xs font-bold border border-white/10 transition-all bg-green-500/20 text-green-400 border-green-500/40">📱 WhatsApp</button>
+            <button id="ch-push" onclick="setBroadcastChannel('push')" class="flex-1 py-2 rounded-xl text-xs font-bold border border-white/10 transition-all bg-green-500/20 text-green-400 border-green-500/40">Notificação</button>
             <button id="ch-email" onclick="setBroadcastChannel('email')"    class="flex-1 py-2 rounded-xl text-xs font-bold border border-white/10 transition-all text-white/40" style="background:rgba(255,255,255,0.04)">✉️ E-mail</button>
             <button id="ch-both"  onclick="setBroadcastChannel('both')"     class="flex-1 py-2 rounded-xl text-xs font-bold border border-white/10 transition-all text-white/40" style="background:rgba(255,255,255,0.04)">⚡ Ambos</button>
           </div>
-          <input type="hidden" id="broadcast-channel" value="whatsapp">
+          <input type="hidden" id="broadcast-channel" value="email">
         </div>
 
         <!-- Assunto (só e-mail) -->
-        <div id="broadcast-subject-wrap" class="mb-4 hidden">
-          <label class="text-white/40 text-xs font-bold uppercase mb-2 block">Assunto do e-mail</label>
+        <div id="broadcast-subject-wrap" class="mb-4">
+          <label class="text-white/40 text-xs font-bold uppercase mb-2 block">Assunto / título</label>
           <input type="text" id="broadcast-subject" placeholder="Ex: Novidade no DashDriver!" class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500" style="background:rgba(255,255,255,0.06)">
         </div>
 
@@ -269,10 +271,6 @@
         <!-- Formatting toolbar -->
         <div class="flex flex-wrap gap-1.5 mb-5">
           <button onclick="bcInsert('{{nome}}')" title="Insere o nome do destinatário" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-blue-300 hover:bg-blue-500/10 transition-all" style="background:rgba(255,255,255,0.04)">👤 {{nome}}</button>
-          <button onclick="bcWrap('*','*')"      title="Negrito (WhatsApp)"            class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-white/60 hover:bg-white/10 transition-all" style="background:rgba(255,255,255,0.04)"><b>N</b></button>
-          <button onclick="bcWrap('_','_')"      title="Itálico (WhatsApp)"            class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-white/60 hover:bg-white/10 transition-all" style="background:rgba(255,255,255,0.04)"><i>I</i></button>
-          <button onclick="bcWrap('~','~')"      title="Riscado (WhatsApp)"            class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-white/60 hover:bg-white/10 transition-all" style="background:rgba(255,255,255,0.04)"><s>R</s></button>
-          <button onclick="bcWrap('```','```')"  title="Monoespaçado (WhatsApp)"       class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-white/60 hover:bg-white/10 transition-all" style="background:rgba(255,255,255,0.04)">{ }</button>
           <button onclick="bcInsert('\n')"       title="Nova linha"                    class="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/10 text-white/40 hover:bg-white/10 transition-all" style="background:rgba(255,255,255,0.04)">↵</button>
         </div>
 
@@ -343,7 +341,7 @@
         class="w-full p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none" style="background:rgba(255,255,255,0.08)">
     </div>
     <div class="mb-3">
-      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">WhatsApp (opcional)</label>
+      <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Telefone (opcional)</label>
       <div class="flex gap-2">
         <select id="new-ddi" class="w-20 p-3 rounded-xl text-white text-xs border border-white/10 focus:outline-none flex-shrink-0" style="background:rgba(255,255,255,0.08)">
           <option value="55">🇧🇷 +55</option>
@@ -358,7 +356,7 @@
         <input type="tel" id="new-telefone" placeholder="(11) 99999-9999"
           class="flex-1 p-3 rounded-xl text-white text-sm border border-white/10 focus:outline-none focus:border-blue-500" style="background:rgba(255,255,255,0.08)">
       </div>
-      <p class="text-white/20 text-[10px] mt-1">Se preenchido, envia boas-vindas também pelo WhatsApp</p>
+      <p class="text-white/20 text-[10px] mt-1">O convite de acesso é enviado somente por e-mail.</p>
     </div>
     <div class="mb-5">
       <label class="text-white/40 text-xs font-bold uppercase mb-1.5 block">Observação (opcional)</label>
@@ -1128,7 +1126,7 @@ async function updateTicketStatus(status) {
 // ── Broadcast helpers ───────────────────────────────────
 function setBroadcastChannel(ch) {
   document.getElementById('broadcast-channel').value = ch;
-  const btns = { whatsapp: 'ch-whats', email: 'ch-email', both: 'ch-both' };
+  const btns = { push: 'ch-push', email: 'ch-email', both: 'ch-both' };
   Object.entries(btns).forEach(([key, id]) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1141,7 +1139,7 @@ function setBroadcastChannel(ch) {
     }
   });
   const subjectWrap = document.getElementById('broadcast-subject-wrap');
-  if (subjectWrap) subjectWrap.classList.toggle('hidden', ch === 'whatsapp');
+  if (subjectWrap) subjectWrap.classList.remove('hidden');
 }
 
 function bcInsert(text) {
@@ -1164,26 +1162,37 @@ function bcWrap(before, after) {
 }
 
 // ── Broadcast send ──────────────────────────────────────
+let broadcastBusy = false;
 async function sendBroadcast() {
-  const message      = document.getElementById('broadcast-msg').value.trim();
+  if (broadcastBusy) return;
+  const message = document.getElementById('broadcast-msg').value.trim();
   const plano_filter = document.getElementById('broadcast-plano').value || null;
-  const channel      = document.getElementById('broadcast-channel').value || 'whatsapp';
-  const subject      = document.getElementById('broadcast-subject')?.value.trim() || 'Mensagem do DashDriver';
-  const resultEl     = document.getElementById('broadcast-result');
+  const channel = document.getElementById('broadcast-channel').value || 'email';
+  const subject = document.getElementById('broadcast-subject').value.trim() || 'Mensagem do DashDriver';
+  const resultEl = document.getElementById('broadcast-result');
   if (!message) { alert('Digite uma mensagem'); return; }
-
-  resultEl.classList.add('hidden');
-  const r = await fetch('/api/admin/broadcast', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
-    body: JSON.stringify({ message, plano_filter, channel, subject }),
-  });
-  const d = await r.json();
-  const label = channel === 'whatsapp' ? 'WhatsApp' : channel === 'email' ? 'E-mail' : 'Total';
-  resultEl.textContent = `✓ Enviado: ${d.sent}  |  ✗ Falhou: ${d.failed}  |  ${label}: ${d.total}`;
-  resultEl.className = 'mb-4 p-3 rounded-xl text-xs font-semibold ' + (d.failed > 0 ? 'bg-yellow-500/10 text-yellow-400' : 'bg-green-500/10 text-green-400');
-  resultEl.classList.remove('hidden');
+  broadcastBusy = true;
+  resultEl.className = 'mb-4 p-3 rounded-xl text-xs text-blue-300';
+  resultEl.textContent = 'Conferindo destinatários…';
+  const send = async (dry_run) => {
+    const r = await fetch('/api/admin/broadcast', {method:'POST',
+      headers:{'Content-Type':'application/json',Authorization:`Bearer ${adminToken}`},
+      body:JSON.stringify({message,plano_filter,channel,subject,dry_run})});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Falha no envio');
+    return d;
+  };
+  try {
+    const preview = await send(true);
+    if (!preview.total) {resultEl.textContent='Nenhum destinatário para este canal e filtro.';return;}
+    if (!confirm(`Enviar “${subject}” para ${preview.total} destinatário(s) por ${channel === 'both' ? 'e-mail e notificação' : channel === 'push' ? 'notificação' : 'e-mail'}?`)) { resultEl.textContent='Envio cancelado.';return; }
+    resultEl.textContent='Enviando… Aguarde a conclusão.';
+    const d = await send(false);
+    resultEl.textContent=`Concluído: ${d.sent} destinatário(s). Falhas: ${d.failed}. Total: ${d.total}.`;
+  } catch (error) {resultEl.textContent=error.message;resultEl.classList.add('text-red-400');}
+  finally {broadcastBusy=false;}
 }
+setBroadcastChannel('email');
 
 // ── Enter key on login ─────────────────────────────────
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });

@@ -10,7 +10,16 @@ async function verifyUser(req) {
   if (!auth.startsWith('Bearer ')) return null;
   const claims = await verifyToken(auth.slice(7));
   if (!claims || !claims.sub) return null;
-  return claims; // { sub: user_id, email, role, ... }
+  // Check current account status as well as the signed token (deleted/banned users).
+  try {
+    const response = await fetch(`${process.env.SB_URL}/auth/v1/user`, {
+      headers:{apikey:process.env.SB_KEY || '',Authorization:auth}, signal:AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return null;
+    const user = await response.json();
+    if (user.id !== claims.sub) return null;
+    return {...claims,email:user.email};
+  } catch {return null;}
 }
 
 module.exports = { verifyUser };

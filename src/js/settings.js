@@ -59,22 +59,6 @@ window.loadSettingsUI = function() {
   const tzEl = document.getElementById('cfg-timezone');
   if (tzEl) tzEl.value = CONFIG_DATA.timezone || 'America/Sao_Paulo';
 
-  // WhatsApp — separa DDI do número local ao carregar
-  const storedTel = (CONFIG_DATA.telefone || '').replace(/\D/g, '');
-  const ddiOptions = ['595', '598', '351', '57', '56', '54', '55', '1']; // mais longos primeiro
-  let ddi = '55', localDigits = storedTel;
-  for (const code of ddiOptions) {
-    if (storedTel.startsWith(code)) {
-      ddi = code;
-      localDigits = storedTel.slice(code.length);
-      break;
-    }
-  }
-  const ddiEl = document.getElementById('cfg-ddi');
-  if (ddiEl) ddiEl.value = ddi;
-  const telEl = document.getElementById('cfg-telefone');
-  if (telEl) telEl.value = applyTelMask(localDigits);
-
   // Veículo — lê do cache local (populado pelo loadConfig do Supabase)
   const _v = JSON.parse(localStorage.getItem('dd_veiculo') || '{}');
   set('cfg-v-modelo',   _v.modelo);
@@ -105,7 +89,7 @@ window.saveSettings = function() {
     const timezone = document.getElementById('cfg-timezone')?.value || 'America/Sao_Paulo';
     const ddi      = document.getElementById('cfg-ddi')?.value || '55';
     const telLocal = (document.getElementById('cfg-telefone')?.value || '').replace(/\D/g, '');
-    const telefone = telLocal ? ddi + telLocal : '';
+    const telefone = CONFIG_DATA.telefone || ''; // Preserva registros anteriores; não solicita novos telefones.
 
     // 1. Atualiza estado local imediatamente
     Object.assign(CONFIG_DATA, { nome, precoLitro: preco, consumo,

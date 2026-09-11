@@ -1,3 +1,4 @@
+const {validOCRImage} = require('./_validation');
 /**
  * DashDriver — OCR de Corrida
  * Recebe imagem base64 e extrai dados da corrida via GPT-4o-mini Vision.
@@ -23,7 +24,13 @@ module.exports = async function handler(req, res) {
   const user_id = claims.sub;
 
   const { image_base64, mime_type = 'image/jpeg' } = req.body || {};
-  if (!image_base64) return res.status(400).json({ error: 'image_base64 required' });
+  if (!validOCRImage(image_base64,mime_type)) return res.status(400).json({ error: 'Envie um print PNG, JPEG ou WebP de até 2 MB.' });
+  let quota;
+  try {
+    quota = await require('./_ocr-quota').reserveOCR(user_id);
+    if (quota.status===403) return res.status(403).json({error:'É necessário ter acesso ativo para importar prints.'});
+    if (quota.status===429) return res.status(429).json({error:'Limite de 60 prints por hora. Tente mais tarde.'});
+  } catch {return res.status(503).json({error:'Não foi possível verificar seu acesso. Tente novamente.'});}
 
   const OPENAI_KEY = process.env.OPENAI_API_KEY;
   if (!OPENAI_KEY) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
@@ -65,12 +72,15 @@ Retorne APENAS o JSON.`;
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
+      signal: AbortSignal.timeout(20000),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${OPENAI_KEY}`,
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
+        store: false,
+        response_format: {type:'json_object'},
         max_tokens: 512,
         messages: [{
           role: 'user',
@@ -90,8 +100,8 @@ Retorne APENAS o JSON.`;
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('OpenAI API error:', errText);
-      return res.status(502).json({ error: 'Vision API error', detail: errText.slice(0, 300) });
+      console.error('OpenAI API error:', response.status);
+      return res.status(502).json({ error: 'Não foi possível ler o print. Tente novamente em instantes.' });
     }
 
     const apiData = await response.json();
@@ -101,39 +111,26 @@ Retorne APENAS o JSON.`;
     // Em Vercel serverless, Promises não-awaited são canceladas quando a função retorna.
     const tokensIn  = apiData.usage?.prompt_tokens     || 0;
     const tokensOut = apiData.usage?.completion_tokens || 0;
-    console.log(`[ocr] tokens in=${tokensIn} out=${tokensOut} user_id=${user_id || 'null'}`);
-    if (user_id && (tokensIn + tokensOut) > 0) {
-      try {
-        const dbClient = await pool.connect();
-        try {
-          await dbClient.query(
-            `INSERT INTO public.dashdriver_token_usage (user_id, feature, tokens_in, tokens_out)
-             VALUES ($1::uuid, 'ocr', $2, $3)`,
-            [user_id, tokensIn, tokensOut]
-          );
-          console.log('[ocr] token_usage inserido ✓');
-        } finally {
-          dbClient.release();
-        }
-      } catch (err) {
-        console.error('[ocr] token_usage insert FAILED:', err.message);
-        // Não bloqueia a resposta — apenas loga o erro
-      }
-    } else if (!user_id) {
-      console.warn('[ocr] user_id ausente — token_usage não registrado');
-    }
+    await pool.query('UPDATE public.dashdriver_token_usage SET tokens_in=$2,tokens_out=$3 WHERE id=$1', [quota.id,tokensIn,tokensOut]);
 
     // Extrai o JSON da resposta
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return res.status(422).json({ error: 'Resposta inesperada da API', raw: text.slice(0, 200) });
+      return res.status(422).json({ error: 'Não foi possível identificar os dados. Tente outro print.' });
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-    return res.status(200).json(parsed);
+    const result = {};
+    for (const key of ['km','bruto','liquido']) result[key] = typeof parsed[key]==='number' && Number.isFinite(parsed[key]) && parsed[key]>=0 ? parsed[key] : null;
+    result.plataforma = ['Uber','99','InDriver'].includes(parsed.plataforma) ? parsed.plataforma : null;
+    result.pagamento = ['App','Pix','Dinheiro'].includes(parsed.pagamento) ? parsed.pagamento : null;
+    result.data = typeof parsed.data==='string' && /^\d{4}-\d{2}-\d{2}$/.test(parsed.data) ? parsed.data : null;
+    result.tipo = parsed.tipo==='cancel' ? 'cancel' : 'normal';
+    result.confianca = ['alta','media'].includes(parsed.confianca) && result.plataforma && result.liquido!==null ? parsed.confianca : 'baixa';
+    return res.status(200).json(result);
 
   } catch (e) {
-    console.error('OCR handler error:', e);
-    return res.status(500).json({ error: e.message });
+    console.error('OCR handler error:', e.name);
+    return res.status(500).json({ error: 'Falha na leitura do print. Tente novamente.' });
   }
 };

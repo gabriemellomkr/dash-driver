@@ -1,8 +1,8 @@
 /**
- * DashDriver — Resumo Semanal por WhatsApp (módulo)
+ * DashDriver — Resumo Semanal por e-mail (módulo)
  *
  * Chamado pelo cron diário (api/cron-resumo.js) aos domingos. Para cada usuário
- * com WhatsApp cadastrado, envia o fechamento da semana (seg→dom) com ganhos,
+ * com e-mail cadastrado, envia o fechamento da semana (seg→dom) com ganhos,
  * gastos, lucro, km, horas e melhor dia — e comparação com a semana anterior.
  * Quem não rodou recebe uma mensagem de incentivo.
  *
@@ -15,34 +15,11 @@
  */
 const pool = require('./admin/_db');
 
-const EVOLUTION_URL      = process.env.EVOLUTION_URL;
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
-const EVOLUTION_KEY      = process.env.EVOLUTION_KEY;
+const { sendMail } = require('./_mailer');
 
 const BRL = v => 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const onlyDate = s => (s || '').slice(0, 10);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-// ─── Envio via Evolution API (nome da instância pode ter espaço → encode) ─────
-async function sendWhatsApp(number, text) {
-  if (!EVOLUTION_URL || !EVOLUTION_INSTANCE || !EVOLUTION_KEY) return false;
-  const n = (number || '').replace(/\D/g, '');
-  if (n.length < 10) return false;
-  try {
-    const r = await fetch(
-      `${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY },
-        body: JSON.stringify({ number: n, text }),
-      }
-    );
-    return r.ok;
-  } catch (e) {
-    console.warn('[cron-semanal] whatsapp falhou:', e.message);
-    return false;
-  }
-}
 
 // ─── Agrega as métricas de um conjunto de linhas dentro de um período ─────────
 function aggregate(corridas, abast, desp, jornadas, ini, fim) {
@@ -143,16 +120,13 @@ async function runWeeklySummary() {
 
   const client = await pool.connect();
   try {
-    // Usuários com telefone válido
-    const rUsers = await client.query(`
-      SELECT user_id, telefone, nome
-      FROM public.dashdriver_config
-      WHERE telefone IS NOT NULL
-        AND length(regexp_replace(telefone, '\\D', '', 'g')) >= 10
-    `);
-    if (!rUsers.rows.length) {
-      return { sent: 0, reason: 'no phones' };
-    }
+    const rUsers = await client.query(`SELECT c.user_id, u.email, c.nome
+      FROM public.dashdriver_config c JOIN auth.users u ON u.id=c.user_id
+      JOIN public.dashdriver_plans p ON p.user_id=c.user_id
+      WHERE u.email IS NOT NULL AND (p.plano='active' OR
+        (p.plano IN ('trial','convidado') AND (p.trial_ends_at IS NULL OR p.trial_ends_at>now())))
+      AND (p.expires_at IS NULL OR p.expires_at>now())`);
+    if (!rUsers.rows.length) return {sent:0, reason:'no recipients'};
 
     // Carrega as 2 semanas de dados de uma vez (volume pequeno)
     const [rCorr, rAbast, rDesp, rJorn] = await Promise.all([
@@ -191,11 +165,14 @@ async function runWeeklySummary() {
         const text  = thisW.n > 0
           ? buildFull(u.nome, thisW, prevW, thisStart, thisEnd)
           : buildNudge(u.nome);
-        const ok = await sendWhatsApp(u.telefone, text);
+        let ok = false;
+        if (thisW.n === 0) return {ok:false, skipped:true};
+        try { await sendMail({to:u.email, subject:'Seu resumo semanal — DashDriver',text:text.replace(/\*/g,'')});ok=true; } catch {}
         return { ok, isNudge: thisW.n === 0 };
       }));
 
       for (const r of results) {
+        if (r.skipped) continue;
         if (r.ok) { sent += 1; if (r.isNudge) nudges += 1; }
         else      { failed += 1; }
       }

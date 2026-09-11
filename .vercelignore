@@ -1,0 +1,6 @@
+tests/
+docs/
+migrations/
+.claude/
+.env*
+!.env.example

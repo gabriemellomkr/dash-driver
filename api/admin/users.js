@@ -5,26 +5,6 @@ const { sendMail } = require('../_mailer');
 
 const APP_URL            = process.env.APP_URL      || 'https://app.dashdriver.com.br';
 const MAIL_CONFIGURED    = !!(process.env.RESEND_API_KEY || (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS));
-const EVOLUTION_URL      = process.env.EVOLUTION_URL;
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
-const EVOLUTION_KEY      = process.env.EVOLUTION_KEY;
-
-async function sendWelcomeWhatsApp(telefone, resetUrl) {
-  if (!EVOLUTION_URL || !EVOLUTION_INSTANCE || !EVOLUTION_KEY || !telefone) return;
-  const n = telefone.replace(/\D/g, '');
-  if (n.length < 10) return;
-  const text = `🏍️ *Bem-vindo ao DashDriver!*\n\nSua conta foi criada! Acesse o link abaixo para definir sua senha e começar a usar:\n\n👉 ${resetUrl}\n\n_(O link expira em 7 dias)_`;
-  try {
-    await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY },
-      body: JSON.stringify({ number: n, text }),
-    });
-    console.log(`[users] WhatsApp de boas-vindas enviado para ${n}`);
-  } catch (e) { console.warn('[users] WhatsApp welcome falhou:', e.message); }
-}
-
-// Retorna a resetUrl gerada (usada também para WhatsApp)
 async function sendWelcomeEmail(client, userId, email) {
   // Gera token de boas-vindas (7 dias — tempo suficiente para o usuário acessar)
   const token   = crypto.randomBytes(32).toString('hex');
@@ -33,7 +13,7 @@ async function sendWelcomeEmail(client, userId, email) {
   await client.query(
     `INSERT INTO public.dashdriver_password_resets (user_id, token, expires_at)
      VALUES ($1::uuid, $2, $3::timestamptz)`,
-    [userId, token, expires.toISOString()]
+    [userId, crypto.createHash('sha256').update(token).digest('hex'), expires.toISOString()]
   );
 
   const resetUrl = `${APP_URL}?dd_reset=${token}`;
@@ -278,12 +258,9 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      // Envia e-mail de boas-vindas + WhatsApp com link para definir senha
+      // Envia e-mail de boas-vindas com link para definir senha
       try {
-        const resetUrl = await sendWelcomeEmail(client, newUser.id, emailClean);
-        if (telClean.length >= 10) {
-          sendWelcomeWhatsApp(telClean, resetUrl).catch(() => {});
-        }
+        await sendWelcomeEmail(client, newUser.id, emailClean);
       } catch (mailErr) {
         console.error('[users] falha ao enviar e-mail de boas-vindas:', mailErr.message);
       }

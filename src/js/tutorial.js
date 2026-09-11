@@ -185,7 +185,7 @@ window.startTutorial = function () {
         },
         popover: {
           title: '⚙️ Configurações — Dados pessoais',
-          description: 'Comece preenchendo seu <strong>nome</strong> e <strong>WhatsApp</strong> (com DDI, ex: 5511912345678). O WhatsApp é usado para receber os relatórios automáticos.',
+          description: 'Comece preenchendo seu <strong>nome</strong> e configurando suas metas. Você recebe os comunicados por e-mail e os alertas nas notificações.',
           side: 'bottom', align: 'start',
         },
       },

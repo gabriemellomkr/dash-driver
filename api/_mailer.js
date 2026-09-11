@@ -27,6 +27,7 @@ async function sendMail({ to, subject, html, text, replyTo }) {
   if (RESEND_API_KEY) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
+      signal: AbortSignal.timeout(8000),
       headers: {
         Authorization: `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
@@ -51,6 +52,9 @@ async function sendMail({ to, subject, html, text, replyTo }) {
   if (GMAIL_USER && GMAIL_PASS) {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 8000,
       auth: { user: GMAIL_USER, pass: GMAIL_PASS },
     });
     await transporter.sendMail({

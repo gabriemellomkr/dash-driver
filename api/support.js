@@ -1,3 +1,4 @@
+const {supportContent} = require('./_validation');
 const pool = require('./admin/_db');
 const { verifyUser } = require('./_verify-user');
 
@@ -6,6 +7,8 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  if (!['GET','POST'].includes(req.method)) return res.status(405).end();
 
   // Usuário sempre vem do token — nunca do cliente (evita ler/escrever tickets alheios)
   const claims = await verifyUser(req);
@@ -54,7 +57,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ tickets: rTickets.rows });
     } catch (err) {
       console.error('[support/GET]', err.message);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: 'Não foi possível acessar o suporte. Tente novamente.' });
     } finally {
       client.release();
     }
@@ -68,7 +71,7 @@ module.exports = async function handler(req, res) {
   try {
     // ── Adicionar mensagem em ticket existente ────────────────────────────
     if (ticket_id) {
-      const msg = (conteudo || mensagem || '').trim();
+      const msg = supportContent(conteudo || mensagem, tipo);
       if (!msg) return res.status(400).json({ error: 'conteudo obrigatório' });
 
       // Verifica que ticket pertence ao usuário e não está resolvido
@@ -105,7 +108,7 @@ module.exports = async function handler(req, res) {
     }
 
     // ── Criar novo ticket ─────────────────────────────────────────────────
-    if (!titulo || !mensagem)
+    if (typeof titulo !== 'string' || !titulo.trim() || !supportContent(mensagem))
       return res.status(400).json({ error: 'titulo e mensagem são obrigatórios' });
 
     const rTicket = await client.query(
@@ -131,7 +134,7 @@ module.exports = async function handler(req, res) {
     });
   } catch (err) {
     console.error('[support/POST]', err.message);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Não foi possível acessar o suporte. Tente novamente.' });
   } finally {
     client.release();
   }

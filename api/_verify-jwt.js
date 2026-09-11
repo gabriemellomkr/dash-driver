@@ -13,7 +13,7 @@
  */
 const crypto = require('crypto');
 
-const SB_URL   = process.env.SB_URL || '';
+const SB_URL   = (process.env.SB_URL || '').replace(/\/$/, '');
 const SB_ANON  = process.env.SB_KEY || '';
 const JWKS_URL = `${SB_URL}/auth/v1/.well-known/jwks.json`;
 const JWKS_TTL = 10 * 60 * 1000; // 10 min
@@ -47,13 +47,18 @@ async function verifyToken(token) {
     payload = JSON.parse(b64urlToBuf(p).toString('utf8'));
   } catch { return null; }
 
-  // Expiração
-  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+  const now = Math.floor(Date.now() / 1000);
+  if (!SB_URL || !Number.isFinite(payload.exp) || payload.exp <= now) return null;
+  if (payload.nbf !== undefined && (!Number.isFinite(payload.nbf) || payload.nbf > now)) return null;
+  if (payload.iss !== `${SB_URL}/auth/v1`) return null;
+  if (!(Array.isArray(payload.aud) ? payload.aud.includes('authenticated') : payload.aud === 'authenticated')) return null;
+  if (payload.role !== 'authenticated' || typeof payload.sub !== 'string' || !payload.sub) return null;
 
   try {
     if (header.alg === 'ES256') {
       const keys = await getKeys();
-      const jwk  = keys.find(k => k.kid === header.kid) || keys[0];
+      let jwk = keys.find(k => k.kid === header.kid);
+      if (!jwk) { _keysAt = 0; jwk = (await getKeys()).find(k => k.kid === header.kid); }
       if (!jwk) return null;
       const key = crypto.createPublicKey({ key: jwk, format: 'jwk' });
       const ok = crypto.verify(

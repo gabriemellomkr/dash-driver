@@ -1,4 +1,4 @@
-const CACHE = 'dashdriver-v11';
+const CACHE = 'dashdriver-v12';
 const ASSETS = ['/manifest.json', '/icon.svg'];
 
 // HTML, JS e CSS — sempre network-first para garantir fixes chegam imediatamente
@@ -89,14 +89,4 @@ self.addEventListener('notificationclick', e => {
   );
 });
 
-self.addEventListener('pushsubscriptionchange', e => {
-  e.waitUntil(
-    self.registration.pushManager.subscribe(e.oldSubscription.options).then(sub =>
-      fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub }),
-      })
-    )
-  );
-});
+// Subscription renewal is handled in the authenticated app session.

@@ -26,21 +26,24 @@ module.exports = async function handler(req, res) {
   // Detecta tanto por URL (/confirm) quanto por corpo (action='confirm' ou token presente sem email)
   if (path.endsWith('/confirm') || body.action === 'confirm' || (body.token && !body.email)) {
     const { token, password } = req.body || {};
-    if (!token || !password)
+    if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token) || typeof password !== 'string')
       return res.status(400).json({ error: 'token e password obrigatórios' });
     if (password.length < 6)
       return res.status(400).json({ error: 'Senha deve ter pelo menos 6 caracteres' });
 
     const client = await pool.connect();
     try {
+      await client.query('BEGIN');
       // Busca token válido (não expirado, não usado)
       const rToken = await client.query(
         `SELECT user_id FROM public.dashdriver_password_resets
-         WHERE token = $1 AND expires_at > now() AND used_at IS NULL`,
-        [token]
+         WHERE token IN ($1, $2) AND expires_at > now() AND used_at IS NULL FOR UPDATE`,
+        [crypto.createHash('sha256').update(token).digest('hex'), token]
       );
-      if (!rToken.rows.length)
+      if (!rToken.rows.length) {
+        await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Link inválido ou expirado. Solicite um novo.' });
+      }
 
       const { user_id } = rToken.rows[0];
 
@@ -55,15 +58,16 @@ module.exports = async function handler(req, res) {
 
       // Marca token como usado
       await client.query(
-        `UPDATE public.dashdriver_password_resets SET used_at = now() WHERE token = $1`,
-        [token]
+        `UPDATE public.dashdriver_password_resets SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`,
+        [user_id]
       );
 
-      console.log(`[reset-password] senha atualizada user_id=${user_id}`);
+      await client.query('COMMIT');
       return res.status(200).json({ ok: true });
     } catch (err) {
-      console.error('[reset-password/confirm]', err.message);
-      return res.status(500).json({ error: err.message });
+      await client.query('ROLLBACK').catch(() => {});
+      console.error('[reset-password/confirm]', err.code || 'failed');
+      return res.status(500).json({ error: 'Não foi possível concluir a solicitação.' });
     } finally {
       client.release();
     }
@@ -71,7 +75,7 @@ module.exports = async function handler(req, res) {
 
   // ── Solicitar reset: gera token e envia e-mail ─────────────────────────────
   const { email } = req.body || {};
-  if (!email) return res.status(400).json({ error: 'email obrigatório' });
+  if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'email obrigatório' });
 
   if (!MAIL_CONFIGURED) {
     console.error('[reset-password] nenhum provedor de e-mail configurado');
@@ -87,7 +91,7 @@ module.exports = async function handler(req, res) {
     );
 
     if (!rUser.rows.length) {
-      return res.status(404).json({ error: 'E-mail não cadastrado. Fale com o administrador.' });
+      return res.status(200).json({ ok: true });
     }
 
     const user_id = rUser.rows[0].id;
@@ -105,7 +109,7 @@ module.exports = async function handler(req, res) {
     await client.query(
       `INSERT INTO public.dashdriver_password_resets (user_id, token, expires_at)
        VALUES ($1::uuid, $2, $3::timestamptz)`,
-      [user_id, token, expires.toISOString()]
+      [user_id, crypto.createHash('sha256').update(token).digest('hex'), expires.toISOString()]
     );
 
     // Monta e-mail
@@ -182,12 +186,12 @@ Se você não solicitou a redefinição, ignore este e-mail. Sua senha não ser�
       html,
     });
 
-    console.log(`[reset-password] e-mail enviado para ${email}`);
+
     return res.status(200).json({ ok: true });
 
   } catch (err) {
     console.error('[reset-password]', err.message);
-    return res.status(500).json({ error: 'Erro ao enviar e-mail: ' + err.message });
+    return res.status(500).json({ error: 'Não foi possível enviar o e-mail. Tente novamente.' });
   } finally {
     client.release();
   }

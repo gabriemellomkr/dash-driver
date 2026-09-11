@@ -3,3 +3,7 @@ node_modules/
 package-lock.json
 gen-icons.js
 .git-broken-bak/
+
+.env
+.env.*
+!.env.example

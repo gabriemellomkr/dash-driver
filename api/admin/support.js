@@ -1,3 +1,4 @@
+const {supportContent,validStatus} = require('../_validation');
 const pool = require('./_db');
 const { verifyAdmin } = require('./_auth');
 
@@ -35,7 +36,7 @@ module.exports = async function handler(req, res) {
           s.id, s.titulo, s.status, s.ticket_number,
           s.assigned_to, s.created_at, s.updated_at,
           u.email  AS user_email,
-          du.full_name AS user_nome,
+          c.nome AS user_nome,
           c.telefone   AS user_telefone,
           (SELECT CASE WHEN tipo = 'image' THEN '[imagem]'
                        ELSE left(conteudo, 120) END
@@ -49,7 +50,6 @@ module.exports = async function handler(req, res) {
            WHERE ticket_id = s.id) AS msg_count
         FROM public.dashdriver_support s
         LEFT JOIN auth.users u  ON u.id  = s.user_id
-        LEFT JOIN public.dashdriver_usuarios du ON du.id = s.user_id
         LEFT JOIN public.dashdriver_config   c  ON c.user_id = s.user_id
         ORDER BY
           CASE s.status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 ELSE 2 END,
@@ -62,6 +62,8 @@ module.exports = async function handler(req, res) {
     if (req.method === 'POST') {
       const { ticket_id, conteudo, tipo = 'text', status, action } = req.body || {};
 
+      if (status && !validStatus(status)) return res.status(400).json({error:'Status inválido'});
+      if (conteudo !== undefined && !supportContent(conteudo,tipo)) return res.status(400).json({error:'Mensagem inválida ou muito grande'});
       if (!ticket_id) return res.status(400).json({ error: 'ticket_id obrigatório' });
 
       // Aceitar ticket (open → in_progress + assigned_to)
@@ -102,15 +104,13 @@ module.exports = async function handler(req, res) {
 
       // Atualiza ticket: assigned_to (se ainda não tem) + status
       const newStatus = status || 'in_progress';
-      const resumo = tipo === 'image' ? '[imagem]' : conteudo.substring(0, 500);
       await client.query(
         `UPDATE public.dashdriver_support
-         SET resposta    = $1,
-             status      = $2,
-             assigned_to = COALESCE(assigned_to, $3),
+         SET status      = $1,
+             assigned_to = COALESCE(assigned_to, $2),
              updated_at  = now()
-         WHERE id = $4`,
-        [resumo, newStatus, adminEmail, ticket_id]
+         WHERE id = $3`,
+        [newStatus, adminEmail, ticket_id]
       );
 
       return res.status(200).json({ ok: true, message: rMsg.rows[0] });
@@ -119,7 +119,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).end();
   } catch (err) {
     console.error('[admin/support]', err.message);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Não foi possível acessar o suporte. Tente novamente.' });
   } finally {
     client.release();
   }
