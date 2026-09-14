@@ -2,6 +2,19 @@
   "outputDirectory": ".",
   "redirects": [
     {
+      "source": "/admin.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.dashdriver.com.br"
+        }
+      ],
+      "destination": "/",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
       "source": "/",
       "has": [
         {
@@ -9,11 +22,8 @@
           "value": "admin.dashdriver.com.br"
         }
       ],
-      "destination": "/admin.html",
-      "permanent": false
-    }
-  ],
-  "rewrites": [
+      "destination": "/admin.html"
+    },
     {
       "source": "/admin",
       "destination": "/admin.html"

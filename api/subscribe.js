@@ -2,6 +2,11 @@ const {verifyUser}=require('./_verify-user');
 const {validSubscription}=require('./_push');
 const pool=require('./admin/_db');
 module.exports=async function(req,res){
+ if(req.method==='GET') {
+  if(!process.env.VAPID_PUBLIC_KEY) return res.status(503).json({error:'Notificações ainda não configuradas.'});
+  res.setHeader('Cache-Control','no-store');
+  return res.status(200).json({publicKey:process.env.VAPID_PUBLIC_KEY});
+ }
  if(req.method!=='POST') return res.status(405).end();
  const claims=await verifyUser(req);
  if(!claims) return res.status(401).json({error:'Não autenticado'});

@@ -255,7 +255,7 @@ function renderFinTimeline(corridas, gastos) {
           ${isPendingDel ? `
             <div class="flex items-center gap-1.5 flex-shrink-0">
               <span class="text-red-400 text-[10px] font-semibold">Excluir?</span>
-              <button onclick="confirmarDeleteGasto(${item.id},'${item.tipo}')" class="bg-red-500/20 text-red-400 text-[10px] font-bold px-2.5 py-1.5 rounded-lg active:scale-95">Sim</button>
+              <button data-id="${item.id}" onclick="confirmarDeleteGasto(this.dataset.id,'${item.tipo}')" class="bg-red-500/20 text-red-400 text-[10px] font-bold px-2.5 py-1.5 rounded-lg active:scale-95">Sim</button>
               <button onclick="cancelarDeleteGasto()" class="bg-white/10 text-outline text-[10px] font-bold px-2.5 py-1.5 rounded-lg active:scale-95">Não</button>
             </div>
           ` : `
@@ -264,7 +264,7 @@ function renderFinTimeline(corridas, gastos) {
                 ${item.positivo ? '+' : '-'} ${utils.formatBRL(item.valor)}
               </span>
               ${item.tipo !== 'corrida' ? `
-                <button onclick="pedirDeleteGasto(${item.id},'${item.tipo}')" class="w-8 h-8 flex items-center justify-center text-outline hover:text-red-400 active:scale-90 transition-all rounded-lg">
+                <button data-id="${item.id}" onclick="pedirDeleteGasto(this.dataset.id,'${item.tipo}')" class="w-8 h-8 flex items-center justify-center text-outline hover:text-red-400 active:scale-90 transition-all rounded-lg">
                   <span class="material-symbols-outlined" style="font-size:16px">delete</span>
                 </button>
               ` : ''}

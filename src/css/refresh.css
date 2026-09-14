@@ -22,3 +22,5 @@ body.dd-admin{background:var(--dd-bg)}.dd-admin .sidebar{background:#111722;bord
 #ocr-overlay p {max-width:30ch;text-align:center;padding-inline:12px}
 @keyframes dd-bars-fade {0%,100%{opacity:1}80%{opacity:.2}}
 @media(prefers-reduced-motion:reduce){.dd-bars-spinner i{animation:none;opacity:.65}}
+
+#page-financeiro .dd-fin-header{position:relative;top:auto;z-index:auto;padding-top:12px;border-radius:16px;margin-bottom:12px}#support-modal>div{max-width:760px;width:100%;max-height:85dvh}#support-modal{padding:16px}#support-body{min-height:0}

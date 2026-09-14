@@ -1013,11 +1013,32 @@ async function openTicketModal(id, ticketNumber, titulo, userInfo, status) {
   }
 }
 
+let _adminChatBusy = false;
+let _adminChatSignature = '';
+setInterval(async () => {
+  if (_adminChatBusy || document.hidden || !adminToken || document.getElementById('ticket-modal').style.display !== 'flex') return;
+  const id = document.getElementById('tkt-id').value;
+  if (!id) return;
+  _adminChatBusy = true;
+  try {
+    const response = await fetch(`/api/admin/support?ticket_id=${encodeURIComponent(id)}`, {headers:{Authorization:`Bearer ${adminToken}`}});
+    if (!response.ok) return;
+    const detail = await response.json();
+    if (document.getElementById('tkt-id').value !== id || document.getElementById('ticket-modal').style.display !== 'flex') return;
+    const signature = JSON.stringify([id,detail.messages]);
+    if(signature !== _adminChatSignature) {
+      _adminChatSignature=signature;
+      renderTktMessages(detail.messages || [],true);
+    }
+  } catch {} finally {_adminChatBusy=false;}
+},3000);
+
 // Cache de imagens base64 para evitar injeção de strings longas no innerHTML
 const _tktImgCache = new Map();
 
-function renderTktMessages(messages) {
+function renderTktMessages(messages, preserveScroll = false) {
   const el = document.getElementById('tkt-messages');
+  const oldScroll=el.scrollTop, nearBottom=el.scrollHeight-el.scrollTop-el.clientHeight<80;
   if (!messages.length) {
     el.innerHTML = '<div class="text-center text-white/20 text-xs py-8">Nenhuma mensagem ainda</div>';
     return;
@@ -1061,7 +1082,7 @@ function renderTktMessages(messages) {
     }
   });
 
-  el.scrollTop = el.scrollHeight;
+  el.scrollTop = !preserveScroll || nearBottom ? el.scrollHeight : oldScroll;
 }
 
 function closeTicketModal() {
@@ -1185,6 +1206,7 @@ async function sendBroadcast() {
   try {
     const preview = await send(true);
     if (!preview.total) {resultEl.textContent='Nenhum destinatário para este canal e filtro.';return;}
+    if (!preview.total) {resultEl.textContent='Nenhum destinatário disponível. Para notificações, o usuário precisa abrir o sino do app e permitir o recebimento neste dispositivo.';return;}
     if (!confirm(`Enviar “${subject}” para ${preview.total} destinatário(s) por ${channel === 'both' ? 'e-mail e notificação' : channel === 'push' ? 'notificação' : 'e-mail'}?`)) { resultEl.textContent='Envio cancelado.';return; }
     resultEl.textContent='Enviando… Aguarde a conclusão.';
     const d = await send(false);

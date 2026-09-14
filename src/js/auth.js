@@ -75,6 +75,9 @@ async function handleAuthSuccess(user) {
   }
   localStorage.setItem('dd_cache_owner', user.id);
   APP_STATE.user = user;
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    window.registerPushDevice?.().catch(error => console.warn('[push registration]',error.message));
+  }
   document.getElementById('login-screen').style.display = 'none';
 
   // Carregar dados e atualizar interface.

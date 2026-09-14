@@ -152,15 +152,47 @@ window._resetMetaNotifs = function() {
 };
 
 // ─── Pedir permissão browser push ─────────────────────
+let _pushRegistrationPending = null;
+window.registerPushDevice = function() {
+  if (_pushRegistrationPending) return _pushRegistrationPending;
+  _pushRegistrationPending = (async () => {
+    if (!APP_STATE.user || !('serviceWorker' in navigator) || !('PushManager' in window))
+      throw new Error('Este navegador não oferece notificações push. No iPhone, instale o app na tela inicial.');
+    const configResponse = await fetch('/api/subscribe');
+    const config = await configResponse.json();
+    if (!configResponse.ok) throw new Error(config.error || 'Não foi possível configurar notificações.');
+    const key = Uint8Array.from(atob(config.publicKey.replace(/-/g,'+').replace(/_/g,'/')), c=>c.charCodeAt(0));
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    if (subscription?.options.applicationServerKey &&
+        String(new Uint8Array(subscription.options.applicationServerKey)) !== String(key)) {
+      await subscription.unsubscribe(); subscription = null;
+    }
+    if (!subscription) subscription = await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
+    const save = () => fetch('/api/subscribe', {method:'POST',headers:awaitHeaders,
+      body:JSON.stringify({subscription:subscription.toJSON()})});
+    const awaitHeaders = await ddAuthHeaders();
+    let response = await save();
+    if (response.status===409) {
+      await subscription.unsubscribe();
+      subscription = await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
+      response = await save();
+    }
+    if (!response.ok) {const result=await response.json();throw new Error(result.error || 'Não foi possível cadastrar este dispositivo.');}
+    return true;
+  })().finally(()=>{_pushRegistrationPending=null;});
+  return _pushRegistrationPending;
+};
 window.requestNotifPermission = async function() {
-  if (typeof Notification === 'undefined') return;
-  if (Notification.permission === 'default') {
-    const r = await Notification.requestPermission();
-    if (r === 'granted') utils.toast('Notificações ativadas! 🔔', 'success');
-  }
+  try {
+    if (typeof Notification==='undefined') throw new Error('Notificações não disponíveis neste navegador.');
+    const permission = Notification.permission==='default' ? await Notification.requestPermission() : Notification.permission;
+    if(permission!=='granted') throw new Error('Permita notificações nas configurações deste site para receber os avisos.');
+    await registerPushDevice();
+    utils.toast('Este dispositivo está pronto para receber notificações.', 'success');
+  } catch(error) {utils.toast(error.message,'error');}
 };
 
-// ─── UI: painel de notificações ───────────────────────
 window.openNotifications = function() {
   requestNotifPermission();
   const modal = document.getElementById('notif-modal');

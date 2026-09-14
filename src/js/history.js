@@ -144,17 +144,17 @@ window.renderHistorico = function() {
           ${isPendingDel ? `
             <div class="flex items-center gap-1.5 flex-shrink-0">
               <span class="text-red-400 text-[10px] font-semibold">Excluir?</span>
-              <button onclick="confirmarDelete(${c.id})" class="bg-red-500/20 text-red-400 text-[10px] font-bold px-2.5 py-1.5 rounded-lg active:scale-95 transition-all">Sim</button>
+              <button data-id="${c.id}" onclick="confirmarDelete(this.dataset.id)" class="bg-red-500/20 text-red-400 text-[10px] font-bold px-2.5 py-1.5 rounded-lg active:scale-95 transition-all">Sim</button>
               <button onclick="cancelarDelete()" class="bg-white/10 text-outline text-[10px] font-bold px-2.5 py-1.5 rounded-lg active:scale-95 transition-all">Não</button>
             </div>
           ` : `
             <div class="flex items-center gap-2 flex-shrink-0">
               <span class="text-green-400 font-black text-[13px]">${utils.formatBRL(c.liquido)}</span>
               <div class="flex gap-0.5">
-                <button onclick="editarCorrida(${c.id})" class="w-8 h-8 flex items-center justify-center text-outline hover:text-blue-400 active:scale-90 transition-all rounded-lg">
+                <button data-id="${c.id}" onclick="editarCorrida(this.dataset.id)" class="w-8 h-8 flex items-center justify-center text-outline hover:text-blue-400 active:scale-90 transition-all rounded-lg">
                   <span class="material-symbols-outlined" style="font-size:16px">edit</span>
                 </button>
-                <button onclick="pedirConfirmDelete(${c.id})" class="w-8 h-8 flex items-center justify-center text-outline hover:text-red-400 active:scale-90 transition-all rounded-lg">
+                <button data-id="${c.id}" onclick="pedirConfirmDelete(this.dataset.id)" class="w-8 h-8 flex items-center justify-center text-outline hover:text-red-400 active:scale-90 transition-all rounded-lg">
                   <span class="material-symbols-outlined" style="font-size:16px">delete</span>
                 </button>
               </div>
