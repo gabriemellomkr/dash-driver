@@ -1,38 +1,5 @@
 {
   "outputDirectory": ".",
-  "redirects": [
-    {
-      "source": "/admin.html",
-      "has": [
-        {
-          "type": "host",
-          "value": "admin.dashdriver.com.br"
-        }
-      ],
-      "destination": "/",
-      "permanent": false
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "admin.dashdriver.com.br"
-        }
-      ],
-      "destination": "/admin.html"
-    },
-    {
-      "source": "/admin",
-      "destination": "/admin.html"
-    },
-    {
-      "source": "/api/whatsapp",
-      "destination": "/api/notify?retired=whatsapp"
-    }
-  ],
   "crons": [
     {
       "path": "/api/cron-resumo",
@@ -62,36 +29,57 @@
       "maxDuration": 30
     }
   },
-  "headers": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "no-referrer"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
-        }
-      ]
+      "src": "/(.*)",
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "no-referrer",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "continue": true
     },
     {
-      "source": "/api/(.*)",
-      "headers": [
+      "src": "/api/(.*)",
+      "headers": {
+        "Cache-Control": "no-store"
+      },
+      "continue": true
+    },
+    {
+      "src": "/admin(?:\\.html)?",
+      "has": [
         {
-          "key": "Cache-Control",
-          "value": "no-store"
+          "type": "host",
+          "value": "admin.dashdriver.com.br"
         }
-      ]
+      ],
+      "status": 307,
+      "headers": {
+        "Location": "/"
+      }
+    },
+    {
+      "src": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.dashdriver.com.br"
+        }
+      ],
+      "dest": "/admin.html"
+    },
+    {
+      "src": "/admin",
+      "dest": "/admin.html"
+    },
+    {
+      "src": "/api/whatsapp",
+      "dest": "/api/notify?retired=whatsapp"
+    },
+    {
+      "handle": "filesystem"
     }
   ]
 }
