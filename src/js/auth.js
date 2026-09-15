@@ -10,6 +10,13 @@ window.checkSession = async function() {
   const { data: { user }, error } = await supabase.auth.getUser();
 
   if (user && !error) {
+    if ((user.email || '').toLowerCase() === 'gabriel18mello@gmail.com') {
+      await supabase.auth.signOut();
+      _showLoginScreen();
+      const err = document.getElementById('l-err');
+      if (err) { err.textContent = 'Este e-mail é exclusivo do painel administrativo.'; err.classList.remove('hidden'); }
+      return;
+    }
     await handleAuthSuccess(user);
     _startSessionWatchdog();
   } else {

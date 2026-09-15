@@ -45,7 +45,7 @@ module.exports = async function handler(req, res) {
       rPlans,
     ] = await Promise.all([
       // Total de usuários
-      client.query('SELECT count(*)::int AS total FROM auth.users'),
+      client.query('SELECT count(*)::int AS total FROM auth.users WHERE lower(email) <> ALL($1::text[])', [ADMIN_EMAILS]),
       // Total de corridas
       client.query('SELECT count(*)::int AS total FROM public.dashdriver_corridas'),
       // Tokens OCR
@@ -86,9 +86,11 @@ module.exports = async function handler(req, res) {
       // Planos
       client.query(`
         SELECT plano, count(*)::int AS cnt
-        FROM public.dashdriver_plans
+        FROM public.dashdriver_plans p
+        LEFT JOIN auth.users u ON u.id = p.user_id
+        WHERE u.id IS NULL OR lower(u.email) <> ALL($1::text[])
         GROUP BY plano
-      `),
+      `, [ADMIN_EMAILS]),
     ]);
 
     // Tickets por status

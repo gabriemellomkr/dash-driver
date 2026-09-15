@@ -1,5 +1,5 @@
 const pool = require('./_db');
-const {verifyAdmin} = require('./_auth');
+const {verifyAdmin, ADMIN_EMAILS} = require('./_auth');
 const {sendMail} = require('../_mailer');
 const {sendPush} = require('../_push');
 const escapeHTML = s => s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -14,7 +14,9 @@ module.exports = async function(req,res) {
     const users=await pool.query(`SELECT u.id AS user_id,u.email,c.nome FROM auth.users u
       LEFT JOIN public.dashdriver_config c ON c.user_id=u.id
       LEFT JOIN public.dashdriver_plans p ON p.user_id=u.id
-      WHERE ($1::text IS NULL OR p.plano=$1) ORDER BY u.id`,[plano_filter||null]);
+      WHERE ($1::text IS NULL OR p.plano=$1)
+        AND lower(u.email) <> ALL($2::text[])
+      ORDER BY u.id`,[plano_filter||null, ADMIN_EMAILS]);
     const subscriptions=channel==='email'?{rows:[]}:await pool.query('SELECT user_id,endpoint,p256dh,auth FROM public.dashdriver_push_subscriptions WHERE user_id IS NOT NULL');
     const recipients=users.rows.filter(u=>(channel!=='push'&&u.email) || subscriptions.rows.some(s=>s.user_id===u.user_id));
     if(dry_run===true) return res.status(200).json({total:recipients.length,channel});

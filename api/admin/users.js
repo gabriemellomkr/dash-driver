@@ -1,5 +1,5 @@
 const pool       = require('./_db');
-const { verifyAdmin } = require('./_auth');
+const { verifyAdmin, ADMIN_EMAILS } = require('./_auth');
 const crypto     = require('crypto');
 const { sendMail } = require('../_mailer');
 
@@ -313,8 +313,9 @@ module.exports = async function handler(req, res) {
       client.query(`
         SELECT id, email, created_at, last_sign_in_at
         FROM auth.users
+        WHERE lower(email) <> ALL($1::text[])
         ORDER BY created_at DESC
-      `),
+      `, [ADMIN_EMAILS]),
       client.query('SELECT user_id, plano, trial_ends_at, stripe_status, id FROM public.dashdriver_plans'),
       client.query('SELECT user_id, count(*)::int AS cnt FROM public.dashdriver_corridas GROUP BY user_id'),
       client.query('SELECT user_id, telefone FROM public.dashdriver_config'),
