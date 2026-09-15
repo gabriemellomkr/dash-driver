@@ -30,7 +30,7 @@ async function sendWelcomeEmail(client, userId, email) {
         <!-- Header -->
         <tr><td style="padding-bottom:24px">
           <table cellpadding="0" cellspacing="0"><tr>
-            <td style="background:rgba(59,130,246,0.15);padding:10px;border-radius:12px;font-size:24px;vertical-align:middle">🏍️</td>
+            <td style="background:rgba(59,130,246,0.15);padding:10px;border-radius:12px;font-size:24px;vertical-align:middle">◒</td>
             <td style="padding-left:12px;font-size:20px;font-weight:900;color:#ffffff;vertical-align:middle">DashDriver</td>
           </tr></table>
         </td></tr>
@@ -60,7 +60,8 @@ async function sendWelcomeEmail(client, userId, email) {
               <b style="color:#fff">2.</b> Faça login com o e-mail <b style="color:#60a5fa">${email}</b><br>
               <b style="color:#fff">3.</b> Registre suas corridas diariamente<br>
               <b style="color:#fff">4.</b> Acompanhe seus ganhos, KPIs e metas no Dashboard<br>
-              <b style="color:#fff">5.</b> Lance gastos (gasolina, manutenção) para calcular seu lucro real
+              <b style="color:#fff">5.</b> Lance gastos para calcular seu resultado real<br>
+              <b style="color:#fff">6.</b> Para instalar no celular, abra o menu do navegador e escolha “Adicionar à tela inicial” ou “Instalar aplicativo”
             </td></tr>
           </table>
         </td></tr>
@@ -88,11 +89,11 @@ Como começar:
 4. Acompanhe ganhos, KPIs e metas no Dashboard
 5. Lance gastos (gasolina, manutenção) para ver seu lucro real
 
-— Equipe DashDriver`;
+Equipe DashDriver`;
 
   await sendMail({
     to:      email,
-    subject: '🏍️ Bem-vindo ao DashDriver — acesse sua conta',
+    subject: 'DashDriver: acesse sua conta',
     text,
     html,
   });

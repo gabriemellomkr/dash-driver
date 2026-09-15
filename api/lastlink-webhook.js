@@ -40,7 +40,7 @@ async function sendWelcomeEmail(email, resetUrl) {
 <table width="480" cellpadding="0" cellspacing="0" style="background:#0e0e10;border-radius:16px;padding:36px 32px;max-width:480px">
   <tr><td style="padding-bottom:24px">
     <table cellpadding="0" cellspacing="0"><tr>
-      <td style="background:rgba(59,130,246,.15);padding:10px;border-radius:12px;font-size:22px;vertical-align:middle">🏍️</td>
+      <td style="background:rgba(59,130,246,.15);padding:10px;border-radius:12px;font-size:22px;vertical-align:middle">◒</td>
       <td style="padding-left:12px;font-size:20px;font-weight:900;color:#fff;vertical-align:middle">DashDriver</td>
     </tr></table>
   </td></tr>
@@ -52,12 +52,15 @@ async function sendWelcomeEmail(email, resetUrl) {
     <a href="${resetUrl}" style="display:inline-block;background:#3b82f6;color:#fff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none">Definir minha senha e entrar →</a>
     <div style="margin-top:10px;font-size:12px;color:rgba(255,255,255,.3)">Login: ${email} · link válido por 7 dias</div>
   </td></tr>
-  <tr><td style="font-size:11px;color:rgba(255,255,255,.25);line-height:1.6">Dúvidas? Fale com a gente pelo suporte dentro do app.</td></tr>
+  <tr><td style="font-size:12px;color:rgba(255,255,255,.65);line-height:1.8;background:rgba(255,255,255,.04);padding:16px;border-radius:10px">
+    <b style="color:#fff">Como começar</b><br>1. Defina sua senha e entre no app<br>2. Abra pelo navegador do celular ou computador<br>3. Para instalar no celular, use o menu do navegador e escolha “Adicionar à tela inicial” ou “Instalar aplicativo”<br>4. Envie o print de uma corrida, confira os dados e salve
+  </td></tr>
+  <tr><td style="padding-top:18px;font-size:11px;color:rgba(255,255,255,.35);line-height:1.6">O DashDriver funciona para carro e moto. Dúvidas? Fale com a gente pelo suporte dentro do app.</td></tr>
 </table></td></tr></table></body></html>`;
 
-  const text = `Bem-vindo ao DashDriver!\n\nSua conta foi criada e sua assinatura está ativa. Defina sua senha (link válido por 7 dias):\n${resetUrl}\n\nLogin: ${email}`;
+  const text = `Bem-vindo ao DashDriver!\n\nSua conta foi criada e sua assinatura está ativa. Defina sua senha pelo link abaixo, válido por 7 dias:\n${resetUrl}\n\nComo começar:\n1. Defina sua senha e entre no app\n2. Abra pelo navegador do celular ou computador\n3. No menu do navegador, escolha Adicionar à tela inicial ou Instalar aplicativo\n4. Envie o print de uma corrida, confira os dados e salve\n\nO DashDriver funciona para carro e moto.\n\nLogin: ${email}`;
 
-  await sendMail({ to: email, subject: '🏍️ DashDriver — sua assinatura está ativa', html, text });
+  await sendMail({ to: email, subject: 'DashDriver: sua assinatura está ativa', html, text });
 }
 
 // Cria usuário no Supabase (mesmo padrão à prova de GoTrue: tokens vazios, não NULL)

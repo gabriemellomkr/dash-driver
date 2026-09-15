@@ -1,7 +1,7 @@
 {
   "name": "DashDriver",
   "short_name": "DashDriver",
-  "description": "Gestão financeira para motoboys",
+  "description": "Gestão financeira para motoristas de carro e moto",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#131315",
