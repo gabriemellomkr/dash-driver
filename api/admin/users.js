@@ -347,7 +347,7 @@ module.exports = async function handler(req, res) {
     const users = rUsers.rows.map(u => ({
       id:            u.id,
       email:         u.email,
-      nome:          usuariosMap[u.id]?.full_name || null,
+      nome:          configMap[u.id]?.nome || usuariosMap[u.id]?.full_name || null,
       telefone:      configMap[u.id]?.telefone || null,
       created_at:    u.created_at,
       last_sign_in:  u.last_sign_in_at,

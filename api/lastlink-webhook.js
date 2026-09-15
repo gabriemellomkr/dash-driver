@@ -18,6 +18,7 @@ const WEBHOOK_TOKEN = process.env.LASTLINK_WEBHOOK_TOKEN || '';
 const APP_URL       = process.env.APP_URL || 'https://app.dashdriver.com.br';
 const PRODUCT_IDS   = (process.env.LASTLINK_PRODUCT_IDS || '')
   .split(',').map(s => s.trim()).filter(Boolean);
+const escapeHTML = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // Access-ended is authoritative: cancelling renewal does not erase paid time.
 const GRANT_EVENTS = new Set(['Product_Access_Started', 'Product_access_started', 'Purchase_Order_Confirmed', 'Recurrent_Payment']);
@@ -33,34 +34,35 @@ function tokenOk(req) {
   }));
 }
 
-async function sendWelcomeEmail(email, resetUrl) {
+async function sendWelcomeEmail(email, resetUrl, name = '') {
+  const firstName = escapeHTML(String(name || '').trim().split(/\s+/)[0] || 'motorista');
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px"><tr><td align="center">
-<table width="480" cellpadding="0" cellspacing="0" style="background:#0e0e10;border-radius:16px;padding:36px 32px;max-width:480px">
-  <tr><td style="padding-bottom:24px">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#eef3f9;padding:32px 16px"><tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#101b2b;border-radius:20px;padding:36px 34px;max-width:520px;border:1px solid #263b59">
+  <tr><td style="padding-bottom:30px">
     <table cellpadding="0" cellspacing="0"><tr>
-      <td style="background:rgba(59,130,246,.15);padding:10px;border-radius:12px;font-size:22px;vertical-align:middle">◒</td>
+      <td style="background:#1c3c66;padding:10px 12px;border-radius:12px;font-size:16px;font-weight:900;color:#9ec5ff;vertical-align:middle">DD</td>
       <td style="padding-left:12px;font-size:20px;font-weight:900;color:#fff;vertical-align:middle">DashDriver</td>
     </tr></table>
   </td></tr>
-  <tr><td style="padding-bottom:8px;font-size:22px;font-weight:900;color:#fff">Assinatura ativada! 🎉</td></tr>
-  <tr><td style="padding-bottom:24px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.7">
-    Sua conta foi criada e sua assinatura já está <b style="color:#4ade80">ativa</b>. Clique no botão abaixo para definir sua senha e entrar.
+  <tr><td style="padding-bottom:8px;font-size:26px;font-weight:900;color:#fff">Seu acesso está pronto.</td></tr>
+  <tr><td style="padding-bottom:24px;font-size:15px;color:#a9bcd5;line-height:1.7">
+    Oi, ${firstName}. Sua assinatura do DashDriver está <b style="color:#6ee7b7">ativa</b>. Crie sua senha para começar a organizar suas corridas e seus gastos.
   </td></tr>
   <tr><td style="padding-bottom:28px">
-    <a href="${resetUrl}" style="display:inline-block;background:#3b82f6;color:#fff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none">Definir minha senha e entrar →</a>
-    <div style="margin-top:10px;font-size:12px;color:rgba(255,255,255,.3)">Login: ${email} · link válido por 7 dias</div>
+    <a href="${resetUrl}" style="display:inline-block;background:#548fff;color:#07152a;font-weight:800;font-size:15px;padding:15px 24px;border-radius:10px;text-decoration:none">Criar senha e acessar o app</a>
+    <div style="margin-top:12px;font-size:12px;color:#8098b7">Seu e-mail de acesso: ${email}<br>Link válido por 7 dias</div>
   </td></tr>
-  <tr><td style="font-size:12px;color:rgba(255,255,255,.65);line-height:1.8;background:rgba(255,255,255,.04);padding:16px;border-radius:10px">
-    <b style="color:#fff">Como começar</b><br>1. Defina sua senha e entre no app<br>2. Abra pelo navegador do celular ou computador<br>3. Para instalar no celular, use o menu do navegador e escolha “Adicionar à tela inicial” ou “Instalar aplicativo”<br>4. Envie o print de uma corrida, confira os dados e salve
+  <tr><td style="font-size:13px;color:#b8c8dc;line-height:1.85;background:#17263a;padding:18px;border-radius:12px">
+    <b style="color:#fff;font-size:14px">Comece em três passos</b><br>1. Crie sua senha e entre no app<br>2. No celular, use o menu do navegador para adicionar o app à tela inicial<br>3. Envie o print da corrida, confira os dados e salve
   </td></tr>
-  <tr><td style="padding-top:18px;font-size:11px;color:rgba(255,255,255,.35);line-height:1.6">O DashDriver funciona para carro e moto. Dúvidas? Fale com a gente pelo suporte dentro do app.</td></tr>
+  <tr><td style="padding-top:20px;font-size:11px;color:#8098b7;line-height:1.6">O DashDriver funciona para carro e moto. Dúvidas? Fale com a gente pelo suporte dentro do app.</td></tr>
 </table></td></tr></table></body></html>`;
 
-  const text = `Bem-vindo ao DashDriver!\n\nSua conta foi criada e sua assinatura está ativa. Defina sua senha pelo link abaixo, válido por 7 dias:\n${resetUrl}\n\nComo começar:\n1. Defina sua senha e entre no app\n2. Abra pelo navegador do celular ou computador\n3. No menu do navegador, escolha Adicionar à tela inicial ou Instalar aplicativo\n4. Envie o print de uma corrida, confira os dados e salve\n\nO DashDriver funciona para carro e moto.\n\nLogin: ${email}`;
+  const text = `Oi, ${firstName}.\n\nSeu acesso ao DashDriver está pronto. Crie sua senha pelo link abaixo, válido por 7 dias:\n${resetUrl}\n\nComece em três passos:\n1. Crie sua senha e entre no app\n2. No celular, use o menu do navegador para adicionar o app à tela inicial\n3. Envie o print da corrida, confira os dados e salve\n\nO DashDriver funciona para carro e moto.\n\nE-mail de acesso: ${email}`;
 
-  await sendMail({ to: email, subject: 'DashDriver: sua assinatura está ativa', html, text });
+  await sendMail({ to: email, subject: 'Seu acesso ao DashDriver está pronto', html, text });
 }
 
 // Cria usuário no Supabase (mesmo padrão à prova de GoTrue: tokens vazios, não NULL)
@@ -159,7 +161,7 @@ module.exports = async function handler(req, res) {
       await client.query(`INSERT INTO public.dashdriver_password_resets (user_id, token, expires_at)
         VALUES ($1, $2, now() + interval '7 days')`, [userId, digest]);
       // Await delivery before commit: a mail failure rolls back creation and lets Lastlink retry.
-      await sendWelcomeEmail(email, `${APP_URL}?dd_reset=${token}`);
+      await sendWelcomeEmail(email, `${APP_URL}?dd_reset=${token}`, String(data.Buyer?.Name || data.Buyer?.FullName || data.Member?.Name || ''));
     }
     await client.query(`INSERT INTO public.dashdriver_webhook_events (event_id, event_type, event_at, user_id)
       VALUES ($1,$2,$3,$4)`, [body.Id, event, eventAt.toISOString(), userId || null]);
