@@ -14,7 +14,7 @@ window.checkSession = async function() {
   } else {
     // Token inválido ou usuário deletado — limpa sessão local
     await supabase.auth.signOut();
-    document.getElementById('login-screen').style.display = 'flex';
+    _showLoginScreen();
   }
 };
 
@@ -78,7 +78,7 @@ async function handleAuthSuccess(user) {
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     window.registerPushDevice?.().catch(error => console.warn('[push registration]',error.message));
   }
-  document.getElementById('login-screen').style.display = 'none';
+  _hideLoginScreen();
 
   // Carregar dados e atualizar interface.
   // Se alguma tabela não-crítica falhar, seguimos com os dados parciais em vez de
@@ -236,6 +236,19 @@ window.doLogout = async function() {
   window.location.reload();
 };
 
+function _showLoginScreen() {
+  document.documentElement.classList.add('dd-auth-locked');
+  document.body.classList.add('dd-auth-locked');
+  const screen = document.getElementById('login-screen');
+  if (screen) screen.style.display = 'flex';
+}
+
+function _hideLoginScreen() {
+  document.documentElement.classList.remove('dd-auth-locked');
+  document.body.classList.remove('dd-auth-locked');
+  const screen = document.getElementById('login-screen');
+  if (screen) screen.style.display = 'none';
+}
+
 // Initial check
 document.addEventListener('DOMContentLoaded', checkSession);
-

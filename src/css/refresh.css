@@ -20,6 +20,7 @@ body.dd-admin{background:var(--dd-bg)}.dd-admin .sidebar{background:#111722;bord
 .dd-bars-spinner i:nth-child(8) {transform:rotate(315deg);animation-delay:-0.125s}
 .dd-bars-small {width:18px;height:18px}
 #ocr-overlay p {max-width:30ch;text-align:center;padding-inline:12px}
+html.dd-auth-locked,body.dd-auth-locked{overflow:hidden!important;height:100%!important;overscroll-behavior:none!important}
 @keyframes dd-bars-fade {0%,100%{opacity:1}80%{opacity:.2}}
 @media(prefers-reduced-motion:reduce){.dd-bars-spinner i{animation:none;opacity:.65}}
 
