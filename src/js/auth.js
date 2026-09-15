@@ -4,6 +4,7 @@
  */
 
 window.checkSession = async function() {
+  document.body.classList.add('auth-pending');
   // getUser() valida o token no servidor — detecta usuário deletado pelo admin.
   // getSession() só lê o localStorage e não percebe a exclusão.
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -237,6 +238,7 @@ window.doLogout = async function() {
 };
 
 function _showLoginScreen() {
+  document.body.classList.add('auth-pending');
   document.documentElement.classList.add('dd-auth-locked');
   document.body.classList.add('dd-auth-locked');
   const screen = document.getElementById('login-screen');
@@ -244,6 +246,7 @@ function _showLoginScreen() {
 }
 
 function _hideLoginScreen() {
+  document.body.classList.remove('auth-pending');
   document.documentElement.classList.remove('dd-auth-locked');
   document.body.classList.remove('dd-auth-locked');
   const screen = document.getElementById('login-screen');
